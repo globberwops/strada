@@ -79,7 +79,8 @@ Strada follows the **Pitchfork Layout** for C++ project organization and integra
 * **`tests/`**: Unit and integration test suites using **GoogleTest & GoogleMock**.
   * `tests/data/` — `.xodr` fixture files loaded by tests (no inline XML strings in test code).
 * **`benchmark/`**: Micro-benchmarks using **Google Benchmark** to protect the physics time budget.
-* **`CMakeLists.txt`**: Configured to retrieve and build dependencies automatically via CMake `FetchContent` (using `FIND_PACKAGE_ARGS` to look up local system packages first). CMake files are formatted with `cmake-format`.
-* **ClangFormat & ClangTidy**: Enforces strict code styling and linting checks across all source files.
+* **`CMakeLists.txt`**: Configured to retrieve and build dependencies automatically via CMake `FetchContent` (using `FIND_PACKAGE_ARGS` to look up local system packages first).
+* **ClangFormat & ClangTidy**: Enforces strict C++ code styling and static analysis across all source files.
+* **cmake-format**: Enforces consistent formatting of all CMake files (`CMakeLists.txt` and `*.cmake`). Must be run after every CMake file modification.
 * **Code & Test Conventions**: All header files use `#pragma once`, primitive types are brace-initialized (`{}`), standard container classes default-initialize without `{}` (to prevent redundancy warnings), and all tests follow the Arrange-Act-Assert (AAA) pattern.
 * **Error Handling**: Parser errors are communicated via a typed exception hierarchy (`ParseError` → `XmlParseError`, `MissingElementError`, `InvalidAttributeError`) defined in `include/strada/parser/errors.hpp`.
