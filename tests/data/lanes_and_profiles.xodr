@@ -4,6 +4,9 @@
         <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
     </header>
     <road id="1" length="100.0" junction="-1">
+        <planView>
+            <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line /></geometry>
+        </planView>
         <elevationProfile>
             <elevation s="0.0" a="1.0" b="2.0" c="3.0" d="4.0"/>
             <elevation s="50.0" a="5.0" b="6.0" c="7.0" d="8.0"/>

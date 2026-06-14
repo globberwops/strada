@@ -283,3 +283,59 @@ TEST(ParserTest, ParseExtensions) {
   ASSERT_EQ(road_ext.user_data.size(), 1);
   EXPECT_NE(road_ext.user_data[0].find("roadVendorTag"), std::string::npos);
 }
+
+TEST(ParserTest, ThrowsXmlParseErrorOnMalformedXml) {
+  // Arrange
+  const std::string malformed_xml = "<not valid xml <<< >";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(malformed_xml), strada::parser::XmlParseError);
+}
+
+TEST(ParserTest, ThrowsMissingElementErrorOnMissingRoot) {
+  // Arrange
+  const std::string xml = "<NotOpenDRIVE />";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, ThrowsMissingElementErrorOnMissingHeader) {
+  // Arrange
+  const std::string xml = R"(<?xml version="1.0"?><OpenDRIVE></OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, ThrowsMissingElementErrorOnMissingRoadId) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "error_missing_road_id.xodr");
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, ThrowsMissingElementErrorOnMissingPlanView) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "error_missing_plan_view.xodr");
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, ErrorMessageContainsRoadIdOnMissingPlanView) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "error_missing_plan_view.xodr");
+
+  // Act & Assert
+  try {
+    strada::parser::ParseString(xml);
+    FAIL() << "Expected MissingElementError to be thrown";
+  } catch (const strada::parser::MissingElementError& err) {
+    EXPECT_NE(std::string(err.what()).find("1"), std::string::npos);
+  }
+}

@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <strada/ast/opendrive.hpp>
+#include <strada/parser/errors.hpp>
 #include <string_view>
 
 namespace strada::parser {

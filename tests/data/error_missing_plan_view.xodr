@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Missing PlanView Test" version="1.0"
+            date="2026-06-14T09:00:00" north="0.0" south="0.0" east="0.0" west="0.0" vendor="Strada">
+    </header>
+    <!-- Road missing mandatory planView element -->
+    <road id="1" length="10.0" junction="-1">
+    </road>
+</OpenDRIVE>

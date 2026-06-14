@@ -3,6 +3,7 @@
 #include <pugixml.hpp>
 #include <sstream>
 #include <stdexcept>
+#include <strada/parser/errors.hpp>
 #include <strada/parser/parser.hpp>
 #include <string>
 #include <unordered_set>
@@ -102,7 +103,7 @@ auto ParseGeometry(pugi::xml_node geom_node) -> ast::GeometryRecord {
     }
     geom.shape = param_poly3;
   } else {
-    throw std::runtime_error("Unsupported or missing geometry shape type in <geometry>");
+    throw InvalidAttributeError("Unsupported or missing geometry shape type in <geometry>");
   }
   return geom;
 }
@@ -274,12 +275,12 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
 auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
   pugi::xml_node root = doc.child("OpenDRIVE");
   if (!root) {
-    throw std::runtime_error("Missing <OpenDRIVE> root element");
+    throw MissingElementError("Missing <OpenDRIVE> root element");
   }
 
   pugi::xml_node header_node = root.child("header");
   if (!header_node) {
-    throw std::runtime_error("Missing <header> element");
+    throw MissingElementError("Missing <header> element");
   }
 
   ast::OpenDrive opendrive;
@@ -289,6 +290,12 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
   while (!road_node.empty()) {
     ast::Road road;
     road.id = road_node.attribute("id").as_string("");
+    if (road.id.empty()) {
+      throw MissingElementError("<road> element is missing mandatory 'id' attribute");
+    }
+    if (!road_node.attribute("length")) {
+      throw MissingElementError("<road id=\"" + road.id + "\"> is missing mandatory 'length' attribute");
+    }
     road.length = road_node.attribute("length").as_double(0.0);
     road.junction = road_node.attribute("junction").as_string("-1");
     std::string rule_str = road_node.attribute("rule").as_string("RHT");
@@ -301,16 +308,17 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
 
     // PlanView Geometries
     pugi::xml_node plan_view_node = road_node.child("planView");
-    if (!plan_view_node.empty()) {
-      pugi::xml_node geom_node = plan_view_node.child("geometry");
-      while (!geom_node.empty()) {
-        road.plan_view.push_back(ParseGeometry(geom_node));
-        geom_node = geom_node.next_sibling("geometry");
-      }
-      std::ranges::sort(road.plan_view, [](const ast::GeometryRecord& lhs, const ast::GeometryRecord& rhs) -> bool {
-        return lhs.s < rhs.s;
-      });
+    if (plan_view_node.empty()) {
+      throw MissingElementError("<road id=\"" + road.id + "\"> is missing mandatory <planView> element");
     }
+    pugi::xml_node geom_node = plan_view_node.child("geometry");
+    while (!geom_node.empty()) {
+      road.plan_view.push_back(ParseGeometry(geom_node));
+      geom_node = geom_node.next_sibling("geometry");
+    }
+    std::ranges::sort(road.plan_view, [](const ast::GeometryRecord& lhs, const ast::GeometryRecord& rhs) -> bool {
+      return lhs.s < rhs.s;
+    });
 
     // Elevation & Lateral Profiles
     road.elevation_profile = ParseElevationProfile(road_node.child("elevationProfile"));
@@ -344,7 +352,7 @@ auto ParseString(std::string_view xml_content) -> ast::OpenDrive {
   pugi::xml_document doc;
   pugi::xml_parse_result result = doc.load_buffer(xml_content.data(), xml_content.size());
   if (!result) {
-    throw std::runtime_error(std::string("Failed to parse XML from string: ") + result.description());
+    throw XmlParseError(std::string("Failed to parse XML from string: ") + result.description());
   }
   return ParseDocument(doc);
 }
@@ -353,7 +361,7 @@ auto ParseFile(const std::filesystem::path& file_path) -> ast::OpenDrive {
   pugi::xml_document doc;
   pugi::xml_parse_result result = doc.load_file(file_path.c_str());
   if (!result) {
-    throw std::runtime_error(std::string("Failed to parse XML from file: ") + result.description());
+    throw XmlParseError(std::string("Failed to parse XML from file: ") + result.description());
   }
   return ParseDocument(doc);
 }

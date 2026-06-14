@@ -3,6 +3,14 @@
     <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
         <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
     </header>
-    <road id="1" length="10.0" junction="-1" rule="RHT" name="Road 1"/>
-    <road id="2" length="25.5" junction="42" rule="LHT"/>
+    <road id="1" length="10.0" junction="-1" rule="RHT" name="Road 1">
+        <planView>
+            <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line /></geometry>
+        </planView>
+    </road>
+    <road id="2" length="25.5" junction="42" rule="LHT">
+        <planView>
+            <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="25.5"><line /></geometry>
+        </planView>
+    </road>
 </OpenDRIVE>
