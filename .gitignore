@@ -1,1 +1,3 @@
+.cache/
 .devcontainer/devcontainer-lock.json
+build/
