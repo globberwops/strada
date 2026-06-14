@@ -47,8 +47,13 @@ RUN mkdir -p /home/ubuntu/.local/bin \
 # The script defaults to extracting the binary to ~/.local/bin/agy
 RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
 
+RUN curl -fsSL https://pi.dev/install.sh | sh \
+    && pi install npm:pi-subagents \
+    && pi install npm:pi-web-access \
+    && pi install npm:pi-intercom
+
 # Ensure user-local binaries (including agy and our fd symlink) are explicitly on the PATH
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
-WORKDIR /workspace
+WORKDIR /workspaces
 CMD ["/usr/bin/zsh"]
