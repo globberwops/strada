@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Junction Test" version="1.0"
+          date="2026-06-14T09:00:00" north="0.0" south="0.0" east="0.0" west="0.0"
+          vendor="Strada" />
+  <junction id="1" name="Main Junction" type="default">
+    <connection id="0" incomingRoad="10" connectingRoad="20" contactPoint="start">
+      <laneLink from="-1" to="-1" />
+      <laneLink from="-2" to="-2" />
+    </connection>
+    <connection id="1" incomingRoad="30" connectingRoad="40" contactPoint="end">
+      <laneLink from="1" to="1" />
+    </connection>
+  </junction>
+</OpenDRIVE>

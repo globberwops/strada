@@ -211,6 +211,36 @@ auto ParseLanes(pugi::xml_node lanes_node) -> ast::Lanes {
   return lanes;
 }
 
+auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
+  ast::Junction junction;
+  junction.id = junction_node.attribute("id").as_string("");
+  junction.name = junction_node.attribute("name").as_string("");
+  junction.type = junction_node.attribute("type").as_string("");
+
+  pugi::xml_node conn_node = junction_node.child("connection");
+  while (!conn_node.empty()) {
+    ast::Connection conn;
+    conn.id = conn_node.attribute("id").as_string("");
+    conn.incoming_road = conn_node.attribute("incomingRoad").as_string("");
+    conn.connecting_road = conn_node.attribute("connectingRoad").as_string("");
+    std::string cp_str = conn_node.attribute("contactPoint").as_string("start");
+    conn.contact_point = (cp_str == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
+
+    pugi::xml_node ll_node = conn_node.child("laneLink");
+    while (!ll_node.empty()) {
+      ast::LaneLink lane_link;
+      lane_link.from = ll_node.attribute("from").as_int(0);
+      lane_link.to = ll_node.attribute("to").as_int(0);
+      conn.lane_links.push_back(lane_link);
+      ll_node = ll_node.next_sibling("laneLink");
+    }
+
+    junction.connections.push_back(conn);
+    conn_node = conn_node.next_sibling("connection");
+  }
+  return junction;
+}
+
 auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
   pugi::xml_node root = doc.child("OpenDRIVE");
   if (!root) {
@@ -263,6 +293,12 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
 
     opendrive.roads.push_back(road);
     road_node = road_node.next_sibling("road");
+  }
+
+  pugi::xml_node junction_node = root.child("junction");
+  while (!junction_node.empty()) {
+    opendrive.junctions.push_back(ParseJunction(junction_node));
+    junction_node = junction_node.next_sibling("junction");
   }
 
   return opendrive;

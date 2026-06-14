@@ -221,3 +221,41 @@ TEST(ParserTest, ParseLanesAndProfiles) {
   EXPECT_DOUBLE_EQ(section.right[0].widths[0].s_offset, 1.0);
   EXPECT_DOUBLE_EQ(section.right[0].widths[0].a, 3.2);
 }
+
+TEST(ParserTest, ParseJunctions) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "junctions.xodr");
+
+  // Act
+  auto opendrive = strada::parser::ParseString(xml);
+
+  // Assert
+  ASSERT_EQ(opendrive.junctions.size(), 1);
+  const auto& junction = opendrive.junctions[0];
+  EXPECT_EQ(junction.id, "1");
+  EXPECT_EQ(junction.name, "Main Junction");
+  EXPECT_EQ(junction.type, "default");
+
+  ASSERT_EQ(junction.connections.size(), 2);
+
+  const auto& conn0 = junction.connections[0];
+  EXPECT_EQ(conn0.id, "0");
+  EXPECT_EQ(conn0.incoming_road, "10");
+  EXPECT_EQ(conn0.connecting_road, "20");
+  EXPECT_EQ(conn0.contact_point, strada::ast::ContactPoint::kStart);
+  ASSERT_EQ(conn0.lane_links.size(), 2);
+  EXPECT_EQ(conn0.lane_links[0].from, -1);
+  EXPECT_EQ(conn0.lane_links[0].to, -1);
+  EXPECT_EQ(conn0.lane_links[1].from, -2);
+  EXPECT_EQ(conn0.lane_links[1].to, -2);
+
+  const auto& conn1 = junction.connections[1];
+  EXPECT_EQ(conn1.id, "1");
+  EXPECT_EQ(conn1.incoming_road, "30");
+  EXPECT_EQ(conn1.connecting_road, "40");
+  EXPECT_EQ(conn1.contact_point, strada::ast::ContactPoint::kEnd);
+  ASSERT_EQ(conn1.lane_links.size(), 1);
+  EXPECT_EQ(conn1.lane_links[0].from, 1);
+  EXPECT_EQ(conn1.lane_links[0].to, 1);
+}
