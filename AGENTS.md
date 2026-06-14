@@ -34,8 +34,9 @@ Common types:
 
 ### Coding & Testing Conventions
 
+* **Naming Conventions**: Follow the **Google C++ Style Guide**. Type names are `CamelCase` (e.g., `GeometryRecord`), function/method names are `CamelCase` starting with a capital (e.g., `ParseString`), and ordinary variables/parameters are `snake_case` (e.g., `xml_content`). For data members, classes must use a trailing underscore (e.g., `name_`), whereas structs must not use a trailing underscore (e.g., `name`).
 * **Header Guards**: Use `#pragma once` instead of traditional preprocessor include guards (`#ifndef`) in all header files.
-* **Member Initializers**: Initialize fundamental/primitive types (e.g., `int`, `double`, `bool`) with `{}` (e.g., `double length_{};`) to avoid uninitialized values. Standard class types (like `std::string`, `std::vector`) must be default-initialized without `{}` to prevent `readability-redundant-member-init` warnings.
+* **Member Initializers**: Initialize fundamental/primitive types (e.g., `int`, `double`, `bool`) with `{}` (e.g., `double length{};`) to avoid uninitialized values. Standard class types (like `std::string`, `std::vector`) must be default-initialized without `{}` to prevent `readability-redundant-member-init` warnings.
 * **Test Design**: Follow the **Arrange-Act-Assert (AAA)** pattern in all unit and integration tests. Clearly separate and label these blocks.
 * **Testing & Benchmarks**: Use **GoogleTest / GoogleMock** for TDD and **Google Benchmark** for performance regressions.
 * **Commit Strategy**: Create exactly **one commit per issue** following the Conventional Commits specification.

@@ -7,47 +7,47 @@
 namespace strada::ast {
 
 struct LaneOffset {
-  double s_{};
-  double a_{};
-  double b_{};
-  double c_{};
-  double d_{};
+  double s{};
+  double a{};
+  double b{};
+  double c{};
+  double d{};
 };
 
 struct LaneWidth {
-  double s_offset_{};
-  double a_{};
-  double b_{};
-  double c_{};
-  double d_{};
+  double s_offset{};
+  double a{};
+  double b{};
+  double c{};
+  double d{};
 };
 
 struct LaneHeight {
-  double s_offset_{};
-  double inner_{};
-  double outer_{};
+  double s_offset{};
+  double inner{};
+  double outer{};
 };
 
 struct Lane {
-  int id_{};
-  std::string type_;
-  bool level_{};
-  std::optional<int> predecessor_;
-  std::optional<int> successor_;
-  std::vector<LaneWidth> widths_;
-  std::vector<LaneHeight> heights_;
+  int id{};
+  std::string type;
+  bool level{};
+  std::optional<int> predecessor;
+  std::optional<int> successor;
+  std::vector<LaneWidth> widths;
+  std::vector<LaneHeight> heights;
 };
 
 struct LaneSection {
-  double s_{};
-  std::vector<Lane> left_;
-  std::vector<Lane> center_;
-  std::vector<Lane> right_;
+  double s{};
+  std::vector<Lane> left;
+  std::vector<Lane> center;
+  std::vector<Lane> right;
 };
 
 struct Lanes {
-  std::vector<LaneOffset> offsets_;
-  std::vector<LaneSection> sections_;
+  std::vector<LaneOffset> offsets;
+  std::vector<LaneSection> sections;
 };
 
 }  // namespace strada::ast

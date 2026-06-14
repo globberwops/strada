@@ -10,44 +10,44 @@ struct Line {
 };
 
 struct Spiral {
-  double curv_start_{};
-  double curv_end_{};
+  double curv_start{};
+  double curv_end{};
 };
 
 struct Arc {
-  double curvature_{};
+  double curvature{};
 };
 
 struct Poly3 {
-  double a_{};
-  double b_{};
-  double c_{};
-  double d_{};
+  double a{};
+  double b{};
+  double c{};
+  double d{};
 };
 
 enum class PRange : std::uint8_t { Normalized, ArcLength };
 
 struct ParamPoly3 {
-  double a_u_{};
-  double b_u_{};
-  double c_u_{};
-  double d_u_{};
-  double a_v_{};
-  double b_v_{};
-  double c_v_{};
-  double d_v_{};
-  PRange p_range_ = PRange::Normalized;
+  double a_u{};
+  double b_u{};
+  double c_u{};
+  double d_u{};
+  double a_v{};
+  double b_v{};
+  double c_v{};
+  double d_v{};
+  PRange p_range = PRange::Normalized;
 };
 
 using GeometryShape = std::variant<Line, Spiral, Arc, Poly3, ParamPoly3>;
 
 struct GeometryRecord {
-  double s_{};
-  double x_{};
-  double y_{};
-  double hdg_{};
-  double length_{};
-  GeometryShape shape_;
+  double s{};
+  double x{};
+  double y{};
+  double hdg{};
+  double length{};
+  GeometryShape shape;
 };
 
 }  // namespace strada::ast

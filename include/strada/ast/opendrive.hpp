@@ -7,8 +7,8 @@
 namespace strada::ast {
 
 struct OpenDrive {
-  Header header_;
-  std::vector<Road> roads_;
+  Header header;
+  std::vector<Road> roads;
 };
 
 }  // namespace strada::ast

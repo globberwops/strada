@@ -5,37 +5,37 @@
 namespace strada::ast {
 
 struct Elevation {
-  double s_{};
-  double a_{};
-  double b_{};
-  double c_{};
-  double d_{};
+  double s{};
+  double a{};
+  double b{};
+  double c{};
+  double d{};
 };
 
 struct Superelevation {
-  double s_{};
-  double a_{};
-  double b_{};
-  double c_{};
-  double d_{};
+  double s{};
+  double a{};
+  double b{};
+  double c{};
+  double d{};
 };
 
 struct Shape {
-  double s_{};
-  double t_{};
-  double a_{};
-  double b_{};
-  double c_{};
-  double d_{};
+  double s{};
+  double t{};
+  double a{};
+  double b{};
+  double c{};
+  double d{};
 };
 
 struct ElevationProfile {
-  std::vector<Elevation> elevations_;
+  std::vector<Elevation> elevations;
 };
 
 struct LateralProfile {
-  std::vector<Superelevation> superelevations_;
-  std::vector<Shape> shapes_;
+  std::vector<Superelevation> superelevations;
+  std::vector<Shape> shapes;
 };
 
 }  // namespace strada::ast

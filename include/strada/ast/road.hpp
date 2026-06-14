@@ -12,15 +12,15 @@ namespace strada::ast {
 enum class TrafficRule : std::uint8_t { RHT, LHT };
 
 struct Road {
-  std::string id_;
-  double length_{};
-  std::string junction_ = "-1";
-  TrafficRule rule_ = TrafficRule::RHT;
-  std::string name_;
-  std::vector<GeometryRecord> plan_view_;
-  ElevationProfile elevation_profile_;
-  LateralProfile lateral_profile_;
-  Lanes lanes_;
+  std::string id;
+  double length{};
+  std::string junction = "-1";
+  TrafficRule rule = TrafficRule::RHT;
+  std::string name;
+  std::vector<GeometryRecord> plan_view;
+  ElevationProfile elevation_profile;
+  LateralProfile lateral_profile;
+  Lanes lanes;
 };
 
 }  // namespace strada::ast
