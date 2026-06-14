@@ -1,0 +1,14 @@
+---
+BasedOnStyle: Google
+Language: Cpp
+Standard: Latest
+
+# Code formatting settings
+ColumnLimit: 120
+EnumTrailingComma: Remove
+InsertNewlineAtEOF: true
+InsertBraces: true
+
+# Includes sorting
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
