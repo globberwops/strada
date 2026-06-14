@@ -1,13 +1,38 @@
 #include <algorithm>
+#include <map>
 #include <pugixml.hpp>
+#include <sstream>
 #include <stdexcept>
 #include <strada/parser/parser.hpp>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace strada::parser {
 
 namespace {
+
+auto NodeToString(const pugi::xml_node& node) -> std::string {
+  std::ostringstream oss;
+  node.print(oss, "  ", pugi::format_default);
+  return oss.str();
+}
+
+auto ParseExtensions(const pugi::xml_node& node, const std::unordered_set<std::string>& known_attrs)
+    -> ast::Extensions {
+  ast::Extensions ext;
+  for (const pugi::xml_attribute& attr : node.attributes()) {
+    if (!known_attrs.contains(attr.name())) {
+      ext.attributes.emplace(attr.name(), attr.value());
+    }
+  }
+  pugi::xml_node child = node.child("userData");
+  while (!child.empty()) {
+    ext.user_data.push_back(NodeToString(child));
+    child = child.next_sibling("userData");
+  }
+  return ext;
+}
 
 auto ParseHeader(pugi::xml_node header_node) -> ast::Header {
   ast::Header header;
@@ -26,6 +51,9 @@ auto ParseHeader(pugi::xml_node header_node) -> ast::Header {
   if (!geo_ref_node.empty()) {
     header.geo_reference = geo_ref_node.child_value();
   }
+  static const std::unordered_set<std::string> known_header_attrs = {
+      "revMajor", "revMinor", "name", "version", "date", "north", "south", "east", "west", "vendor"};
+  header.extensions = ParseExtensions(header_node, known_header_attrs);
   return header;
 }
 
@@ -238,6 +266,8 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
     junction.connections.push_back(conn);
     conn_node = conn_node.next_sibling("connection");
   }
+  static const std::unordered_set<std::string> known_junction_attrs = {"id", "name", "type"};
+  junction.extensions = ParseExtensions(junction_node, known_junction_attrs);
   return junction;
 }
 
@@ -290,6 +320,10 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
     road.lanes = ParseLanes(road_node.child("lanes"));
     std::ranges::sort(road.lanes.sections,
                       [](const ast::LaneSection& lhs, const ast::LaneSection& rhs) -> bool { return lhs.s < rhs.s; });
+
+    // Extensions
+    static const std::unordered_set<std::string> known_road_attrs = {"id", "length", "junction", "rule", "name"};
+    road.extensions = ParseExtensions(road_node, known_road_attrs);
 
     opendrive.roads.push_back(road);
     road_node = road_node.next_sibling("road");

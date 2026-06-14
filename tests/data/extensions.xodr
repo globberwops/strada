@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Extensions Test" version="1.0"
+          date="2026-06-14T09:00:00" north="0.0" south="0.0" east="0.0" west="0.0"
+          vendor="Strada" customKey="customValue">
+    <userData>
+      <someVendorData value="42" />
+    </userData>
+  </header>
+  <road id="1" length="10.0" junction="-1" customAttr="roadExtra">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0">
+        <line />
+      </geometry>
+    </planView>
+    <userData>
+      <roadVendorTag key="abc" />
+    </userData>
+  </road>
+</OpenDRIVE>

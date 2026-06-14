@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <strada/ast/extensions.hpp>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,7 @@ struct Junction {
   std::string name;
   std::string type;
   std::vector<Connection> connections;
+  Extensions extensions;
 };
 
 }  // namespace strada::ast

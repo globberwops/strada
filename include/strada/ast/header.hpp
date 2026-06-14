@@ -1,5 +1,6 @@
 #pragma once
 
+#include <strada/ast/extensions.hpp>
 #include <string>
 
 namespace strada::ast {
@@ -16,6 +17,7 @@ struct Header {
   double west{};
   std::string vendor;
   std::string geo_reference;
+  Extensions extensions;
 };
 
 }  // namespace strada::ast

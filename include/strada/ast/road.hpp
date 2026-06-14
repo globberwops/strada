@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <strada/ast/extensions.hpp>
 #include <strada/ast/geometry.hpp>
 #include <strada/ast/lanes.hpp>
 #include <strada/ast/profiles.hpp>
@@ -21,6 +22,7 @@ struct Road {
   ElevationProfile elevation_profile;
   LateralProfile lateral_profile;
   Lanes lanes;
+  Extensions extensions;
 };
 
 }  // namespace strada::ast

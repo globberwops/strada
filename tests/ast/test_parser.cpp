@@ -259,3 +259,27 @@ TEST(ParserTest, ParseJunctions) {
   EXPECT_EQ(conn1.lane_links[0].from, 1);
   EXPECT_EQ(conn1.lane_links[0].to, 1);
 }
+
+TEST(ParserTest, ParseExtensions) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "extensions.xodr");
+
+  // Act
+  auto opendrive = strada::parser::ParseString(xml);
+
+  // Assert – header captures unknown attributes and userData
+  const auto& header_ext = opendrive.header.extensions;
+  ASSERT_EQ(header_ext.attributes.size(), 1);
+  EXPECT_EQ(header_ext.attributes.at("customKey"), "customValue");
+  ASSERT_EQ(header_ext.user_data.size(), 1);
+  EXPECT_NE(header_ext.user_data[0].find("someVendorData"), std::string::npos);
+
+  // Assert – road captures unknown attributes and userData
+  ASSERT_EQ(opendrive.roads.size(), 1);
+  const auto& road_ext = opendrive.roads[0].extensions;
+  ASSERT_EQ(road_ext.attributes.size(), 1);
+  EXPECT_EQ(road_ext.attributes.at("customAttr"), "roadExtra");
+  ASSERT_EQ(road_ext.user_data.size(), 1);
+  EXPECT_NE(road_ext.user_data[0].find("roadVendorTag"), std::string::npos);
+}
