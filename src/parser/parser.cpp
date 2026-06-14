@@ -2,7 +2,6 @@
 #include <map>
 #include <pugixml.hpp>
 #include <sstream>
-#include <stdexcept>
 #include <strada/parser/errors.hpp>
 #include <strada/parser/parser.hpp>
 #include <string>
