@@ -4,20 +4,23 @@ include(FetchContent)
 # 1. pugixml
 FetchContent_Declare(
   pugixml
-  URL https://github.com/zeux/pugixml/releases/download/v1.14/pugixml-1.14.tar.gz
-      FIND_PACKAGE_ARGS
-      GLOBAL)
+  GIT_REPOSITORY https://github.com/zeux/pugixml.git
+  GIT_TAG v1.14
+  FIND_PACKAGE_ARGS GLOBAL)
 
 # 1. Eigen
 FetchContent_Declare(
-  eigen URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-            FIND_PACKAGE_ARGS NAMES Eigen3 GLOBAL)
+  eigen
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+  GIT_TAG 3.4.0
+  FIND_PACKAGE_ARGS NAMES Eigen3 GLOBAL)
 
 # 1. GoogleTest
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
-      FIND_PACKAGE_ARGS NAMES GTest GLOBAL)
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG v1.17.0
+  FIND_PACKAGE_ARGS NAMES GTest GLOBAL)
 
 set(EIGEN_BUILD_TESTING
     OFF

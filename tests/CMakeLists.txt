@@ -5,6 +5,5 @@ target_compile_definitions(
 
 target_link_libraries(test_strada PRIVATE Strada::strada GTest::gtest_main)
 
-# Enable CTest integration
 include(GoogleTest)
 gtest_discover_tests(test_strada)
