@@ -1,17 +1,31 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
 #include <fstream>
 #include <strada/parser/parser.hpp>
+#include <string>
+
+namespace {
+
+auto ReadFileToString(const std::filesystem::path& path) -> std::string {
+  std::ifstream file_stream(path, std::ios::in | std::ios::binary);
+  if (!file_stream) {
+    throw std::runtime_error("Cannot open file: " + path.string());
+  }
+  std::string contents;
+  file_stream.seekg(0, std::ios::end);
+  contents.resize(static_cast<std::string::size_type>(file_stream.tellg()));
+  file_stream.seekg(0, std::ios::beg);
+  file_stream.read(contents.data(), static_cast<std::streamsize>(contents.size()));
+  return contents;
+}
+
+}  // namespace
 
 TEST(ParserTest, ParseMinimalHeaderFromString) {
   // Arrange
-  std::string_view xml = R"(<?xml version="1.0" encoding="utf-8"?>
-<OpenDRIVE>
-    <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
-        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
-    </header>
-</OpenDRIVE>
-)";
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "minimal_header.xodr");
 
   // Act
   auto opendrive = strada::parser::ParseString(xml);
@@ -33,25 +47,13 @@ TEST(ParserTest, ParseMinimalHeaderFromString) {
 
 TEST(ParserTest, ParseMinimalHeaderFromFile) {
   // Arrange
-  std::string_view xml = R"(<?xml version="1.0" encoding="utf-8"?>
-<OpenDRIVE>
-    <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
-        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
-    </header>
-</OpenDRIVE>
-)";
-
-  std::string temp_filename = "temp_test_map.xodr";
-  {
-    std::ofstream out(temp_filename);
-    out << xml;
-  }
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "minimal_header.xodr";
 
   // Act
-  auto opendrive = strada::parser::ParseFile(temp_filename);
+  auto opendrive = strada::parser::ParseFile(file_path);
 
   // Assert
-  std::filesystem::remove(temp_filename);
   const auto& header = opendrive.header;
   EXPECT_EQ(header.rev_major, 1);
   EXPECT_EQ(header.rev_minor, 9);
@@ -61,15 +63,8 @@ TEST(ParserTest, ParseMinimalHeaderFromFile) {
 
 TEST(ParserTest, ParseRoadsFromString) {
   // Arrange
-  std::string_view xml = R"(<?xml version="1.0" encoding="utf-8"?>
-<OpenDRIVE>
-    <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
-        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
-    </header>
-    <road id="1" length="10.0" junction="-1" rule="RHT" name="Road 1"/>
-    <road id="2" length="25.5" junction="42" rule="LHT"/>
-</OpenDRIVE>
-)";
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "roads.xodr");
 
   // Act
   auto opendrive = strada::parser::ParseString(xml);
@@ -93,32 +88,8 @@ TEST(ParserTest, ParseRoadsFromString) {
 
 TEST(ParserTest, ParseGeometryFromPlanView) {
   // Arrange
-  std::string_view xml = R"(<?xml version="1.0" encoding="utf-8"?>
-<OpenDRIVE>
-    <header revMajor="1" revMinor="9" name="Test Geometry Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
-        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
-    </header>
-    <road id="1" length="100.0" junction="-1">
-        <planView>
-            <geometry s="0.0" x="10.0" y="20.0" hdg="0.5" length="10.0">
-                <line/>
-            </geometry>
-            <geometry s="10.0" x="20.0" y="30.0" hdg="0.6" length="15.0">
-                <spiral curvStart="0.0" curvEnd="0.1"/>
-            </geometry>
-            <geometry s="25.0" x="35.0" y="45.0" hdg="0.7" length="20.0">
-                <arc curvature="0.05"/>
-            </geometry>
-            <geometry s="45.0" x="50.0" y="60.0" hdg="0.8" length="25.0">
-                <poly3 a="1.0" b="2.0" c="3.0" d="4.0"/>
-            </geometry>
-            <geometry s="70.0" x="75.0" y="85.0" hdg="0.9" length="30.0">
-                <paramPoly3 aU="1.1" bU="1.2" cU="1.3" dU="1.4" aV="2.1" bV="2.2" cV="2.3" dV="2.4" pRange="arcLength"/>
-            </geometry>
-        </planView>
-    </road>
-</OpenDRIVE>
-)";
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "geometry.xodr");
 
   // Act
   auto opendrive = strada::parser::ParseString(xml);
@@ -176,49 +147,8 @@ TEST(ParserTest, ParseGeometryFromPlanView) {
 
 TEST(ParserTest, ParseLanesAndProfiles) {
   // Arrange
-  std::string_view xml = R"(<?xml version="1.0" encoding="utf-8"?>
-<OpenDRIVE>
-    <header revMajor="1" revMinor="9" name="Test Lanes Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
-        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
-    </header>
-    <road id="1" length="100.0" junction="-1">
-        <elevationProfile>
-            <elevation s="0.0" a="1.0" b="2.0" c="3.0" d="4.0"/>
-            <elevation s="50.0" a="5.0" b="6.0" c="7.0" d="8.0"/>
-        </elevationProfile>
-        <lateralProfile>
-            <superelevation s="0.0" a="0.1" b="0.2" c="0.3" d="0.4"/>
-            <shape s="10.0" t="-2.0" a="1.1" b="1.2" c="1.3" d="1.4"/>
-        </lateralProfile>
-        <lanes>
-            <laneOffset s="0.0" a="0.5" b="0.6" c="0.7" d="0.8"/>
-            <laneSection s="0.0">
-                <left>
-                    <lane id="1" type="driving" level="true">
-                        <link>
-                            <predecessor id="2"/>
-                            <successor id="3"/>
-                        </link>
-                        <width sOffset="0.0" a="3.0" b="0.1" c="0.0" d="0.0"/>
-                        <height sOffset="0.0" inner="0.0" outer="0.1"/>
-                    </lane>
-                </left>
-                <center>
-                    <lane id="0" type="border" level="false"/>
-                </center>
-                <right>
-                    <lane id="-1" type="driving" level="false">
-                        <link>
-                            <predecessor id="-2"/>
-                        </link>
-                        <width sOffset="1.0" a="3.2" b="0.2" c="0.0" d="0.0"/>
-                    </lane>
-                </right>
-            </laneSection>
-        </lanes>
-    </road>
-</OpenDRIVE>
-)";
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "lanes_and_profiles.xodr");
 
   // Act
   auto opendrive = strada::parser::ParseString(xml);

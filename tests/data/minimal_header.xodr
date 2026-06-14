@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
+        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
+    </header>
+</OpenDRIVE>

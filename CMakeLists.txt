@@ -52,6 +52,8 @@ enable_testing()
 
 add_executable(test_strada tests/ast/test_parser.cpp)
 
+target_compile_definitions(test_strada PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+
 target_link_libraries(test_strada PRIVATE strada GTest::gtest_main)
 
 # Enable CTest

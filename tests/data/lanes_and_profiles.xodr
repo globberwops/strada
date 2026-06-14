@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Test Lanes Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
+        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
+    </header>
+    <road id="1" length="100.0" junction="-1">
+        <elevationProfile>
+            <elevation s="0.0" a="1.0" b="2.0" c="3.0" d="4.0"/>
+            <elevation s="50.0" a="5.0" b="6.0" c="7.0" d="8.0"/>
+        </elevationProfile>
+        <lateralProfile>
+            <superelevation s="0.0" a="0.1" b="0.2" c="0.3" d="0.4"/>
+            <shape s="10.0" t="-2.0" a="1.1" b="1.2" c="1.3" d="1.4"/>
+        </lateralProfile>
+        <lanes>
+            <laneOffset s="0.0" a="0.5" b="0.6" c="0.7" d="0.8"/>
+            <laneSection s="0.0">
+                <left>
+                    <lane id="1" type="driving" level="true">
+                        <link>
+                            <predecessor id="2"/>
+                            <successor id="3"/>
+                        </link>
+                        <width sOffset="0.0" a="3.0" b="0.1" c="0.0" d="0.0"/>
+                        <height sOffset="0.0" inner="0.0" outer="0.1"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" type="border" level="false"/>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2"/>
+                        </link>
+                        <width sOffset="1.0" a="3.2" b="0.2" c="0.0" d="0.0"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+    </road>
+</OpenDRIVE>
