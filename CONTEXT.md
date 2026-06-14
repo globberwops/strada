@@ -76,5 +76,6 @@ Strada follows the **Pitchfork Layout** for C++ project organization and integra
 * **`src/`**: Private source files and internal implementations.
 * **`tests/`**: Unit and integration test suites using **GoogleTest & GoogleMock**.
 * **`benchmark/`**: Micro-benchmarks using **Google Benchmark** to protect the physics time budget.
-* **`CMakeLists.txt`**: Configured to retrieve and build dependencies automatically via CMake `FetchContent`.
+* **`CMakeLists.txt`**: Configured to retrieve and build dependencies automatically via CMake `FetchContent` (using `FIND_PACKAGE_ARGS` to look up local system packages first).
 * **ClangFormat & ClangTidy**: Enforces strict code styling and linting checks across all source files.
+* **Code & Test Conventions**: All header files use `#pragma once`, primitive types are brace-initialized (`{}`), standard container classes default-initialize without `{}` (to prevent redundancy warnings), and all tests follow the Arrange-Act-Assert (AAA) pattern.
