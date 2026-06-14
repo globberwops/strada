@@ -25,7 +25,7 @@ struct Poly3 {
   double d{};
 };
 
-enum class PRange : std::uint8_t { Normalized, ArcLength };
+enum class PRange : std::uint8_t { kNormalized, kArcLength };
 
 struct ParamPoly3 {
   double a_u{};
@@ -36,7 +36,7 @@ struct ParamPoly3 {
   double b_v{};
   double c_v{};
   double d_v{};
-  PRange p_range = PRange::Normalized;
+  PRange p_range = PRange::kNormalized;
 };
 
 using GeometryShape = std::variant<Line, Spiral, Arc, Poly3, ParamPoly3>;

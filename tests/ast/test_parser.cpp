@@ -81,13 +81,13 @@ TEST(ParserTest, ParseRoadsFromString) {
   EXPECT_EQ(roads[0].id, "1");
   EXPECT_DOUBLE_EQ(roads[0].length, 10.0);
   EXPECT_EQ(roads[0].junction, "-1");
-  EXPECT_EQ(roads[0].rule, strada::ast::TrafficRule::RHT);
+  EXPECT_EQ(roads[0].rule, strada::ast::TrafficRule::kRht);
   EXPECT_EQ(roads[0].name, "Road 1");
 
   EXPECT_EQ(roads[1].id, "2");
   EXPECT_DOUBLE_EQ(roads[1].length, 25.5);
   EXPECT_EQ(roads[1].junction, "42");
-  EXPECT_EQ(roads[1].rule, strada::ast::TrafficRule::LHT);
+  EXPECT_EQ(roads[1].rule, strada::ast::TrafficRule::kLht);
   EXPECT_EQ(roads[1].name, "");
 }
 
@@ -171,7 +171,7 @@ TEST(ParserTest, ParseGeometryFromPlanView) {
   EXPECT_DOUBLE_EQ(param_poly3.b_v, 2.2);
   EXPECT_DOUBLE_EQ(param_poly3.c_v, 2.3);
   EXPECT_DOUBLE_EQ(param_poly3.d_v, 2.4);
-  EXPECT_EQ(param_poly3.p_range, strada::ast::PRange::ArcLength);
+  EXPECT_EQ(param_poly3.p_range, strada::ast::PRange::kArcLength);
 }
 
 TEST(ParserTest, ParseLanesAndProfiles) {

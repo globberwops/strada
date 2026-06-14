@@ -68,9 +68,9 @@ auto ParseGeometry(pugi::xml_node geom_node) -> ast::GeometryRecord {
 
     std::string p_range_str = param_poly3_node.attribute("pRange").as_string("normalized");
     if (p_range_str == "arcLength") {
-      param_poly3.p_range = ast::PRange::ArcLength;
+      param_poly3.p_range = ast::PRange::kArcLength;
     } else {
-      param_poly3.p_range = ast::PRange::Normalized;
+      param_poly3.p_range = ast::PRange::kNormalized;
     }
     geom.shape = param_poly3;
   } else {
@@ -233,9 +233,9 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
     road.junction = road_node.attribute("junction").as_string("-1");
     std::string rule_str = road_node.attribute("rule").as_string("RHT");
     if (rule_str == "LHT") {
-      road.rule = ast::TrafficRule::LHT;
+      road.rule = ast::TrafficRule::kLht;
     } else {
-      road.rule = ast::TrafficRule::RHT;
+      road.rule = ast::TrafficRule::kRht;
     }
     road.name = road_node.attribute("name").as_string("");
 

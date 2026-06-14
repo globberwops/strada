@@ -9,13 +9,13 @@
 
 namespace strada::ast {
 
-enum class TrafficRule : std::uint8_t { RHT, LHT };
+enum class TrafficRule : std::uint8_t { kRht, kLht };
 
 struct Road {
   std::string id;
   double length{};
   std::string junction = "-1";
-  TrafficRule rule = TrafficRule::RHT;
+  TrafficRule rule = TrafficRule::kRht;
   std::string name;
   std::vector<GeometryRecord> plan_view;
   ElevationProfile elevation_profile;
