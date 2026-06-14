@@ -15,9 +15,9 @@ TEST(ParserTest, ParseMinimalHeaderFromString) {
 
   // Act
   auto opendrive = strada::parser::ParseString(xml);
-  const auto& header = opendrive.header_;
 
   // Assert
+  const auto& header = opendrive.header_;
   EXPECT_EQ(header.rev_major_, 1);
   EXPECT_EQ(header.rev_minor_, 9);
   EXPECT_EQ(header.name_, "Test Map");
@@ -40,6 +40,7 @@ TEST(ParserTest, ParseMinimalHeaderFromFile) {
     </header>
 </OpenDRIVE>
 )";
+
   std::string temp_filename = "temp_test_map.xodr";
   {
     std::ofstream out(temp_filename);
@@ -76,6 +77,7 @@ TEST(ParserTest, ParseRoadsFromString) {
   // Assert
   const auto& roads = opendrive.roads_;
   ASSERT_EQ(roads.size(), 2);
+
   EXPECT_EQ(roads[0].id_, "1");
   EXPECT_DOUBLE_EQ(roads[0].length_, 10.0);
   EXPECT_EQ(roads[0].junction_, "-1");
@@ -170,4 +172,122 @@ TEST(ParserTest, ParseGeometryFromPlanView) {
   EXPECT_DOUBLE_EQ(param_poly3.c_v_, 2.3);
   EXPECT_DOUBLE_EQ(param_poly3.d_v_, 2.4);
   EXPECT_EQ(param_poly3.p_range_, strada::ast::PRange::ArcLength);
+}
+
+TEST(ParserTest, ParseLanesAndProfiles) {
+  // Arrange
+  std::string_view xml = R"(<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Test Lanes Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
+        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
+    </header>
+    <road id="1" length="100.0" junction="-1">
+        <elevationProfile>
+            <elevation s="0.0" a="1.0" b="2.0" c="3.0" d="4.0"/>
+            <elevation s="50.0" a="5.0" b="6.0" c="7.0" d="8.0"/>
+        </elevationProfile>
+        <lateralProfile>
+            <superelevation s="0.0" a="0.1" b="0.2" c="0.3" d="0.4"/>
+            <shape s="10.0" t="-2.0" a="1.1" b="1.2" c="1.3" d="1.4"/>
+        </lateralProfile>
+        <lanes>
+            <laneOffset s="0.0" a="0.5" b="0.6" c="0.7" d="0.8"/>
+            <laneSection s="0.0">
+                <left>
+                    <lane id="1" type="driving" level="true">
+                        <link>
+                            <predecessor id="2"/>
+                            <successor id="3"/>
+                        </link>
+                        <width sOffset="0.0" a="3.0" b="0.1" c="0.0" d="0.0"/>
+                        <height sOffset="0.0" inner="0.0" outer="0.1"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" type="border" level="false"/>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2"/>
+                        </link>
+                        <width sOffset="1.0" a="3.2" b="0.2" c="0.0" d="0.0"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+    </road>
+</OpenDRIVE>
+)";
+
+  // Act
+  auto opendrive = strada::parser::ParseString(xml);
+
+  // Assert
+  ASSERT_EQ(opendrive.roads_.size(), 1);
+  const auto& road = opendrive.roads_[0];
+
+  // Elevation Profile
+  const auto& elevations = road.elevation_profile_.elevations_;
+  ASSERT_EQ(elevations.size(), 2);
+  EXPECT_DOUBLE_EQ(elevations[0].s_, 0.0);
+  EXPECT_DOUBLE_EQ(elevations[0].a_, 1.0);
+  EXPECT_DOUBLE_EQ(elevations[1].s_, 50.0);
+  EXPECT_DOUBLE_EQ(elevations[1].d_, 8.0);
+
+  // Lateral Profile
+  const auto& superelevations = road.lateral_profile_.superelevations_;
+  ASSERT_EQ(superelevations.size(), 1);
+  EXPECT_DOUBLE_EQ(superelevations[0].s_, 0.0);
+  EXPECT_DOUBLE_EQ(superelevations[0].a_, 0.1);
+
+  const auto& shapes = road.lateral_profile_.shapes_;
+  ASSERT_EQ(shapes.size(), 1);
+  EXPECT_DOUBLE_EQ(shapes[0].s_, 10.0);
+  EXPECT_DOUBLE_EQ(shapes[0].t_, -2.0);
+  EXPECT_DOUBLE_EQ(shapes[0].a_, 1.1);
+
+  // Lanes
+  const auto& lanes = road.lanes_;
+  ASSERT_EQ(lanes.offsets_.size(), 1);
+  EXPECT_DOUBLE_EQ(lanes.offsets_[0].s_, 0.0);
+  EXPECT_DOUBLE_EQ(lanes.offsets_[0].a_, 0.5);
+
+  ASSERT_EQ(lanes.sections_.size(), 1);
+  const auto& section = lanes.sections_[0];
+  EXPECT_DOUBLE_EQ(section.s_, 0.0);
+
+  // Left Lane
+  ASSERT_EQ(section.left_.size(), 1);
+  EXPECT_EQ(section.left_[0].id_, 1);
+  EXPECT_EQ(section.left_[0].type_, "driving");
+  EXPECT_TRUE(section.left_[0].level_);
+  ASSERT_TRUE(section.left_[0].predecessor_.has_value());
+  EXPECT_EQ(section.left_[0].predecessor_.value_or(0), 2);
+  ASSERT_TRUE(section.left_[0].successor_.has_value());
+  EXPECT_EQ(section.left_[0].successor_.value_or(0), 3);
+  ASSERT_EQ(section.left_[0].widths_.size(), 1);
+  EXPECT_DOUBLE_EQ(section.left_[0].widths_[0].s_offset_, 0.0);
+  EXPECT_DOUBLE_EQ(section.left_[0].widths_[0].a_, 3.0);
+  ASSERT_EQ(section.left_[0].heights_.size(), 1);
+  EXPECT_DOUBLE_EQ(section.left_[0].heights_[0].s_offset_, 0.0);
+  EXPECT_DOUBLE_EQ(section.left_[0].heights_[0].outer_, 0.1);
+
+  // Center Lane
+  ASSERT_EQ(section.center_.size(), 1);
+  EXPECT_EQ(section.center_[0].id_, 0);
+  EXPECT_EQ(section.center_[0].type_, "border");
+  EXPECT_FALSE(section.center_[0].level_);
+
+  // Right Lane
+  ASSERT_EQ(section.right_.size(), 1);
+  EXPECT_EQ(section.right_[0].id_, -1);
+  EXPECT_EQ(section.right_[0].type_, "driving");
+  EXPECT_FALSE(section.right_[0].level_);
+  ASSERT_TRUE(section.right_[0].predecessor_.has_value());
+  EXPECT_EQ(section.right_[0].predecessor_.value_or(0), -2);
+  EXPECT_FALSE(section.right_[0].successor_.has_value());
+  ASSERT_EQ(section.right_[0].widths_.size(), 1);
+  EXPECT_DOUBLE_EQ(section.right_[0].widths_[0].s_offset_, 1.0);
+  EXPECT_DOUBLE_EQ(section.right_[0].widths_[0].a_, 3.2);
 }

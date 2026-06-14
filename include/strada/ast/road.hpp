@@ -2,6 +2,8 @@
 #define STRADA_AST_ROAD_HPP_
 
 #include <strada/ast/geometry.hpp>
+#include <strada/ast/lanes.hpp>
+#include <strada/ast/profiles.hpp>
 #include <string>
 #include <vector>
 
@@ -14,6 +16,9 @@ struct Road {
   std::string rule_ = "RHT";
   std::string name_;
   std::vector<GeometryRecord> plan_view_;
+  ElevationProfile elevation_profile_;
+  LateralProfile lateral_profile_;
+  Lanes lanes_;
 };
 
 }  // namespace strada::ast
