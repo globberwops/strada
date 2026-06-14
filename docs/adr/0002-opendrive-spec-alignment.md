@@ -28,9 +28,9 @@ Road elevations can be specified via simple superelevation or complex `<shape>` 
 
 ### 4. Lossless `<userData>` and Custom Attribute Storage
 The OpenDRIVE `<userData>` element permits arbitrary nested XML namespaces, and datasets often contain custom XML attributes.
-* **Decision**: The AST's extension container will store:
-  1. Custom XML attributes as flat `std::unordered_map<std::string, std::string>`.
-  2. Nested XML nodes under `<userData>` as raw XML string blocks or lightweight `xml_node` DOM fragments, guaranteeing complete serialization fidelity when export is requested.
+* **Decision**: The AST's extension container (`struct Extensions`) will store:
+  1. Custom XML attributes as a flat `std::map<std::string, std::string>` (ordered, for deterministic iteration and serialization).
+  2. Nested XML nodes under `<userData>` as a `std::vector<std::string>` of raw XML strings — one entry per `<userData>` element — guaranteeing complete serialization fidelity when export is requested.
 
 ## Consequences
 * **CPM Math Execution**: Constant-time $O(1)$ reference line evaluation is guaranteed by replacing numerical root-finding and integration with pre-conversions and rational approximations.

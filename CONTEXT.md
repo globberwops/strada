@@ -25,8 +25,8 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
 * **Junction**: An intersection where multiple roads connect via specific incoming/outgoing road links.
 
 ### System Components
-* **AST (Abstract Syntax Tree)**: The strongly-typed C++ object hierarchy that mirrors the complete OpenDRIVE 1.9 XML schema exactly, including a metadata map to hold custom/unknown attributes losslessly.
-  * **Lossless XML Preservation**: AST elements capture custom attributes as flat key-value pairs and nested XML elements (such as `<userData>` sub-trees) as raw string fragments/DOM sub-trees.
+* **AST (Abstract Syntax Tree)**: The strongly-typed C++ object hierarchy that mirrors the complete OpenDRIVE 1.9 XML schema exactly, including a `struct Extensions` member on every major node to hold custom/unknown data losslessly.
+  * **Lossless XML Preservation**: `Extensions` captures unknown XML attributes as a `std::map<std::string, std::string>` and each `<userData>` child element as a raw XML string in a `std::vector<std::string>`.
 * **CPM (Compiled Physics Model)**: A memory-aligned, contiguous Struct-of-Arrays (SoA) layout that flattens reference geometry and profiles for high-speed evaluation.
   * **Geometry Compilation**: Pre-converts deprecated `<poly3>` cubic curves into `<paramPoly3>` or piecewise arc-line segments during compilation to ensure O(1) constant-time evaluation.
   * **Fast Spiral Math**: Approximates Fresnel integrals using fast rational functions to keep spiral (clothoid) calculations branch-free and vectorized.
@@ -72,10 +72,14 @@ Computes discrete polylines and triangulations of road surfaces, lane markings, 
 
 Strada follows the **Pitchfork Layout** for C++ project organization and integrates automated tooling for testing, performance evaluation, and style checks:
 
-* **`include/strada/`**: Public API headers (e.g., `include/strada/ast.hpp`).
+* **`include/strada/`**: Public API headers, organized into subdirectories:
+  * `include/strada/ast/` — AST node types (`header.hpp`, `road.hpp`, `junction.hpp`, `extensions.hpp`, etc.)
+  * `include/strada/parser/` — Parser entry points (`parser.hpp`) and exception types (`errors.hpp`).
 * **`src/`**: Private source files and internal implementations.
 * **`tests/`**: Unit and integration test suites using **GoogleTest & GoogleMock**.
+  * `tests/data/` — `.xodr` fixture files loaded by tests (no inline XML strings in test code).
 * **`benchmark/`**: Micro-benchmarks using **Google Benchmark** to protect the physics time budget.
-* **`CMakeLists.txt`**: Configured to retrieve and build dependencies automatically via CMake `FetchContent` (using `FIND_PACKAGE_ARGS` to look up local system packages first).
+* **`CMakeLists.txt`**: Configured to retrieve and build dependencies automatically via CMake `FetchContent` (using `FIND_PACKAGE_ARGS` to look up local system packages first). CMake files are formatted with `cmake-format`.
 * **ClangFormat & ClangTidy**: Enforces strict code styling and linting checks across all source files.
 * **Code & Test Conventions**: All header files use `#pragma once`, primitive types are brace-initialized (`{}`), standard container classes default-initialize without `{}` (to prevent redundancy warnings), and all tests follow the Arrange-Act-Assert (AAA) pattern.
+* **Error Handling**: Parser errors are communicated via a typed exception hierarchy (`ParseError` → `XmlParseError`, `MissingElementError`, `InvalidAttributeError`) defined in `include/strada/parser/errors.hpp`.

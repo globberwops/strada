@@ -27,10 +27,11 @@ We will adopt the C++20 standard. This allows the use of modern performance and 
 
 ### 3. Build System & Dependencies
 * **CMake** will be the build system.
-* **CMake FetchContent** will manage external dependencies at compile time, requiring zero local system pre-installation.
+* **CMake FetchContent** will manage external dependencies at compile time. Each `FetchContent_Declare` uses `FIND_PACKAGE_ARGS` so an already-installed system package is preferred over a source download.
 * Dependencies will be restricted to:
   * `pugixml` for fast XML parsing.
-  * `Eigen` for linear algebra, vector math, and coordinate transformations.
+  * `Eigen` for linear algebra, vector math, and coordinate transformations (fetched; will be used during CPM implementation).
+  * `GoogleTest` for unit and integration testing.
 
 ### 4. Geometry Evaluation & Discretization
 * Strada will store the exact mathematical curves (lines, clothoids/spirals, polynomials, parametric cubics) analytically.
