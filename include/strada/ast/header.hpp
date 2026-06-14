@@ -1,5 +1,4 @@
-#ifndef STRADA_AST_HEADER_HPP_
-#define STRADA_AST_HEADER_HPP_
+#pragma once
 
 #include <string>
 
@@ -20,5 +19,3 @@ struct Header {
 };
 
 }  // namespace strada::ast
-
-#endif  // STRADA_AST_HEADER_HPP_

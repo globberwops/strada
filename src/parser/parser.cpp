@@ -231,7 +231,12 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
     road.id_ = road_node.attribute("id").as_string("");
     road.length_ = road_node.attribute("length").as_double(0.0);
     road.junction_ = road_node.attribute("junction").as_string("-1");
-    road.rule_ = road_node.attribute("rule").as_string("RHT");
+    std::string rule_str = road_node.attribute("rule").as_string("RHT");
+    if (rule_str == "LHT") {
+      road.rule_ = ast::TrafficRule::LHT;
+    } else {
+      road.rule_ = ast::TrafficRule::RHT;
+    }
     road.name_ = road_node.attribute("name").as_string("");
 
     // PlanView Geometries

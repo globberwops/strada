@@ -1,6 +1,6 @@
-#ifndef STRADA_AST_ROAD_HPP_
-#define STRADA_AST_ROAD_HPP_
+#pragma once
 
+#include <cstdint>
 #include <strada/ast/geometry.hpp>
 #include <strada/ast/lanes.hpp>
 #include <strada/ast/profiles.hpp>
@@ -9,11 +9,13 @@
 
 namespace strada::ast {
 
+enum class TrafficRule : std::uint8_t { RHT, LHT };
+
 struct Road {
   std::string id_;
   double length_{};
   std::string junction_ = "-1";
-  std::string rule_ = "RHT";
+  TrafficRule rule_ = TrafficRule::RHT;
   std::string name_;
   std::vector<GeometryRecord> plan_view_;
   ElevationProfile elevation_profile_;
@@ -22,5 +24,3 @@ struct Road {
 };
 
 }  // namespace strada::ast
-
-#endif  // STRADA_AST_ROAD_HPP_

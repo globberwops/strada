@@ -1,5 +1,4 @@
-#ifndef STRADA_AST_GEOMETRY_HPP_
-#define STRADA_AST_GEOMETRY_HPP_
+#pragma once
 
 #include <cstdint>
 #include <variant>
@@ -52,5 +51,3 @@ struct GeometryRecord {
 };
 
 }  // namespace strada::ast
-
-#endif  // STRADA_AST_GEOMETRY_HPP_

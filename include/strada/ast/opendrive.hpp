@@ -1,5 +1,4 @@
-#ifndef STRADA_AST_OPENDRIVE_HPP_
-#define STRADA_AST_OPENDRIVE_HPP_
+#pragma once
 
 #include <strada/ast/header.hpp>
 #include <strada/ast/road.hpp>
@@ -13,5 +12,3 @@ struct OpenDrive {
 };
 
 }  // namespace strada::ast
-
-#endif  // STRADA_AST_OPENDRIVE_HPP_

@@ -1,5 +1,4 @@
-#ifndef STRADA_AST_LANES_HPP_
-#define STRADA_AST_LANES_HPP_
+#pragma once
 
 #include <optional>
 #include <string>
@@ -52,5 +51,3 @@ struct Lanes {
 };
 
 }  // namespace strada::ast
-
-#endif  // STRADA_AST_LANES_HPP_

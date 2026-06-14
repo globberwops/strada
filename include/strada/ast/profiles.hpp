@@ -1,5 +1,4 @@
-#ifndef STRADA_AST_PROFILES_HPP_
-#define STRADA_AST_PROFILES_HPP_
+#pragma once
 
 #include <vector>
 
@@ -40,5 +39,3 @@ struct LateralProfile {
 };
 
 }  // namespace strada::ast
-
-#endif  // STRADA_AST_PROFILES_HPP_

@@ -81,13 +81,13 @@ TEST(ParserTest, ParseRoadsFromString) {
   EXPECT_EQ(roads[0].id_, "1");
   EXPECT_DOUBLE_EQ(roads[0].length_, 10.0);
   EXPECT_EQ(roads[0].junction_, "-1");
-  EXPECT_EQ(roads[0].rule_, "RHT");
+  EXPECT_EQ(roads[0].rule_, strada::ast::TrafficRule::RHT);
   EXPECT_EQ(roads[0].name_, "Road 1");
 
   EXPECT_EQ(roads[1].id_, "2");
   EXPECT_DOUBLE_EQ(roads[1].length_, 25.5);
   EXPECT_EQ(roads[1].junction_, "42");
-  EXPECT_EQ(roads[1].rule_, "LHT");
+  EXPECT_EQ(roads[1].rule_, strada::ast::TrafficRule::LHT);
   EXPECT_EQ(roads[1].name_, "");
 }
 
