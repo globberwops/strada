@@ -14,6 +14,85 @@ constexpr double K_CURVATURE_THRESHOLD = 1e-12;
 constexpr double K_POLY_COEFF2 = 2.0;
 constexpr double K_POLY_COEFF3 = 3.0;
 
+constexpr double kGaussPoints[] = {-0.9061798459386640, -0.5384693101056831, 0.0, 0.5384693101056831,
+                                   0.9061798459386640};
+constexpr double kGaussWeights[] = {0.2369268850561891, 0.4786286704993665, 0.5688888888888889, 0.4786286704993665,
+                                    0.2369268850561891};
+
+auto IntegrateArcLength(double u, double b, double c, double d) noexcept -> double {
+  double sum = 0.0;
+  double half_u = 0.5 * u;
+  for (int i = 0; i < 5; ++i) {
+    double sigma = half_u * (kGaussPoints[i] + 1.0);
+    double v_prime = b + 2.0 * c * sigma + 3.0 * d * sigma * sigma;
+    sum += kGaussWeights[i] * std::sqrt(1.0 + v_prime * v_prime);
+  }
+  return half_u * sum;
+}
+
+auto SolveUForS(double s_target, double length, double b_u, double b, double c, double d) noexcept -> double {
+  if (s_target <= 0.0) {
+    return 0.0;
+  }
+  double u_val = s_target * b_u;
+  constexpr double kTol = 1e-12;
+  constexpr int kMaxIter = 100;
+  for (int iter = 0; iter < kMaxIter; ++iter) {
+    double s_val = IntegrateArcLength(u_val, b, c, d);
+    double v_prime = b + 2.0 * c * u_val + 3.0 * d * u_val * u_val;
+    double f_val = s_val - s_target;
+    double f_prime = std::sqrt(1.0 + v_prime * v_prime);
+    if (std::abs(f_prime) < 1e-12) {
+      break;
+    }
+    double diff = f_val / f_prime;
+    u_val -= diff;
+    if (std::abs(f_val) < kTol) {
+      break;
+    }
+  }
+  return u_val;
+}
+
+auto ConvertPoly3ToParamPoly3(double length, double a, double b, double c, double d) noexcept -> ast::ParamPoly3 {
+  ast::ParamPoly3 param;
+  param.p_range = ast::PRange::kArcLength;
+
+  if (length <= 0.0) {
+    param.a_u = 0.0;
+    param.b_u = 0.0;
+    param.c_u = 0.0;
+    param.d_u = 0.0;
+    param.a_v = a;
+    param.b_v = 0.0;
+    param.c_v = 0.0;
+    param.d_v = 0.0;
+    return param;
+  }
+
+  double den = std::sqrt(1.0 + b * b);
+  double b_u = 1.0 / den;
+  double b_v = b / den;
+
+  double u1 = SolveUForS(0.5 * length, length, b_u, b, c, d);
+  double u2 = SolveUForS(length, length, b_u, b, c, d);
+
+  double v1 = a + u1 * (b + u1 * (c + d * u1));
+  double v2 = a + u2 * (b + u2 * (c + d * u2));
+
+  param.a_u = 0.0;
+  param.b_u = b_u;
+  param.c_u = (8.0 * u1 - u2 - 3.0 * b_u * length) / (length * length);
+  param.d_u = (2.0 * u2 - 8.0 * u1 + 2.0 * b_u * length) / (length * length * length);
+
+  param.a_v = a;
+  param.b_v = b_v;
+  param.c_v = (8.0 * v1 - v2 - 7.0 * a - 3.0 * b_v * length) / (length * length);
+  param.d_v = (2.0 * v2 - 8.0 * v1 + 6.0 * a + 2.0 * b_v * length) / (length * length * length);
+
+  return param;
+}
+
 constexpr double FN[] = {0.49999988085884732562,   1.3511177791210715095,   1.3175407836168659241,
                          1.1861149300293854992,    0.7709627298888346769,   0.4173874338787963957,
                          0.19044202705272903923,   0.06655998896627697537,  0.022789258616785717418,
@@ -380,6 +459,35 @@ void EvaluateReferenceLine(const ReferenceLineSoA& ref_line, const AlignedVector
 
     ref_x += ds_val * (std::cos(ref_hdg) * local_x - std::sin(ref_hdg) * local_y);
     ref_y += ds_val * (std::sin(ref_hdg) * local_x + std::cos(ref_hdg) * local_y);
+  } else if (type == GeometryType::kParamPoly3) {
+    double a_u = ref_line.pp3_a_u[seg_idx];
+    double b_u = ref_line.pp3_b_u[seg_idx];
+    double c_u = ref_line.pp3_c_u[seg_idx];
+    double d_u = ref_line.pp3_d_u[seg_idx];
+    double a_v = ref_line.pp3_a_v[seg_idx];
+    double b_v = ref_line.pp3_b_v[seg_idx];
+    double c_v = ref_line.pp3_c_v[seg_idx];
+    double d_v = ref_line.pp3_d_v[seg_idx];
+    uint8_t p_range = ref_line.pp3_p_range[seg_idx];
+
+    double length = ref_line.length[seg_idx];
+    double p_val = ds_val;
+    if (p_range == 0U) {
+      p_val = (length > 0.0) ? (ds_val / length) : 0.0;
+    }
+
+    double u_p = a_u + (p_val * (b_u + (p_val * (c_u + (d_u * p_val)))));
+    double v_p = a_v + (p_val * (b_v + (p_val * (c_v + (d_v * p_val)))));
+
+    double du_dp = b_u + (p_val * ((K_POLY_COEFF2 * c_u) + (K_POLY_COEFF3 * d_u * p_val)));
+    double dv_dp = b_v + (p_val * ((K_POLY_COEFF2 * c_v) + (K_POLY_COEFF3 * d_v * p_val)));
+
+    double cos_hdg = std::cos(ref_hdg);
+    double sin_hdg = std::sin(ref_hdg);
+
+    ref_x += (u_p * cos_hdg) - (v_p * sin_hdg);
+    ref_y += (u_p * sin_hdg) + (v_p * cos_hdg);
+    tangent_hdg += std::atan2(dv_dp, du_dp);
   }
 }
 
@@ -523,37 +631,37 @@ void EvaluateCrossSectionSurfaceOffset(const PolynomialsSoA& polynomials, const 
   return inertial_pose;
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 auto CompiledPhysicsModel::LaneToInertial(LanePose /*pose*/, QueryContext& /*ctx*/) const noexcept -> InertialPose {
+  (void)road_lengths_;
   return InertialPose{};
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 auto CompiledPhysicsModel::InertialToRoad(InertialPosition /*position*/, QueryContext& /*ctx*/) const noexcept
     -> std::optional<RoadPose> {
+  (void)road_lengths_;
   return std::nullopt;
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 auto CompiledPhysicsModel::InertialToLane(InertialPosition /*position*/, QueryContext& /*ctx*/) const noexcept
     -> std::optional<LanePose> {
+  (void)road_lengths_;
   return std::nullopt;
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 auto CompiledPhysicsModel::RoadToLane(RoadPose /*pose*/, QueryContext& /*ctx*/) const noexcept
     -> std::optional<LanePose> {
+  (void)road_lengths_;
   return std::nullopt;
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 auto CompiledPhysicsModel::LaneToRoad(LanePose /*pose*/, QueryContext& /*ctx*/) const noexcept -> RoadPose {
+  (void)road_lengths_;
   return RoadPose{};
 }
 
-auto CompiledPhysicsModel::road_count() const noexcept -> std::size_t { return road_string_ids_.size(); }
+auto CompiledPhysicsModel::RoadCount() const noexcept -> std::size_t { return road_string_ids_.size(); }
 
-auto CompiledPhysicsModel::road_id_from_string(std::string_view original_id) const noexcept -> std::optional<RoadId> {
+auto CompiledPhysicsModel::RoadIdFromString(std::string_view original_id) const noexcept -> std::optional<RoadId> {
   auto find_it = std::ranges::find(road_string_ids_, original_id);
   if (find_it != road_string_ids_.end()) {
     return static_cast<RoadId>(std::distance(road_string_ids_.begin(), find_it));
@@ -561,7 +669,7 @@ auto CompiledPhysicsModel::road_id_from_string(std::string_view original_id) con
   return std::nullopt;
 }
 
-auto CompiledPhysicsModel::original_road_id(RoadId road_id) const noexcept -> std::string_view {
+auto CompiledPhysicsModel::OriginalRoadId(RoadId road_id) const noexcept -> std::string_view {
   auto idx = static_cast<uint32_t>(road_id);
   if (idx < road_string_ids_.size()) {
     return road_string_ids_[idx];
@@ -569,7 +677,7 @@ auto CompiledPhysicsModel::original_road_id(RoadId road_id) const noexcept -> st
   return "";
 }
 
-auto CompiledPhysicsModel::road_length(RoadId road_id) const noexcept -> double {
+auto CompiledPhysicsModel::RoadLength(RoadId road_id) const noexcept -> double {
   auto idx = static_cast<uint32_t>(road_id);
   if (idx < road_lengths_.size()) {
     return road_lengths_[idx];
@@ -577,17 +685,25 @@ auto CompiledPhysicsModel::road_length(RoadId road_id) const noexcept -> double 
   return 0.0;
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-auto CompiledPhysicsModel::lane_count() const noexcept -> std::size_t { return 0; }
+auto CompiledPhysicsModel::LaneCount() const noexcept -> std::size_t {
+  (void)road_lengths_;
+  return 0;
+}
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-auto CompiledPhysicsModel::lane_road(LaneId /*id*/) const noexcept -> RoadId { return RoadId{0}; }
+auto CompiledPhysicsModel::LaneRoad(LaneId /*id*/) const noexcept -> RoadId {
+  (void)road_lengths_;
+  return RoadId{0};
+}
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-auto CompiledPhysicsModel::original_lane_id(LaneId /*id*/) const noexcept -> int { return 0; }
+auto CompiledPhysicsModel::OriginalLaneId(LaneId /*id*/) const noexcept -> int {
+  (void)road_lengths_;
+  return 0;
+}
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-auto CompiledPhysicsModel::lane_width(LaneId /*id*/, double /*s_coord*/) const noexcept -> double { return 0.0; }
+auto CompiledPhysicsModel::LaneWidth(LaneId /*id*/, double /*s_coord*/) const noexcept -> double {
+  (void)road_lengths_;
+  return 0.0;
+}
 
 auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel {
   CompiledPhysicsModel model;
@@ -612,28 +728,76 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
         model.ref_line_.type_index.push_back(0);
         model.ref_line_.spiral_curv_start.push_back(0.0);
         model.ref_line_.spiral_curv_end.push_back(0.0);
+        model.ref_line_.pp3_a_u.push_back(0.0);
+        model.ref_line_.pp3_b_u.push_back(0.0);
+        model.ref_line_.pp3_c_u.push_back(0.0);
+        model.ref_line_.pp3_d_u.push_back(0.0);
+        model.ref_line_.pp3_a_v.push_back(0.0);
+        model.ref_line_.pp3_b_v.push_back(0.0);
+        model.ref_line_.pp3_c_v.push_back(0.0);
+        model.ref_line_.pp3_d_v.push_back(0.0);
+        model.ref_line_.pp3_p_range.push_back(0);
       } else if (std::holds_alternative<ast::Arc>(geom.shape)) {
         model.ref_line_.type.push_back(GeometryType::kArc);
         model.ref_line_.type_index.push_back(static_cast<uint32_t>(model.arc_curvature_.size()));
         model.arc_curvature_.push_back(std::get<ast::Arc>(geom.shape).curvature);
         model.ref_line_.spiral_curv_start.push_back(0.0);
         model.ref_line_.spiral_curv_end.push_back(0.0);
+        model.ref_line_.pp3_a_u.push_back(0.0);
+        model.ref_line_.pp3_b_u.push_back(0.0);
+        model.ref_line_.pp3_c_u.push_back(0.0);
+        model.ref_line_.pp3_d_u.push_back(0.0);
+        model.ref_line_.pp3_a_v.push_back(0.0);
+        model.ref_line_.pp3_b_v.push_back(0.0);
+        model.ref_line_.pp3_c_v.push_back(0.0);
+        model.ref_line_.pp3_d_v.push_back(0.0);
+        model.ref_line_.pp3_p_range.push_back(0);
       } else if (std::holds_alternative<ast::Spiral>(geom.shape)) {
         model.ref_line_.type.push_back(GeometryType::kSpiral);
         model.ref_line_.type_index.push_back(0);
         const auto& spiral = std::get<ast::Spiral>(geom.shape);
         model.ref_line_.spiral_curv_start.push_back(spiral.curv_start);
         model.ref_line_.spiral_curv_end.push_back(spiral.curv_end);
+        model.ref_line_.pp3_a_u.push_back(0.0);
+        model.ref_line_.pp3_b_u.push_back(0.0);
+        model.ref_line_.pp3_c_u.push_back(0.0);
+        model.ref_line_.pp3_d_u.push_back(0.0);
+        model.ref_line_.pp3_a_v.push_back(0.0);
+        model.ref_line_.pp3_b_v.push_back(0.0);
+        model.ref_line_.pp3_c_v.push_back(0.0);
+        model.ref_line_.pp3_d_v.push_back(0.0);
+        model.ref_line_.pp3_p_range.push_back(0);
       } else if (std::holds_alternative<ast::Poly3>(geom.shape)) {
-        model.ref_line_.type.push_back(GeometryType::kPoly3);
+        model.ref_line_.type.push_back(GeometryType::kParamPoly3);
         model.ref_line_.type_index.push_back(0);
         model.ref_line_.spiral_curv_start.push_back(0.0);
         model.ref_line_.spiral_curv_end.push_back(0.0);
+        const auto& poly = std::get<ast::Poly3>(geom.shape);
+        ast::ParamPoly3 param = ConvertPoly3ToParamPoly3(geom.length, poly.a, poly.b, poly.c, poly.d);
+        model.ref_line_.pp3_a_u.push_back(param.a_u);
+        model.ref_line_.pp3_b_u.push_back(param.b_u);
+        model.ref_line_.pp3_c_u.push_back(param.c_u);
+        model.ref_line_.pp3_d_u.push_back(param.d_u);
+        model.ref_line_.pp3_a_v.push_back(param.a_v);
+        model.ref_line_.pp3_b_v.push_back(param.b_v);
+        model.ref_line_.pp3_c_v.push_back(param.c_v);
+        model.ref_line_.pp3_d_v.push_back(param.d_v);
+        model.ref_line_.pp3_p_range.push_back(1);
       } else if (std::holds_alternative<ast::ParamPoly3>(geom.shape)) {
         model.ref_line_.type.push_back(GeometryType::kParamPoly3);
         model.ref_line_.type_index.push_back(0);
         model.ref_line_.spiral_curv_start.push_back(0.0);
         model.ref_line_.spiral_curv_end.push_back(0.0);
+        const auto& param = std::get<ast::ParamPoly3>(geom.shape);
+        model.ref_line_.pp3_a_u.push_back(param.a_u);
+        model.ref_line_.pp3_b_u.push_back(param.b_u);
+        model.ref_line_.pp3_c_u.push_back(param.c_u);
+        model.ref_line_.pp3_d_u.push_back(param.d_u);
+        model.ref_line_.pp3_a_v.push_back(param.a_v);
+        model.ref_line_.pp3_b_v.push_back(param.b_v);
+        model.ref_line_.pp3_c_v.push_back(param.c_v);
+        model.ref_line_.pp3_d_v.push_back(param.d_v);
+        model.ref_line_.pp3_p_range.push_back(param.p_range == ast::PRange::kArcLength ? 1 : 0);
       }
     }
 
@@ -665,9 +829,9 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
       model.road_superelevation_count_.push_back(count);
     }
 
-    if (road.lateral_profile.cross_section_surface.has_value()) {
-      // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-      const auto& css = *road.lateral_profile.cross_section_surface;
+    const auto& css_opt = road.lateral_profile.cross_section_surface;
+    if (css_opt.has_value()) {
+      const auto& css = *css_opt;
 
       model.road_css_.first_strip_idx.push_back(static_cast<uint32_t>(model.strips_.strip_id.size()));
       model.road_css_.strip_count.push_back(static_cast<uint32_t>(css.strips.size()));

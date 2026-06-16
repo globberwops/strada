@@ -43,7 +43,7 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
 ### Query Conventions
 * **`QueryContext`**: A small consumer-owned value type that carries the state needed to exploit *temporal coherence* across queries on the same road (last `RoadId`, last `s`-range, last segment, last BVH node). One instance per thread of execution, typically declared `thread_local` at the top of the simulation loop. Default-constructed `QueryContext` is "empty" — the first query is a full lookup, subsequent queries in temporal proximity hit the fast path. v1 is single-query only; batch APIs are not exposed.
 * **Hot-path queries are stateful.** They take a `QueryContext&` parameter, are marked `noexcept`, and are designed to be aggressively inlined. Sharing a `QueryContext` across threads is undefined behavior (the consumer's responsibility).
-* **Inspection queries are stateless.** `road_count()`, `road_id_from_string()`, `original_road_id()`, `road_length()`, `lane_count()`, `lane_road()`, `original_lane_id()`, `lane_width()` do not take a `QueryContext&`. They are setup / debug / tooling queries, not on the 1 kHz hot path.
+* **Inspection queries are stateless.** `RoadCount()`, `RoadIdFromString()`, `OriginalRoadId()`, `RoadLength()`, `LaneCount()`, `LaneRoad()`, `OriginalLaneId()`, `LaneWidth()` do not take a `QueryContext&`. They are setup / debug / tooling queries, not on the 1 kHz hot path.
 
 ### Error Handling
 * **Build may throw.** `BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree&)` can throw on resource exhaustion or unrecoverable internal errors. The CPM does **not** perform AST validation — the parser/AST layer is responsible for input well-formedness, and the CPM trusts its input.

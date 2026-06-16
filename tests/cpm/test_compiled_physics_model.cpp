@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <filesystem>
+#include <iomanip>
+#include <iostream>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/parser/parser.hpp>
 
@@ -46,12 +49,14 @@ TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
 
   // Assert basic inspection
-  EXPECT_EQ(cpm_model.road_count(), 1);
-  auto road_id_opt = cpm_model.road_id_from_string("1");
+  EXPECT_EQ(cpm_model.RoadCount(), 1);
+  auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
-  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  if (!road_id_opt.has_value()) {
+    return;
+  }
   auto road_id = *road_id_opt;
-  EXPECT_EQ(cpm_model.original_road_id(road_id), "1");
+  EXPECT_EQ(cpm_model.OriginalRoadId(road_id), "1");
 
   // Query pose on the constant surface
   strada::cpm::RoadPose pose;
@@ -83,9 +88,11 @@ TEST(CompiledPhysicsModelTest, QueryMultiStripCrossSectionSurface) {
 
   // Act
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
-  auto road_id_opt = cpm_model.road_id_from_string("1");
+  auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
-  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  if (!road_id_opt.has_value()) {
+    return;
+  }
   auto road_id = *road_id_opt;
 
   strada::cpm::QueryContext ctx;
@@ -209,9 +216,11 @@ TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
 
   // Act
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
-  auto road_id_opt = cpm_model.road_id_from_string("1");
+  auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
-  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  if (!road_id_opt.has_value()) {
+    return;
+  }
   auto road_id = *road_id_opt;
 
   strada::cpm::QueryContext ctx;
@@ -246,15 +255,17 @@ TEST(CompiledPhysicsModelTest, QueryLineAndArcReferenceLine) {
 
   // Act
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
-  auto road_id_opt = cpm_model.road_id_from_string("1");
+  auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
-  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  if (!road_id_opt.has_value()) {
+    return;
+  }
   auto road_id = *road_id_opt;
 
   // Test inspection APIs
-  EXPECT_EQ(cpm_model.road_count(), 1);
-  EXPECT_EQ(cpm_model.original_road_id(road_id), "1");
-  EXPECT_DOUBLE_EQ(cpm_model.road_length(road_id), 100.0);
+  EXPECT_EQ(cpm_model.RoadCount(), 1);
+  EXPECT_EQ(cpm_model.OriginalRoadId(road_id), "1");
+  EXPECT_DOUBLE_EQ(cpm_model.RoadLength(road_id), 100.0);
 
   strada::cpm::QueryContext ctx;
 
@@ -339,9 +350,11 @@ TEST(CompiledPhysicsModelTest, QuerySpiralReferenceLine) {
 
   // Act
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
-  auto road_id_opt = cpm_model.road_id_from_string("1");
+  auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
-  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  if (!road_id_opt.has_value()) {
+    return;
+  }
   auto road_id = *road_id_opt;
 
   strada::cpm::QueryContext ctx;
@@ -388,9 +401,115 @@ TEST(CompiledPhysicsModelTest, QuerySpiralReferenceLine) {
 
   // Verify QueryContext fast-path engagement
   EXPECT_TRUE(ctx.last_road.has_value());
-  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-  EXPECT_EQ(*ctx.last_road, road_id);
+  if (ctx.last_road.has_value()) {
+    EXPECT_EQ(*ctx.last_road, road_id);
+  }
   EXPECT_TRUE(ctx.last_segment_idx.has_value());
-  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-  EXPECT_EQ(*ctx.last_segment_idx, 0U);
+  if (ctx.last_segment_idx.has_value()) {
+    EXPECT_EQ(*ctx.last_segment_idx, 0U);
+  }
+}
+
+TEST(CompiledPhysicsModelTest, QueryPoly3AndParamPoly3ReferenceLine) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "geometry.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+
+  // Act
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+  auto road_id_opt = cpm_model.RoadIdFromString("1");
+  ASSERT_TRUE(road_id_opt.has_value());
+  if (!road_id_opt.has_value()) {
+    return;
+  }
+  auto road_id = *road_id_opt;
+
+  strada::cpm::QueryContext ctx;
+
+  // 1. Verify ParamPoly3 evaluation (s = 85.0)
+  // Coordinates calculated from:
+  // p = 15.0
+  // u(p) = 1.1 + 1.2*p + 1.3*p^2 + 1.4*p^3 = 5036.6
+  // v(p) = 2.1 + 2.2*p + 2.3*p^2 + 2.4*p^3 = 8652.6
+  // start x = 75.0, y = 85.0, hdg = 0.9
+  // X = 75.0 + u*cos(0.9) - v*sin(0.9) = -3572.0136520507344
+  // Y = 85.0 + u*sin(0.9) + v*cos(0.9) = 9408.846724488534
+  // tangent_hdg = 0.9 + atan2(v', u') = 1.943310312623995
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 85.0;
+    pose.t = 0.0;
+    pose.h = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.x, -3572.0136520507344, 1e-9);
+    EXPECT_NEAR(inertial.y, 9408.846724488534, 1e-9);
+    EXPECT_NEAR(inertial.heading, 1.943310312623995, 1e-9);
+  }
+
+  // 2. Query Poly3 at start (s = 45.0, which has ds_val = 0.0, u = 0.0)
+  // u = 0.0, v = 1.0. Start x = 50.0, y = 60.0, hdg = 0.8
+  // X = 50.0 + 0 * cos(0.8) - 1.0 * sin(0.8) = 50.0 - sin(0.8) = 49.28264390910048
+  // Y = 60.0 + 0 * sin(0.8) + 1.0 * cos(0.8) = 60.0 + cos(0.8) = 60.696706709347165
+  // hdg = 0.8 + atan2(2.0, 1.0) = 1.9071487177940904
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 45.0;
+    pose.t = 0.0;
+    pose.h = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.x, 49.28264390910048, 1e-9);
+    EXPECT_NEAR(inertial.y, 60.696706709347165, 1e-9);
+    EXPECT_NEAR(inertial.heading, 1.9071487177940904, 1e-9);
+  }
+
+  // 3. Query Poly3 at middle (s = 57.5, which has ds_val = 12.5)
+  // Expected coordinates from high-precision original Poly3 integration:
+  // X = 41.180971657746085
+  // Y = 70.171768309794714
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 57.5;
+    pose.t = 0.0;
+    pose.h = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.x, 41.180971657746085, 1e-9);
+    EXPECT_NEAR(inertial.y, 70.171768309794714, 1e-9);
+    EXPECT_NEAR(inertial.heading, 2.466819223986507, 1e-9);
+  }
+
+  // 4. Query Poly3 at end (s = 70.0 - 1e-12, which has ds_val approx 25.0)
+  // Expected coordinates from high-precision original Poly3 integration:
+  // X = 32.490265485137456
+  // Y = 79.156094908899561
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 70.0 - 1e-12;
+    pose.t = 0.0;
+    pose.h = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.x, 32.490265485137456, 1e-9);
+    EXPECT_NEAR(inertial.y, 79.156094908899561, 1e-9);
+    EXPECT_NEAR(inertial.heading, 2.026619153539606, 1e-9);
+  }
 }

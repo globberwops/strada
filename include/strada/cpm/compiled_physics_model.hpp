@@ -29,6 +29,15 @@ struct ReferenceLineSoA {
   std::vector<uint32_t> type_index;
   AlignedVector<double> spiral_curv_start;
   AlignedVector<double> spiral_curv_end;
+  AlignedVector<double> pp3_a_u;
+  AlignedVector<double> pp3_b_u;
+  AlignedVector<double> pp3_c_u;
+  AlignedVector<double> pp3_d_u;
+  AlignedVector<double> pp3_a_v;
+  AlignedVector<double> pp3_b_v;
+  AlignedVector<double> pp3_c_v;
+  AlignedVector<double> pp3_d_v;
+  std::vector<uint8_t> pp3_p_range;
 };
 
 // Flat SoA structures for Cross Section Surface per ADR 0005
@@ -82,29 +91,21 @@ class CompiledPhysicsModel {
   auto LaneToRoad(LanePose pose, QueryContext& ctx) const noexcept -> RoadPose;
 
   // Inspection: noexcept, stateless.
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  [[nodiscard]] auto road_count() const noexcept -> std::size_t;
+  [[nodiscard]] auto RoadCount() const noexcept -> std::size_t;
 
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  [[nodiscard]] auto road_id_from_string(std::string_view original_id) const noexcept -> std::optional<RoadId>;
+  [[nodiscard]] auto RoadIdFromString(std::string_view original_id) const noexcept -> std::optional<RoadId>;
 
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  [[nodiscard]] auto original_road_id(RoadId road_id) const noexcept -> std::string_view;
+  [[nodiscard]] auto OriginalRoadId(RoadId road_id) const noexcept -> std::string_view;
 
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  [[nodiscard]] auto road_length(RoadId road_id) const noexcept -> double;
+  [[nodiscard]] auto RoadLength(RoadId road_id) const noexcept -> double;
 
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  [[nodiscard]] auto lane_count() const noexcept -> std::size_t;
+  [[nodiscard]] auto LaneCount() const noexcept -> std::size_t;
 
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  [[nodiscard]] auto lane_road(LaneId lane_id) const noexcept -> RoadId;
+  [[nodiscard]] auto LaneRoad(LaneId lane_id) const noexcept -> RoadId;
 
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  [[nodiscard]] auto original_lane_id(LaneId lane_id) const noexcept -> int;
+  [[nodiscard]] auto OriginalLaneId(LaneId lane_id) const noexcept -> int;
 
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  [[nodiscard]] auto lane_width(LaneId lane_id, double s_coord) const noexcept -> double;
+  [[nodiscard]] auto LaneWidth(LaneId lane_id, double s_coord) const noexcept -> double;
 
  private:
   friend auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;

@@ -6,8 +6,9 @@
 
 namespace strada::cpm {
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
-template <typename T, std::size_t Alignment = 64>
+constexpr std::size_t kDefaultAlignment = 64;
+
+template <typename T, std::size_t Alignment = kDefaultAlignment>
 struct AlignedAllocator {
   using value_type = T;
   using pointer = T*;
