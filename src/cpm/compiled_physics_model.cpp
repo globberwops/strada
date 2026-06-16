@@ -14,6 +14,228 @@ constexpr double K_CURVATURE_THRESHOLD = 1e-12;
 constexpr double K_POLY_COEFF2 = 2.0;
 constexpr double K_POLY_COEFF3 = 3.0;
 
+constexpr double FN[] = {0.49999988085884732562,   1.3511177791210715095,   1.3175407836168659241,
+                         1.1861149300293854992,    0.7709627298888346769,   0.4173874338787963957,
+                         0.19044202705272903923,   0.06655998896627697537,  0.022789258616785717418,
+                         0.0040116689358507943804, 0.0012192036851249883877};
+
+constexpr double FD[] = {1.0,
+                         2.7022305772400260215,
+                         4.2059268151438492767,
+                         4.5221882840107715516,
+                         3.7240352281630359588,
+                         2.4589286254678152943,
+                         1.3125491629443702962,
+                         0.5997685720120932908,
+                         0.20907680750378849485,
+                         0.07159621634657901433,
+                         0.012602969513793714191,
+                         0.0038302423512931250065};
+
+constexpr double GN[] = {0.50000014392706344801,    0.032346434925349128728,   0.17619325157863254363,
+                         0.038606273170706486252,   0.023693692309257725361,   0.007092018516845033662,
+                         0.0012492123212412087428,  0.00044023040894778468486, -8.80266827476172521e-6,
+                         -1.4033554916580018648e-8, 2.3509221782155474353e-10};
+
+constexpr double GD[] = {1.0,
+                         2.0646987497019598937,
+                         2.9109311766948031235,
+                         2.6561936751333032911,
+                         2.0195563983177268073,
+                         1.1167891129189363902,
+                         0.57267874755973172715,
+                         0.19408481169593070798,
+                         0.07634808341431248904,
+                         0.011573247407207865977,
+                         0.0044099273693067311209,
+                         -0.00009070958410429993314};
+
+constexpr double K_PI = 3.14159265358979323846;
+constexpr double K_PI_2 = 1.57079632679489661923;
+constexpr double K_1_SQRT_PI = 0.56418958354775628695;
+
+inline void FresnelCS(double y, double& c, double& s) noexcept {
+  constexpr double K_EPS = 1e-15;
+  double x = y > 0.0 ? y : -y;
+
+  if (x < 1.0) {
+    double twofn;
+    double fact;
+    double denterm;
+    double numterm;
+    double sum;
+    double term;
+
+    double s_val = K_PI_2 * (x * x);
+    double t_val = -s_val * s_val;
+
+    twofn = 0.0;
+    fact = 1.0;
+    denterm = 1.0;
+    numterm = 1.0;
+    sum = 1.0;
+    do {
+      twofn += 2.0;
+      fact *= twofn * (twofn - 1.0);
+      denterm += 4.0;
+      numterm *= t_val;
+      term = numterm / (fact * denterm);
+      sum += term;
+    } while (std::abs(term) > K_EPS * std::abs(sum));
+
+    c = x * sum;
+
+    twofn = 1.0;
+    fact = 1.0;
+    denterm = 3.0;
+    numterm = 1.0;
+    sum = 1.0 / 3.0;
+    do {
+      twofn += 2.0;
+      fact *= twofn * (twofn - 1.0);
+      denterm += 4.0;
+      numterm *= t_val;
+      term = numterm / (fact * denterm);
+      sum += term;
+    } while (std::abs(term) > K_EPS * std::abs(sum));
+
+    s = K_PI_2 * sum * (x * x * x);
+
+  } else if (x < 6.0) {
+    double sumn = 0.0;
+    double sumd = FD[11];
+    for (int k = 10; k >= 0; --k) {
+      sumn = FN[k] + x * sumn;
+      sumd = FD[k] + x * sumd;
+    }
+    double f_val = sumn / sumd;
+
+    sumn = 0.0;
+    sumd = GD[11];
+    for (int k = 10; k >= 0; --k) {
+      sumn = GN[k] + x * sumn;
+      sumd = GD[k] + x * sumd;
+    }
+    double g_val = sumn / sumd;
+
+    double u_val = K_PI_2 * (x * x);
+    double sin_u = std::sin(u_val);
+    double cos_u = std::cos(u_val);
+    c = 0.5 + f_val * sin_u - g_val * cos_u;
+    s = 0.5 - f_val * cos_u - g_val * sin_u;
+
+  } else {
+    double absterm;
+    double s_val = K_PI * x * x;
+    double t_val = -1.0 / (s_val * s_val);
+
+    double numterm = -1.0;
+    double term = 1.0;
+    double sum = 1.0;
+    double oldterm = 1.0;
+    double eps10 = 0.1 * K_EPS;
+
+    do {
+      numterm += 4.0;
+      term *= numterm * (numterm - 2.0) * t_val;
+      sum += term;
+      absterm = std::abs(term);
+      if (oldterm < absterm) {
+        break;
+      }
+      oldterm = absterm;
+    } while (absterm > eps10 * std::abs(sum));
+
+    double f_val = sum / (K_PI * x);
+
+    numterm = -1.0;
+    term = 1.0;
+    sum = 1.0;
+    oldterm = 1.0;
+
+    do {
+      numterm += 4.0;
+      term *= numterm * (numterm + 2.0) * t_val;
+      sum += term;
+      absterm = std::abs(term);
+      if (oldterm < absterm) {
+        break;
+      }
+      oldterm = absterm;
+    } while (absterm > eps10 * std::abs(sum));
+
+    double g_val = K_PI * x;
+    g_val = sum / (g_val * g_val * x);
+
+    double u_val = K_PI_2 * (x * x);
+    double sin_u = std::sin(u_val);
+    double cos_u = std::cos(u_val);
+    c = 0.5 + f_val * sin_u - g_val * cos_u;
+    s = 0.5 - f_val * cos_u - g_val * sin_u;
+  }
+
+  if (y < 0.0) {
+    c = -c;
+    s = -s;
+  }
+}
+
+inline void evalXYaLarge(double a, double b, double& x_val, double& y_val) noexcept {
+  double s = a > 0.0 ? 1.0 : -1.0;
+  double absa = std::abs(a);
+  double z = K_1_SQRT_PI * std::sqrt(absa);
+  double ell = s * b * K_1_SQRT_PI / std::sqrt(absa);
+  double g = -0.5 * s * (b * b) / absa;
+  double cg = std::cos(g) / z;
+  double sg = std::sin(g) / z;
+
+  double cl = 0.0;
+  double sl = 0.0;
+  double cz = 0.0;
+  double sz = 0.0;
+  FresnelCS(ell, cl, sl);
+  FresnelCS(ell + z, cz, sz);
+
+  double dc0 = cz - cl;
+  double ds0 = sz - sl;
+
+  x_val = cg * dc0 - s * sg * ds0;
+  y_val = sg * dc0 + s * cg * ds0;
+}
+
+inline void EvaluateClothoidIntegrals(double param_a, double param_b, double& x_val, double& y_val) noexcept {
+  if (std::abs(param_a) < 1e-4) {
+    double x0 = 0.0;
+    double y0 = 0.0;
+    double x2 = 0.0;
+    double y2 = 0.0;
+    double abs_b = std::abs(param_b);
+    if (abs_b < 0.1) {
+      double b2 = param_b * param_b;
+      double b4 = b2 * b2;
+      double b6 = b4 * b2;
+      x0 = 1.0 - (b2 / 6.0) + (b4 / 120.0) - (b6 / 5040.0);
+      y0 = (param_b / 2.0) - ((param_b * b2) / 24.0) + ((param_b * b4) / 720.0) - ((param_b * b6) / 40320.0);
+      x2 = (1.0 / 3.0) - (b2 / 10.0) + (b4 / 168.0) - (b6 / 6480.0);
+      y2 = (param_b / 4.0) - ((param_b * b2) / 36.0) + ((param_b * b4) / 960.0) - ((param_b * b6) / 50400.0);
+    } else {
+      double sin_b = std::sin(param_b);
+      double cos_b = std::cos(param_b);
+      double inv_b = 1.0 / param_b;
+      double inv_b2 = inv_b * inv_b;
+      double inv_b3 = inv_b2 * inv_b;
+      x0 = sin_b * inv_b;
+      y0 = (1.0 - cos_b) * inv_b;
+      x2 = (sin_b * inv_b) + (2.0 * (cos_b * inv_b2)) - (2.0 * (sin_b * inv_b3));
+      y2 = (-(cos_b * inv_b)) + (2.0 * (sin_b * inv_b2)) - (2.0 * ((1.0 - cos_b) * inv_b3));
+    }
+    x_val = x0 - (0.5 * (param_a * y2));
+    y_val = y0 + (0.5 * (param_a * x2));
+  } else {
+    evalXYaLarge(param_a, param_b, x_val, y_val);
+  }
+}
+
 auto EvaluatePolynomial(const PolynomialsSoA& poly, uint32_t first_idx, uint32_t count, double s_coord) noexcept
     -> double {
   if (count == 0) {
@@ -142,6 +364,22 @@ void EvaluateReferenceLine(const ReferenceLineSoA& ref_line, const AlignedVector
       ref_x += ds_val * std::cos(ref_hdg);
       ref_y += ds_val * std::sin(ref_hdg);
     }
+  } else if (type == GeometryType::kSpiral) {
+    double curv_start = ref_line.spiral_curv_start[seg_idx];
+    double curv_end = ref_line.spiral_curv_end[seg_idx];
+    double length = ref_line.length[seg_idx];
+    double lambda = (length > 0.0) ? ((curv_end - curv_start) / length) : 0.0;
+
+    tangent_hdg += (curv_start * ds_val) + (0.5 * (lambda * (ds_val * ds_val)));
+
+    double param_a = lambda * ds_val * ds_val;
+    double param_b = curv_start * ds_val;
+    double local_x = 0.0;
+    double local_y = 0.0;
+    EvaluateClothoidIntegrals(param_a, param_b, local_x, local_y);
+
+    ref_x += ds_val * (std::cos(ref_hdg) * local_x - std::sin(ref_hdg) * local_y);
+    ref_y += ds_val * (std::sin(ref_hdg) * local_x + std::cos(ref_hdg) * local_y);
   }
 }
 
@@ -372,19 +610,30 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
       if (std::holds_alternative<ast::Line>(geom.shape)) {
         model.ref_line_.type.push_back(GeometryType::kLine);
         model.ref_line_.type_index.push_back(0);
+        model.ref_line_.spiral_curv_start.push_back(0.0);
+        model.ref_line_.spiral_curv_end.push_back(0.0);
       } else if (std::holds_alternative<ast::Arc>(geom.shape)) {
         model.ref_line_.type.push_back(GeometryType::kArc);
         model.ref_line_.type_index.push_back(static_cast<uint32_t>(model.arc_curvature_.size()));
         model.arc_curvature_.push_back(std::get<ast::Arc>(geom.shape).curvature);
+        model.ref_line_.spiral_curv_start.push_back(0.0);
+        model.ref_line_.spiral_curv_end.push_back(0.0);
       } else if (std::holds_alternative<ast::Spiral>(geom.shape)) {
         model.ref_line_.type.push_back(GeometryType::kSpiral);
         model.ref_line_.type_index.push_back(0);
+        const auto& spiral = std::get<ast::Spiral>(geom.shape);
+        model.ref_line_.spiral_curv_start.push_back(spiral.curv_start);
+        model.ref_line_.spiral_curv_end.push_back(spiral.curv_end);
       } else if (std::holds_alternative<ast::Poly3>(geom.shape)) {
         model.ref_line_.type.push_back(GeometryType::kPoly3);
         model.ref_line_.type_index.push_back(0);
+        model.ref_line_.spiral_curv_start.push_back(0.0);
+        model.ref_line_.spiral_curv_end.push_back(0.0);
       } else if (std::holds_alternative<ast::ParamPoly3>(geom.shape)) {
         model.ref_line_.type.push_back(GeometryType::kParamPoly3);
         model.ref_line_.type_index.push_back(0);
+        model.ref_line_.spiral_curv_start.push_back(0.0);
+        model.ref_line_.spiral_curv_end.push_back(0.0);
       }
     }
 

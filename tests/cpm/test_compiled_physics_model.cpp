@@ -330,3 +330,67 @@ TEST(CompiledPhysicsModelTest, QueryLineAndArcReferenceLine) {
     EXPECT_NEAR(inertial.roll, 0.3, 1e-9);
   }
 }
+
+TEST(CompiledPhysicsModelTest, QuerySpiralReferenceLine) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "spiral_road.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+
+  // Act
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+  auto road_id_opt = cpm_model.road_id_from_string("1");
+  ASSERT_TRUE(road_id_opt.has_value());
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  auto road_id = *road_id_opt;
+
+  strada::cpm::QueryContext ctx;
+
+  // Query 1: s = 20.0
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 20.0;
+    pose.t = 0.0;
+    pose.h = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.x, 19.68236163732836, 1e-9);
+    EXPECT_NEAR(inertial.y, 2.636345195025855, 1e-9);
+    EXPECT_NEAR(inertial.z, 0.0, 1e-9);
+    EXPECT_NEAR(inertial.heading, 0.4, 1e-9);
+    EXPECT_NEAR(inertial.pitch, 0.0, 1e-9);
+    EXPECT_NEAR(inertial.roll, 0.0, 1e-9);
+  }
+
+  // Query 2: s = 40.0
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 40.0;
+    pose.t = 0.0;
+    pose.h = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.x, 30.904381740904647, 1e-9);
+    EXPECT_NEAR(inertial.y, 17.7363194413844, 1e-9);
+    EXPECT_NEAR(inertial.z, 0.0, 1e-9);
+    EXPECT_NEAR(inertial.heading, 1.6, 1e-9);
+    EXPECT_NEAR(inertial.pitch, 0.0, 1e-9);
+    EXPECT_NEAR(inertial.roll, 0.0, 1e-9);
+  }
+
+  // Verify QueryContext fast-path engagement
+  EXPECT_TRUE(ctx.last_road.has_value());
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  EXPECT_EQ(*ctx.last_road, road_id);
+  EXPECT_TRUE(ctx.last_segment_idx.has_value());
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  EXPECT_EQ(*ctx.last_segment_idx, 0U);
+}

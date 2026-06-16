@@ -27,6 +27,8 @@ struct ReferenceLineSoA {
   AlignedVector<double> hdg;
   std::vector<GeometryType> type;
   std::vector<uint32_t> type_index;
+  AlignedVector<double> spiral_curv_start;
+  AlignedVector<double> spiral_curv_end;
 };
 
 // Flat SoA structures for Cross Section Surface per ADR 0005
