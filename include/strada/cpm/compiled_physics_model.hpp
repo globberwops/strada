@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <optional>
 #include <strada/ast/abstract_syntax_tree.hpp>
+#include <strada/cpm/aligned_allocator.hpp>
 #include <strada/cpm/coordinate.hpp>
 #include <strada/cpm/ids.hpp>
 #include <strada/cpm/query_context.hpp>
@@ -11,18 +12,35 @@
 
 namespace strada::cpm {
 
+constexpr std::size_t K_ALIGNMENT_BYTES = 64;
+
+template <typename T>
+using AlignedVector = std::vector<T, AlignedAllocator<T, K_ALIGNMENT_BYTES>>;
+
+enum class GeometryType : uint8_t { kLine, kArc, kSpiral, kPoly3, kParamPoly3 };
+
+struct ReferenceLineSoA {
+  AlignedVector<double> s_offset;
+  AlignedVector<double> length;
+  AlignedVector<double> x;
+  AlignedVector<double> y;
+  AlignedVector<double> hdg;
+  std::vector<GeometryType> type;
+  std::vector<uint32_t> type_index;
+};
+
 // Flat SoA structures for Cross Section Surface per ADR 0005
 struct PolynomialsSoA {
-  std::vector<double> s_start;
-  std::vector<double> a;
-  std::vector<double> b;
-  std::vector<double> c;
-  std::vector<double> d;
+  AlignedVector<double> s_start;
+  AlignedVector<double> a;
+  AlignedVector<double> b;
+  AlignedVector<double> c;
+  AlignedVector<double> d;
 };
 
 struct StripsSoA {
   std::vector<int32_t> strip_id;
-  std::vector<bool> is_relative;
+  std::vector<uint8_t> is_relative;
   std::vector<uint32_t> width_first_idx;
   std::vector<uint32_t> width_count;
   std::vector<uint32_t> c0_first_idx;
@@ -49,23 +67,61 @@ class CompiledPhysicsModel {
 
   // Move-constructible only, per ADR 0004
   CompiledPhysicsModel(const CompiledPhysicsModel&) = delete;
-  CompiledPhysicsModel& operator=(const CompiledPhysicsModel&) = delete;
+  auto operator=(const CompiledPhysicsModel&) -> CompiledPhysicsModel& = delete;
   CompiledPhysicsModel(CompiledPhysicsModel&&) noexcept = default;
-  CompiledPhysicsModel& operator=(CompiledPhysicsModel&&) noexcept = default;
+  auto operator=(CompiledPhysicsModel&&) noexcept -> CompiledPhysicsModel& = default;
 
-  // Hot-path queries: noexcept
-  auto RoadToInertial(RoadPose, QueryContext&) const noexcept -> InertialPose;
+  // Hot-path queries: noexcept, take QueryContext&.
+  auto RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept -> InertialPose;
+  auto LaneToInertial(LanePose pose, QueryContext& ctx) const noexcept -> InertialPose;
+  auto InertialToRoad(InertialPosition position, QueryContext& ctx) const noexcept -> std::optional<RoadPose>;
+  auto InertialToLane(InertialPosition position, QueryContext& ctx) const noexcept -> std::optional<LanePose>;
+  auto RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept -> std::optional<LanePose>;
+  auto LaneToRoad(LanePose pose, QueryContext& ctx) const noexcept -> RoadPose;
 
-  // Inspection APIs
-  auto road_count() const noexcept -> std::size_t;
-  auto road_id_from_string(std::string_view) const noexcept -> std::optional<RoadId>;
-  auto original_road_id(RoadId) const noexcept -> std::string_view;
+  // Inspection: noexcept, stateless.
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  [[nodiscard]] auto road_count() const noexcept -> std::size_t;
+
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  [[nodiscard]] auto road_id_from_string(std::string_view original_id) const noexcept -> std::optional<RoadId>;
+
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  [[nodiscard]] auto original_road_id(RoadId road_id) const noexcept -> std::string_view;
+
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  [[nodiscard]] auto road_length(RoadId road_id) const noexcept -> double;
+
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  [[nodiscard]] auto lane_count() const noexcept -> std::size_t;
+
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  [[nodiscard]] auto lane_road(LaneId lane_id) const noexcept -> RoadId;
+
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  [[nodiscard]] auto original_lane_id(LaneId lane_id) const noexcept -> int;
+
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  [[nodiscard]] auto lane_width(LaneId lane_id, double s_coord) const noexcept -> double;
 
  private:
   friend auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;
 
   // Road ID mapping tables
   std::vector<std::string> road_string_ids_;
+  std::vector<double> road_lengths_;
+
+  // Reference line SoA
+  ReferenceLineSoA ref_line_;
+  AlignedVector<double> arc_curvature_;
+  std::vector<uint32_t> road_ref_line_first_idx_;
+  std::vector<uint32_t> road_ref_line_count_;
+
+  // Elevation and Superelevation indexing
+  std::vector<uint32_t> road_elevation_first_idx_;
+  std::vector<uint32_t> road_elevation_count_;
+  std::vector<uint32_t> road_superelevation_first_idx_;
+  std::vector<uint32_t> road_superelevation_count_;
 
   // Cross section surface flat SoA structures
   PolynomialsSoA polynomials_;

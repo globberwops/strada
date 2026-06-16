@@ -49,7 +49,9 @@ TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
   EXPECT_EQ(cpm_model.road_count(), 1);
   auto road_id_opt = cpm_model.road_id_from_string("1");
   ASSERT_TRUE(road_id_opt.has_value());
-  EXPECT_EQ(cpm_model.original_road_id(*road_id_opt), "1");
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  auto road_id = *road_id_opt;
+  EXPECT_EQ(cpm_model.original_road_id(road_id), "1");
 
   // Query pose on the constant surface
   strada::cpm::RoadPose pose;
@@ -59,7 +61,7 @@ TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
   pose.heading = 0.0;
   pose.pitch = 0.0;
   pose.roll = 0.0;
-  pose.road = *road_id_opt;
+  pose.road = road_id;
 
   strada::cpm::QueryContext ctx;
   auto inertial = cpm_model.RoadToInertial(pose, ctx);
@@ -83,6 +85,8 @@ TEST(CompiledPhysicsModelTest, QueryMultiStripCrossSectionSurface) {
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
   auto road_id_opt = cpm_model.road_id_from_string("1");
   ASSERT_TRUE(road_id_opt.has_value());
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  auto road_id = *road_id_opt;
 
   strada::cpm::QueryContext ctx;
 
@@ -101,7 +105,7 @@ TEST(CompiledPhysicsModelTest, QueryMultiStripCrossSectionSurface) {
     pose.heading = 0.0;
     pose.pitch = 0.0;
     pose.roll = 0.0;
-    pose.road = *road_id_opt;
+    pose.road = road_id;
 
     auto inertial = cpm_model.RoadToInertial(pose, ctx);
     EXPECT_NEAR(inertial.z, -0.0175, 1e-9);
@@ -121,7 +125,7 @@ TEST(CompiledPhysicsModelTest, QueryMultiStripCrossSectionSurface) {
     pose.heading = 0.0;
     pose.pitch = 0.0;
     pose.roll = 0.0;
-    pose.road = *road_id_opt;
+    pose.road = road_id;
 
     auto inertial = cpm_model.RoadToInertial(pose, ctx);
     EXPECT_NEAR(inertial.z, -0.0325, 1e-9);
@@ -141,7 +145,7 @@ TEST(CompiledPhysicsModelTest, QueryMultiStripCrossSectionSurface) {
     pose.heading = 0.0;
     pose.pitch = 0.0;
     pose.roll = 0.0;
-    pose.road = *road_id_opt;
+    pose.road = road_id;
 
     auto inertial = cpm_model.RoadToInertial(pose, ctx);
     EXPECT_NEAR(inertial.z, -0.0475, 1e-9);
@@ -207,6 +211,8 @@ TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
   auto road_id_opt = cpm_model.road_id_from_string("1");
   ASSERT_TRUE(road_id_opt.has_value());
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  auto road_id = *road_id_opt;
 
   strada::cpm::QueryContext ctx;
 
@@ -225,9 +231,102 @@ TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
     pose.heading = 0.0;
     pose.pitch = 0.0;
     pose.roll = 0.0;
-    pose.road = *road_id_opt;
+    pose.road = road_id;
 
     auto inertial = cpm_model.RoadToInertial(pose, ctx);
     EXPECT_NEAR(inertial.z, 0.975, 1e-9);
+  }
+}
+
+TEST(CompiledPhysicsModelTest, QueryLineAndArcReferenceLine) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "geometry.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+
+  // Act
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+  auto road_id_opt = cpm_model.road_id_from_string("1");
+  ASSERT_TRUE(road_id_opt.has_value());
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+  auto road_id = *road_id_opt;
+
+  // Test inspection APIs
+  EXPECT_EQ(cpm_model.road_count(), 1);
+  EXPECT_EQ(cpm_model.original_road_id(road_id), "1");
+  EXPECT_DOUBLE_EQ(cpm_model.road_length(road_id), 100.0);
+
+  strada::cpm::QueryContext ctx;
+
+  // Query 1: On the Line segment (s = 5.0, t = 2.0, h = 0.5)
+  // Reference point calculations:
+  // hdg = 0.5, start_x = 10.0, start_y = 20.0
+  // X = 10.0 + 5.0 * cos(0.5) - 2.0 * sin(0.5) = 13.429061732243458
+  // Y = 20.0 + 5.0 * sin(0.5) + 2.0 * cos(0.5) = 24.15229281680176
+  // Z = 0.5
+  // Orientation: heading = 0.5, pitch = 0.0, roll = 0.0 (no offsets)
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 5.0;
+    pose.t = 2.0;
+    pose.h = 0.5;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.x, 13.429061732243458, 1e-9);
+    EXPECT_NEAR(inertial.y, 24.15229281680176, 1e-9);
+    EXPECT_NEAR(inertial.z, 0.5, 1e-9);
+    EXPECT_NEAR(inertial.heading, 0.5, 1e-9);
+    EXPECT_NEAR(inertial.pitch, 0.0, 1e-9);
+    EXPECT_NEAR(inertial.roll, 0.0, 1e-9);
+  }
+
+  // Query 2: On the Arc segment (s = 30.0, t = -1.0, h = 0.2)
+  // Segment start: s_start = 25.0, start_x = 35.0, start_y = 45.0, hdg = 0.7, curvature = 0.05
+  // ds = 5.0, hdg_at_s = 0.7 + 0.05 * 5.0 = 0.95
+  // X = 35.0 + 20.0 * (sin(0.95) - sin(0.7)) + sin(0.95) = 39.19737185582303
+  // Y = 45.0 - 20.0 * (cos(0.95) - cos(0.7)) - cos(0.95) = 48.08149886694822
+  // Z = 0.2
+  // Orientation: heading = 0.95, pitch = 0.0, roll = 0.0
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 30.0;
+    pose.t = -1.0;
+    pose.h = 0.2;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.x, 39.19737185582303, 1e-9);
+    EXPECT_NEAR(inertial.y, 48.08149886694822, 1e-9);
+    EXPECT_NEAR(inertial.z, 0.2, 1e-9);
+    EXPECT_NEAR(inertial.heading, 0.95, 1e-9);
+    EXPECT_NEAR(inertial.pitch, 0.0, 1e-9);
+    EXPECT_NEAR(inertial.roll, 0.0, 1e-9);
+  }
+
+  // Query 3: On the Line segment with orientation offsets
+  // s = 5.0, t = 2.0, h = 0.5
+  // pose.heading = 0.1, pose.pitch = 0.2, pose.roll = 0.3
+  // Expected composed orientation: heading = 0.6, pitch = 0.2, roll = 0.3
+  {
+    strada::cpm::RoadPose pose;
+    pose.s = 5.0;
+    pose.t = 2.0;
+    pose.h = 0.5;
+    pose.heading = 0.1;
+    pose.pitch = 0.2;
+    pose.roll = 0.3;
+    pose.road = road_id;
+
+    auto inertial = cpm_model.RoadToInertial(pose, ctx);
+    EXPECT_NEAR(inertial.heading, 0.6, 1e-9);
+    EXPECT_NEAR(inertial.pitch, 0.2, 1e-9);
+    EXPECT_NEAR(inertial.roll, 0.3, 1e-9);
   }
 }
