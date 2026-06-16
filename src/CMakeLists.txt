@@ -12,7 +12,7 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/ast/geometry.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/header.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/lanes.hpp
-         ${PROJECT_SOURCE_DIR}/include/strada/ast/opendrive.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/ast/abstract_syntax_tree.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/profiles.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/road.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/ids.hpp

@@ -46,7 +46,7 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
 * **Inspection queries are stateless.** `road_count()`, `road_id_from_string()`, `original_road_id()`, `road_length()`, `lane_count()`, `lane_road()`, `original_lane_id()`, `lane_width()` do not take a `QueryContext&`. They are setup / debug / tooling queries, not on the 1 kHz hot path.
 
 ### Error Handling
-* **Build may throw.** `BuildCompiledPhysicsModel(const ast::OpenDrive&)` can throw on resource exhaustion or unrecoverable internal errors. The CPM does **not** perform AST validation — the parser/AST layer is responsible for input well-formedness, and the CPM trusts its input.
+* **Build may throw.** `BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree&)` can throw on resource exhaustion or unrecoverable internal errors. The CPM does **not** perform AST validation — the parser/AST layer is responsible for input well-formedness, and the CPM trusts its input.
 * **Hot-path queries are `noexcept`.** All `RoadToInertial`, `LaneToInertial`, `InertialToRoad`, `InertialToLane`, `RoadToLane`, `LaneToRoad` methods are marked `noexcept`. Failure modes for the inverse / cross queries are communicated via `std::optional<...>` (returns `std::nullopt` on failure), never via exceptions.
 
 ### Threading Model
@@ -67,7 +67,7 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
 
 
 ### System Components
-* **AST (Abstract Syntax Tree)**: The strongly-typed C++ object hierarchy that mirrors the complete OpenDRIVE 1.9 XML schema exactly, including a `struct Extensions` member on every major node to hold custom/unknown data losslessly.
+* **AST (Abstract Syntax Tree)**: The strongly-typed C++ object hierarchy that mirrors the complete OpenDRIVE 1.9 XML schema exactly (represented by `ast::AbstractSyntaxTree`), including a `struct Extensions` member on every major node to hold custom/unknown data losslessly.
   * **Lossless XML Preservation**: `Extensions` captures unknown XML attributes as a `std::map<std::string, std::string>` and each `<userData>` child element as a raw XML string in a `std::vector<std::string>`.
   * **Format-agnostic input convention**: The AST's typed fields are the OpenDRIVE shape, because that's the only input format Strada supports today. When other input formats are added (NDS, lanelet2, OSI, …), any format-specific data that doesn't fit the OpenDRIVE shape goes into `Extensions` — the same mechanism that already carries OpenDRIVE vendor extensions. This keeps a single AST type as the input to all downstream layers (CPM, Routing Graph, Tessellator) regardless of the source format.
 * **CPM (Compiled Physics Model)**: A memory-aligned, contiguous Struct-of-Arrays (SoA) layout that flattens reference geometry and profiles for high-speed evaluation.

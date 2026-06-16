@@ -151,7 +151,7 @@ auto CompiledPhysicsModel::original_road_id(RoadId id) const noexcept -> std::st
   return "";
 }
 
-auto BuildCompiledPhysicsModel(const ast::OpenDrive& map) -> CompiledPhysicsModel {
+auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel {
   CompiledPhysicsModel model;
 
   for (const auto& road : map.roads) {

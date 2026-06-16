@@ -2,7 +2,7 @@
 
 #include <cstddef>
 #include <optional>
-#include <strada/ast/opendrive.hpp>
+#include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/coordinate.hpp>
 #include <strada/cpm/ids.hpp>
 #include <strada/cpm/query_context.hpp>
@@ -62,7 +62,7 @@ class CompiledPhysicsModel {
   auto original_road_id(RoadId) const noexcept -> std::string_view;
 
  private:
-  friend auto BuildCompiledPhysicsModel(const ast::OpenDrive& map) -> CompiledPhysicsModel;
+  friend auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;
 
   // Road ID mapping tables
   std::vector<std::string> road_string_ids_;
@@ -73,6 +73,6 @@ class CompiledPhysicsModel {
   RoadCrossSectionSurfaceSoA road_css_;
 };
 
-auto BuildCompiledPhysicsModel(const ast::OpenDrive& map) -> CompiledPhysicsModel;
+auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;
 
 }  // namespace strada::cpm

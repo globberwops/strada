@@ -28,10 +28,10 @@ TEST(ParserTest, ParseMinimalHeaderFromString) {
   std::string xml = ReadFileToString(data_dir / "minimal_header.xodr");
 
   // Act
-  auto opendrive = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
-  const auto& header = opendrive.header;
+  const auto& header = ast_tree.header;
   EXPECT_EQ(header.rev_major, 1);
   EXPECT_EQ(header.rev_minor, 9);
   EXPECT_EQ(header.name, "Test Map");
@@ -51,10 +51,10 @@ TEST(ParserTest, ParseMinimalHeaderFromFile) {
   std::filesystem::path file_path = data_dir / "minimal_header.xodr";
 
   // Act
-  auto opendrive = strada::parser::ParseFile(file_path);
+  auto ast_tree = strada::parser::ParseFile(file_path);
 
   // Assert
-  const auto& header = opendrive.header;
+  const auto& header = ast_tree.header;
   EXPECT_EQ(header.rev_major, 1);
   EXPECT_EQ(header.rev_minor, 9);
   EXPECT_EQ(header.name, "Test Map");
@@ -67,10 +67,10 @@ TEST(ParserTest, ParseRoadsFromString) {
   std::string xml = ReadFileToString(data_dir / "roads.xodr");
 
   // Act
-  auto opendrive = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
-  const auto& roads = opendrive.roads;
+  const auto& roads = ast_tree.roads;
   ASSERT_EQ(roads.size(), 2);
 
   EXPECT_EQ(roads[0].id, "1");
@@ -92,11 +92,11 @@ TEST(ParserTest, ParseGeometryFromPlanView) {
   std::string xml = ReadFileToString(data_dir / "geometry.xodr");
 
   // Act
-  auto opendrive = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
-  ASSERT_EQ(opendrive.roads.size(), 1);
-  const auto& road = opendrive.roads[0];
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
   const auto& plan_view = road.plan_view;
   ASSERT_EQ(plan_view.size(), 5);
 
@@ -151,11 +151,11 @@ TEST(ParserTest, ParseLanesAndProfiles) {
   std::string xml = ReadFileToString(data_dir / "lanes_and_profiles.xodr");
 
   // Act
-  auto opendrive = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
-  ASSERT_EQ(opendrive.roads.size(), 1);
-  const auto& road = opendrive.roads[0];
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
 
   // Elevation Profile
   const auto& elevations = road.elevation_profile.elevations;
@@ -228,11 +228,11 @@ TEST(ParserTest, ParseJunctions) {
   std::string xml = ReadFileToString(data_dir / "junctions.xodr");
 
   // Act
-  auto opendrive = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
-  ASSERT_EQ(opendrive.junctions.size(), 1);
-  const auto& junction = opendrive.junctions[0];
+  ASSERT_EQ(ast_tree.junctions.size(), 1);
+  const auto& junction = ast_tree.junctions[0];
   EXPECT_EQ(junction.id, "1");
   EXPECT_EQ(junction.name, "Main Junction");
   EXPECT_EQ(junction.type, "default");
@@ -266,18 +266,18 @@ TEST(ParserTest, ParseExtensions) {
   std::string xml = ReadFileToString(data_dir / "extensions.xodr");
 
   // Act
-  auto opendrive = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert – header captures unknown attributes and userData
-  const auto& header_ext = opendrive.header.extensions;
+  const auto& header_ext = ast_tree.header.extensions;
   ASSERT_EQ(header_ext.attributes.size(), 1);
   EXPECT_EQ(header_ext.attributes.at("customKey"), "customValue");
   ASSERT_EQ(header_ext.user_data.size(), 1);
   EXPECT_NE(header_ext.user_data[0].find("someVendorData"), std::string::npos);
 
   // Assert – road captures unknown attributes and userData
-  ASSERT_EQ(opendrive.roads.size(), 1);
-  const auto& road_ext = opendrive.roads[0].extensions;
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road_ext = ast_tree.roads[0].extensions;
   ASSERT_EQ(road_ext.attributes.size(), 1);
   EXPECT_EQ(road_ext.attributes.at("customAttr"), "roadExtra");
   ASSERT_EQ(road_ext.user_data.size(), 1);
@@ -377,14 +377,14 @@ TEST(ParserTest, ParseCrossSectionSurface) {
 </OpenDRIVE>)";
 
   // Act
-  auto opendrive = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
-  ASSERT_EQ(opendrive.roads.size(), 1);
-  const auto& road = opendrive.roads[0];
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
   ASSERT_TRUE(road.lateral_profile.cross_section_surface.has_value());
   const auto& css = *road.lateral_profile.cross_section_surface;
-  
+
   // Verify tOffset
   ASSERT_EQ(css.t_offset.size(), 1);
   EXPECT_DOUBLE_EQ(css.t_offset[0].s, 0.0);
@@ -403,4 +403,3 @@ TEST(ParserTest, ParseCrossSectionSurface) {
   EXPECT_DOUBLE_EQ(strip.constant[0].a, 0.45);
   EXPECT_DOUBLE_EQ(strip.constant[0].b, 0.0);
 }
-

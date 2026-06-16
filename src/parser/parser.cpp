@@ -234,7 +234,6 @@ auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile {
   return profile;
 }
 
-
 auto ParseLane(pugi::xml_node lane_node) -> ast::Lane {
   ast::Lane lane;
   lane.id = lane_node.attribute("id").as_int(0);
@@ -349,7 +348,7 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
   return junction;
 }
 
-auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
+auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
   pugi::xml_node root = doc.child("OpenDRIVE");
   if (!root) {
     throw MissingElementError("Missing <OpenDRIVE> root element");
@@ -360,8 +359,8 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
     throw MissingElementError("Missing <header> element");
   }
 
-  ast::OpenDrive opendrive;
-  opendrive.header = ParseHeader(header_node);
+  ast::AbstractSyntaxTree ast_tree;
+  ast_tree.header = ParseHeader(header_node);
 
   pugi::xml_node road_node = root.child("road");
   while (!road_node.empty()) {
@@ -410,22 +409,22 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::OpenDrive {
     static const std::unordered_set<std::string> known_road_attrs = {"id", "length", "junction", "rule", "name"};
     road.extensions = ParseExtensions(road_node, known_road_attrs);
 
-    opendrive.roads.push_back(road);
+    ast_tree.roads.push_back(road);
     road_node = road_node.next_sibling("road");
   }
 
   pugi::xml_node junction_node = root.child("junction");
   while (!junction_node.empty()) {
-    opendrive.junctions.push_back(ParseJunction(junction_node));
+    ast_tree.junctions.push_back(ParseJunction(junction_node));
     junction_node = junction_node.next_sibling("junction");
   }
 
-  return opendrive;
+  return ast_tree;
 }
 
 }  // namespace
 
-auto ParseString(std::string_view xml_content) -> ast::OpenDrive {
+auto ParseString(std::string_view xml_content) -> ast::AbstractSyntaxTree {
   pugi::xml_document doc;
   pugi::xml_parse_result result = doc.load_buffer(xml_content.data(), xml_content.size());
   if (!result) {
@@ -434,7 +433,7 @@ auto ParseString(std::string_view xml_content) -> ast::OpenDrive {
   return ParseDocument(doc);
 }
 
-auto ParseFile(const std::filesystem::path& file_path) -> ast::OpenDrive {
+auto ParseFile(const std::filesystem::path& file_path) -> ast::AbstractSyntaxTree {
   pugi::xml_document doc;
   pugi::xml_parse_result result = doc.load_file(file_path.c_str());
   if (!result) {

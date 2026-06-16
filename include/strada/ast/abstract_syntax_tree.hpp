@@ -7,7 +7,7 @@
 
 namespace strada::ast {
 
-struct OpenDrive {
+struct AbstractSyntaxTree {
   Header header;
   std::vector<Road> roads;
   std::vector<Junction> junctions;
