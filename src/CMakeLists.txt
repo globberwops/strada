@@ -1,4 +1,4 @@
-add_library(strada parser/parser.cpp)
+add_library(strada parser/parser.cpp cpm/compiled_physics_model.cpp)
 add_library(Strada::strada ALIAS strada)
 
 target_sources(
@@ -14,6 +14,11 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/ast/lanes.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/opendrive.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/profiles.hpp
-         ${PROJECT_SOURCE_DIR}/include/strada/ast/road.hpp)
+         ${PROJECT_SOURCE_DIR}/include/strada/ast/road.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/ids.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/coordinate.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/query_context.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/compiled_physics_model.hpp)
+
 
 target_link_libraries(strada PRIVATE pugixml)

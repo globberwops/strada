@@ -126,6 +126,16 @@ auto ParseElevationProfile(pugi::xml_node elev_prof_node) -> ast::ElevationProfi
   return profile;
 }
 
+auto ParseCoefficient(pugi::xml_node coeff_node) -> ast::Coefficient {
+  ast::Coefficient coeff;
+  coeff.s = coeff_node.attribute("s").as_double(0.0);
+  coeff.a = coeff_node.attribute("a").as_double(0.0);
+  coeff.b = coeff_node.attribute("b").as_double(0.0);
+  coeff.c = coeff_node.attribute("c").as_double(0.0);
+  coeff.d = coeff_node.attribute("d").as_double(0.0);
+  return coeff;
+}
+
 auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile {
   ast::LateralProfile profile;
   if (lat_prof_node.empty()) {
@@ -154,8 +164,76 @@ auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile {
     profile.shapes.push_back(shape);
     shape_node = shape_node.next_sibling("shape");
   }
+
+  pugi::xml_node css_node = lat_prof_node.child("crossSectionSurface");
+  if (!css_node.empty()) {
+    ast::CrossSectionSurface css;
+    pugi::xml_node t_offset_node = css_node.child("tOffset");
+    if (!t_offset_node.empty()) {
+      pugi::xml_node coeff_node = t_offset_node.child("coefficients");
+      while (!coeff_node.empty()) {
+        css.t_offset.push_back(ParseCoefficient(coeff_node));
+        coeff_node = coeff_node.next_sibling("coefficients");
+      }
+    }
+    pugi::xml_node surface_strips_node = css_node.child("surfaceStrips");
+    if (!surface_strips_node.empty()) {
+      pugi::xml_node strip_node = surface_strips_node.child("strip");
+      while (!strip_node.empty()) {
+        ast::CrossSectionSurfaceStrip strip;
+        strip.id = strip_node.attribute("id").as_int(0);
+        strip.mode = strip_node.attribute("mode").as_string("independent");
+
+        pugi::xml_node width_node = strip_node.child("width");
+        if (!width_node.empty()) {
+          pugi::xml_node coeff_node = width_node.child("coefficients");
+          while (!coeff_node.empty()) {
+            strip.width.push_back(ParseCoefficient(coeff_node));
+            coeff_node = coeff_node.next_sibling("coefficients");
+          }
+        }
+        pugi::xml_node const_node = strip_node.child("constant");
+        if (!const_node.empty()) {
+          pugi::xml_node coeff_node = const_node.child("coefficients");
+          while (!coeff_node.empty()) {
+            strip.constant.push_back(ParseCoefficient(coeff_node));
+            coeff_node = coeff_node.next_sibling("coefficients");
+          }
+        }
+        pugi::xml_node linear_node = strip_node.child("linear");
+        if (!linear_node.empty()) {
+          pugi::xml_node coeff_node = linear_node.child("coefficients");
+          while (!coeff_node.empty()) {
+            strip.linear.push_back(ParseCoefficient(coeff_node));
+            coeff_node = coeff_node.next_sibling("coefficients");
+          }
+        }
+        pugi::xml_node quad_node = strip_node.child("quadratic");
+        if (!quad_node.empty()) {
+          pugi::xml_node coeff_node = quad_node.child("coefficients");
+          while (!coeff_node.empty()) {
+            strip.quadratic.push_back(ParseCoefficient(coeff_node));
+            coeff_node = coeff_node.next_sibling("coefficients");
+          }
+        }
+        pugi::xml_node cubic_node = strip_node.child("cubic");
+        if (!cubic_node.empty()) {
+          pugi::xml_node coeff_node = cubic_node.child("coefficients");
+          while (!coeff_node.empty()) {
+            strip.cubic.push_back(ParseCoefficient(coeff_node));
+            coeff_node = coeff_node.next_sibling("coefficients");
+          }
+        }
+        css.strips.push_back(strip);
+        strip_node = strip_node.next_sibling("strip");
+      }
+    }
+    profile.cross_section_surface = css;
+  }
+
   return profile;
 }
+
 
 auto ParseLane(pugi::xml_node lane_node) -> ast::Lane {
   ast::Lane lane;

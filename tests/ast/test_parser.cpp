@@ -339,3 +339,68 @@ TEST(ParserTest, ErrorMessageContainsRoadIdOnMissingPlanView) {
     EXPECT_NE(std::string(err.what()).find("1"), std::string::npos);
   }
 }
+
+TEST(ParserTest, ParseCrossSectionSurface) {
+  // Arrange
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <elevationProfile/>
+    <lateralProfile>
+      <crossSectionSurface>
+        <tOffset>
+          <coefficients s="0.0" a="-0.375"/>
+        </tOffset>
+        <surfaceStrips>
+          <strip id="1">
+            <constant>
+              <coefficients s="0.0" a="0.45"/>
+            </constant>
+          </strip>
+        </surfaceStrips>
+      </crossSectionSurface>
+    </lateralProfile>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0"/>
+        </center>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto opendrive = strada::parser::ParseString(xml);
+
+  // Assert
+  ASSERT_EQ(opendrive.roads.size(), 1);
+  const auto& road = opendrive.roads[0];
+  ASSERT_TRUE(road.lateral_profile.cross_section_surface.has_value());
+  const auto& css = *road.lateral_profile.cross_section_surface;
+  
+  // Verify tOffset
+  ASSERT_EQ(css.t_offset.size(), 1);
+  EXPECT_DOUBLE_EQ(css.t_offset[0].s, 0.0);
+  EXPECT_DOUBLE_EQ(css.t_offset[0].a, -0.375);
+  EXPECT_DOUBLE_EQ(css.t_offset[0].b, 0.0);
+
+  // Verify strips
+  ASSERT_EQ(css.strips.size(), 1);
+  const auto& strip = css.strips[0];
+  EXPECT_EQ(strip.id, 1);
+  EXPECT_EQ(strip.mode, "independent");
+
+  // Verify constant coefficients
+  ASSERT_EQ(strip.constant.size(), 1);
+  EXPECT_DOUBLE_EQ(strip.constant[0].s, 0.0);
+  EXPECT_DOUBLE_EQ(strip.constant[0].a, 0.45);
+  EXPECT_DOUBLE_EQ(strip.constant[0].b, 0.0);
+}
+
