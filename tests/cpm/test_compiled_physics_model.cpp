@@ -1042,3 +1042,55 @@ TEST(CompiledPhysicsModelTest, RoundTripLaneInertialLane) {
     EXPECT_NEAR(lp_snap.roll, lp_orig.roll, 1e-9);
   }
 }
+
+TEST(CompiledPhysicsModelTest, BivariateShapeProfile) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  // Note: bivariate_shape_road.xodr is located in tests/cpm/data/
+  std::filesystem::path file_path =
+      std::filesystem::path(STRADA_TEST_DATA_DIR) / ".." / "cpm" / "data" / "bivariate_shape_road.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+
+  strada::cpm::QueryContext ctx;
+
+  // Act & Assert 1: RoadToInertial forward transform at s = 5.0, t = 2.0, h = 0.0
+  {
+    strada::cpm::RoadPose rp;
+    rp.s = 5.0;
+    rp.t = 2.0;
+    rp.h = 0.0;
+    rp.heading = 0.0;
+    rp.pitch = 0.0;
+    rp.roll = 0.0;
+    rp.road = strada::cpm::RoadId{0};
+
+    auto ip = cpm_model.RoadToInertial(rp, ctx);
+
+    // Hand-calculated values
+    double roll_total = std::atan(0.15);
+    double cos_roll = std::cos(roll_total);
+    double sin_roll = std::sin(roll_total);
+    double expected_y = cos_roll * 2.0 - sin_roll * 0.8;
+    double expected_z = sin_roll * 2.0 + cos_roll * 0.8;
+
+    EXPECT_NEAR(ip.x, 5.0, 1e-6);
+    EXPECT_NEAR(ip.y, expected_y, 1e-6);
+    EXPECT_NEAR(ip.z, expected_z, 1e-6);
+    EXPECT_NEAR(ip.heading, 0.0, 1e-6);
+    EXPECT_NEAR(ip.pitch, 0.0, 1e-6);
+    EXPECT_NEAR(ip.roll, roll_total, 1e-6);
+
+    // Act & Assert 2: InertialToRoad backward snap round-trip
+    auto rp_snap_opt = cpm_model.InertialToRoad(ip, ctx);
+    ASSERT_TRUE(rp_snap_opt.has_value());
+    auto rp_snap = *rp_snap_opt;
+    EXPECT_EQ(rp_snap.road, rp.road);
+    EXPECT_NEAR(rp_snap.s, rp.s, 1e-9);
+    EXPECT_NEAR(rp_snap.t, rp.t, 1e-9);
+    EXPECT_NEAR(rp_snap.h, rp.h, 1e-9);
+    EXPECT_NEAR(rp_snap.heading, rp.heading, 1e-9);
+    EXPECT_NEAR(rp_snap.pitch, rp.pitch, 1e-9);
+    EXPECT_NEAR(rp_snap.roll, rp.roll, 1e-9);
+  }
+}

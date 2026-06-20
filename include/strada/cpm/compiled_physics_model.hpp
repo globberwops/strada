@@ -71,6 +71,15 @@ struct RoadCrossSectionSurfaceSoA {
   std::vector<uint32_t> t_offset_count;
 };
 
+struct ShapesSoA {
+  AlignedVector<double> s;
+  AlignedVector<double> t;
+  AlignedVector<double> a;
+  AlignedVector<double> b;
+  AlignedVector<double> c;
+  AlignedVector<double> d;
+};
+
 struct BvhNode {
   double min_x{};
   double min_y{};
@@ -189,6 +198,11 @@ class CompiledPhysicsModel {
   std::vector<double> lane_offset_d_;
   std::vector<uint32_t> road_lane_offset_first_idx_;
   std::vector<uint32_t> road_lane_offset_count_;
+
+  // Shape profile flat SoA structures
+  ShapesSoA shapes_;
+  std::vector<uint32_t> road_shape_first_idx_;
+  std::vector<uint32_t> road_shape_count_;
 
   // Global spatial index (Flat BVH)
   std::vector<BvhNode> bvh_nodes_;

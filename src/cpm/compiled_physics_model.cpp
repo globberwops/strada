@@ -552,6 +552,164 @@ auto ProjectToGenericSegment(const ReferenceLineSoA& ref_line, const AlignedVect
   return 0.5 * (left_s + right_s);
 }
 
+struct ShapeGroup {
+  double s{};
+  uint32_t first_idx{};
+  uint32_t count{};
+};
+
+void FindShapeGroups(const ShapesSoA& shapes, uint32_t first_idx, uint32_t count, double s_coord,
+                     std::optional<ShapeGroup>& g1, std::optional<ShapeGroup>& g2) noexcept {
+  g1 = std::nullopt;
+  g2 = std::nullopt;
+  if (count == 0) {
+    return;
+  }
+
+  double max_s_le = -std::numeric_limits<double>::max();
+  double min_s_ge = std::numeric_limits<double>::max();
+  bool found_le = false;
+  bool found_ge = false;
+
+  for (uint32_t i = 0; i < count; ++i) {
+    double s_val = shapes.s[first_idx + i];
+    if (s_val <= s_coord) {
+      if (!found_le || s_val > max_s_le) {
+        max_s_le = s_val;
+        found_le = true;
+      }
+    }
+    if (s_val >= s_coord) {
+      if (!found_ge || s_val < min_s_ge) {
+        min_s_ge = s_val;
+        found_ge = true;
+      }
+    }
+  }
+
+  if (found_le) {
+    ShapeGroup group;
+    group.s = max_s_le;
+    group.first_idx = 0;
+    group.count = 0;
+    bool in_group = false;
+    for (uint32_t i = 0; i < count; ++i) {
+      uint32_t idx = first_idx + i;
+      if (shapes.s[idx] == max_s_le) {
+        if (!in_group) {
+          group.first_idx = idx;
+          in_group = true;
+        }
+        group.count++;
+      }
+    }
+    g1 = group;
+  }
+
+  if (found_ge) {
+    ShapeGroup group;
+    group.s = min_s_ge;
+    group.first_idx = 0;
+    group.count = 0;
+    bool in_group = false;
+    for (uint32_t i = 0; i < count; ++i) {
+      uint32_t idx = first_idx + i;
+      if (shapes.s[idx] == min_s_ge) {
+        if (!in_group) {
+          group.first_idx = idx;
+          in_group = true;
+        }
+        group.count++;
+      }
+    }
+    g2 = group;
+  }
+}
+
+auto EvaluateGroupHeight(const ShapesSoA& shapes, const ShapeGroup& group, double t_coord) noexcept -> double {
+  if (group.count == 0) {
+    return 0.0;
+  }
+  uint32_t active_idx = group.first_idx;
+  for (uint32_t i = 0; i < group.count; ++i) {
+    uint32_t idx = group.first_idx + i;
+    if (t_coord >= shapes.t[idx]) {
+      active_idx = idx;
+    } else {
+      break;
+    }
+  }
+  double dt = t_coord - shapes.t[active_idx];
+  return shapes.a[active_idx] + dt * (shapes.b[active_idx] + dt * (shapes.c[active_idx] + dt * shapes.d[active_idx]));
+}
+
+auto EvaluateGroupTGradient(const ShapesSoA& shapes, const ShapeGroup& group, double t_coord) noexcept -> double {
+  if (group.count == 0) {
+    return 0.0;
+  }
+  uint32_t active_idx = group.first_idx;
+  for (uint32_t i = 0; i < group.count; ++i) {
+    uint32_t idx = group.first_idx + i;
+    if (t_coord >= shapes.t[idx]) {
+      active_idx = idx;
+    } else {
+      break;
+    }
+  }
+  double dt = t_coord - shapes.t[active_idx];
+  return shapes.b[active_idx] + dt * (2.0 * shapes.c[active_idx] + dt * 3.0 * shapes.d[active_idx]);
+}
+
+auto EvaluateShapeHeight(const ShapesSoA& shapes, uint32_t first_idx, uint32_t count, double s_coord,
+                         double t_coord) noexcept -> double {
+  std::optional<ShapeGroup> g1;
+  std::optional<ShapeGroup> g2;
+  FindShapeGroups(shapes, first_idx, count, s_coord, g1, g2);
+
+  if (!g1.has_value() && !g2.has_value()) {
+    return 0.0;
+  }
+  if (g1.has_value() && !g2.has_value()) {
+    return EvaluateGroupHeight(shapes, *g1, t_coord);
+  }
+  if (!g1.has_value() && g2.has_value()) {
+    return EvaluateGroupHeight(shapes, *g2, t_coord);
+  }
+
+  double h1 = EvaluateGroupHeight(shapes, *g1, t_coord);
+  if (g1->s == g2->s) {
+    return h1;
+  }
+  double h2 = EvaluateGroupHeight(shapes, *g2, t_coord);
+  double f = (s_coord - g1->s) / (g2->s - g1->s);
+  return (1.0 - f) * h1 + f * h2;
+}
+
+auto EvaluateShapeTGradient(const ShapesSoA& shapes, uint32_t first_idx, uint32_t count, double s_coord,
+                            double t_coord) noexcept -> double {
+  std::optional<ShapeGroup> g1;
+  std::optional<ShapeGroup> g2;
+  FindShapeGroups(shapes, first_idx, count, s_coord, g1, g2);
+
+  if (!g1.has_value() && !g2.has_value()) {
+    return 0.0;
+  }
+  if (g1.has_value() && !g2.has_value()) {
+    return EvaluateGroupTGradient(shapes, *g1, t_coord);
+  }
+  if (!g1.has_value() && g2.has_value()) {
+    return EvaluateGroupTGradient(shapes, *g2, t_coord);
+  }
+
+  double g1_val = EvaluateGroupTGradient(shapes, *g1, t_coord);
+  if (g1->s == g2->s) {
+    return g1_val;
+  }
+  double g2_val = EvaluateGroupTGradient(shapes, *g2, t_coord);
+  double f = (s_coord - g1->s) / (g2->s - g1->s);
+  return (1.0 - f) * g1_val + f * g2_val;
+}
+
 }  // namespace
 
 [[gnu::hot]] auto CompiledPhysicsModel::RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept
@@ -588,11 +746,17 @@ auto ProjectToGenericSegment(const ReferenceLineSoA& ref_line, const AlignedVect
   double h_surf = 0.0;
   EvaluateCrossSectionSurfaceOffset(polynomials_, strips_, road_css_, road_idx, pose.s, pose.t, h_surf);
 
+  double h_shape =
+      EvaluateShapeHeight(shapes_, road_shape_first_idx_[road_idx], road_shape_count_[road_idx], pose.s, pose.t);
+  double shape_grad =
+      EvaluateShapeTGradient(shapes_, road_shape_first_idx_[road_idx], road_shape_count_[road_idx], pose.s, pose.t);
+
   // 5. Position composition
-  Matrix3x3 r_road = EulerToMatrix(tangent_hdg, natural_pitch, natural_roll);
+  double roll_total = natural_roll + std::atan(shape_grad);
+  Matrix3x3 r_road = EulerToMatrix(tangent_hdg, natural_pitch, roll_total);
 
   double local_t = pose.t;
-  double local_h = pose.h + h_surf;
+  double local_h = pose.h + h_surf + h_shape;
 
   double offset_x = (r_road[0][1] * local_t) + (r_road[0][2] * local_h);
   double offset_y = (r_road[1][1] * local_t) + (r_road[1][2] * local_h);
@@ -701,8 +865,6 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
                                       road_superelevation_first_idx_, road_superelevation_count_, road_css_, road_idx,
                                       best_s, elev, natural_pitch, natural_roll);
 
-    Matrix3x3 r_road = EulerToMatrix(best_rhdg, natural_pitch, natural_roll);
-
     uint32_t best_seg_idx = first_seg;
     for (uint32_t i = 0; i < seg_count; ++i) {
       uint32_t cur_seg = first_seg + i;
@@ -718,6 +880,17 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     double dx = pose.x - rx;
     double dy = pose.y - ry;
     double dz = pose.z - elev;
+
+    // Base roll calculation
+    Matrix3x3 r_road_base = EulerToMatrix(best_rhdg, natural_pitch, natural_roll);
+    double road_t_base = r_road_base[0][1] * dx + r_road_base[1][1] * dy + r_road_base[2][1] * dz;
+
+    // Shape evaluation and roll correction
+    double shape_grad = EvaluateShapeTGradient(shapes_, road_shape_first_idx_[road_idx], road_shape_count_[road_idx],
+                                               best_s, road_t_base);
+    double roll_total = natural_roll + std::atan(shape_grad);
+
+    Matrix3x3 r_road = EulerToMatrix(best_rhdg, natural_pitch, roll_total);
     double road_t = r_road[0][1] * dx + r_road[1][1] * dy + r_road[2][1] * dz;
 
     double t_left = 0.0;
@@ -734,8 +907,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
       double h_surf = 0.0;
       EvaluateCrossSectionSurfaceOffset(polynomials_, strips_, road_css_, road_idx, best_s, road_t, h_surf);
 
+      double h_shape =
+          EvaluateShapeHeight(shapes_, road_shape_first_idx_[road_idx], road_shape_count_[road_idx], best_s, road_t);
+
       double local_h = r_road[0][2] * dx + r_road[1][2] * dy + r_road[2][2] * dz;
-      road_pose.h = local_h - h_surf;
+      road_pose.h = local_h - h_surf - h_shape;
 
       Matrix3x3 r_inertial = EulerToMatrix(pose.heading, pose.pitch, pose.roll);
       Matrix3x3 r_road_t = TransposeMatrix(r_road);
@@ -1365,6 +1541,22 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
       CompileCoefficients(coeffs, model.polynomials_, first_idx, count);
       model.road_superelevation_first_idx_.push_back(first_idx);
       model.road_superelevation_count_.push_back(count);
+    }
+
+    // Shape profile compilation
+    {
+      auto first_idx = static_cast<uint32_t>(model.shapes_.s.size());
+      auto count = static_cast<uint32_t>(road.lateral_profile.shapes.size());
+      for (const auto& shape : road.lateral_profile.shapes) {
+        model.shapes_.s.push_back(shape.s);
+        model.shapes_.t.push_back(shape.t);
+        model.shapes_.a.push_back(shape.a);
+        model.shapes_.b.push_back(shape.b);
+        model.shapes_.c.push_back(shape.c);
+        model.shapes_.d.push_back(shape.d);
+      }
+      model.road_shape_first_idx_.push_back(first_idx);
+      model.road_shape_count_.push_back(count);
     }
 
     const auto& css_opt = road.lateral_profile.cross_section_surface;

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Bivariate Shape Road Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
+        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
+    </header>
+    <road id="1" length="10.0" junction="-1">
+        <planView>
+            <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line /></geometry>
+        </planView>
+        <lateralProfile>
+            <shape s="0.0" t="0.0" a="0.0" b="0.1" c="0.0" d="0.0"/>
+            <shape s="10.0" t="0.0" a="1.0" b="0.2" c="0.0" d="0.0"/>
+        </lateralProfile>
+    </road>
+</OpenDRIVE>
