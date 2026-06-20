@@ -51,9 +51,9 @@ auto ParseHeader(pugi::xml_node header_node) -> ast::Header {
   if (!geo_ref_node.empty()) {
     header.geo_reference = geo_ref_node.child_value();
   }
-  static const std::unordered_set<std::string> known_header_attrs = {
+  static const std::unordered_set<std::string> kNownHeaderAttrs = {
       "revMajor", "revMinor", "name", "version", "date", "north", "south", "east", "west", "vendor"};
-  header.extensions = ParseExtensions(header_node, known_header_attrs);
+  header.extensions = ParseExtensions(header_node, kNownHeaderAttrs);
   return header;
 }
 
@@ -343,8 +343,8 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
     junction.connections.push_back(conn);
     conn_node = conn_node.next_sibling("connection");
   }
-  static const std::unordered_set<std::string> known_junction_attrs = {"id", "name", "type"};
-  junction.extensions = ParseExtensions(junction_node, known_junction_attrs);
+  static const std::unordered_set<std::string> kNownJunctionAttrs = {"id", "name", "type"};
+  junction.extensions = ParseExtensions(junction_node, kNownJunctionAttrs);
   return junction;
 }
 
@@ -406,8 +406,8 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
                       [](const ast::LaneSection& lhs, const ast::LaneSection& rhs) -> bool { return lhs.s < rhs.s; });
 
     // Extensions
-    static const std::unordered_set<std::string> known_road_attrs = {"id", "length", "junction", "rule", "name"};
-    road.extensions = ParseExtensions(road_node, known_road_attrs);
+    static const std::unordered_set<std::string> kNownRoadAttrs = {"id", "length", "junction", "rule", "name"};
+    road.extensions = ParseExtensions(road_node, kNownRoadAttrs);
 
     ast_tree.roads.push_back(road);
     road_node = road_node.next_sibling("road");

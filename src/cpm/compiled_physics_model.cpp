@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numbers>
 #include <strada/cpm/aligned_allocator.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
 
@@ -24,8 +25,8 @@ auto IntegrateArcLength(double u, double b, double c, double d) noexcept -> doub
   double half_u = 0.5 * u;
   for (int i = 0; i < 5; ++i) {
     double sigma = half_u * (kGaussPoints[i] + 1.0);
-    double v_prime = b + 2.0 * c * sigma + 3.0 * d * sigma * sigma;
-    sum += kGaussWeights[i] * std::sqrt(1.0 + v_prime * v_prime);
+    double v_prime = b + (2.0 * c * sigma) + (3.0 * d * sigma * sigma);
+    sum += kGaussWeights[i] * std::sqrt(1.0 + (v_prime * v_prime));
   }
   return half_u * sum;
 }
@@ -39,9 +40,9 @@ auto SolveUForS(double s_target, double length, double b_u, double b, double c, 
   constexpr int kMaxIter = 100;
   for (int iter = 0; iter < kMaxIter; ++iter) {
     double s_val = IntegrateArcLength(u_val, b, c, d);
-    double v_prime = b + 2.0 * c * u_val + 3.0 * d * u_val * u_val;
+    double v_prime = b + (2.0 * c * u_val) + (3.0 * d * u_val * u_val);
     double f_val = s_val - s_target;
-    double f_prime = std::sqrt(1.0 + v_prime * v_prime);
+    double f_prime = std::sqrt(1.0 + (v_prime * v_prime));
     if (std::abs(f_prime) < 1e-12) {
       break;
     }
@@ -70,15 +71,15 @@ auto ConvertPoly3ToParamPoly3(double length, double a, double b, double c, doubl
     return param;
   }
 
-  double den = std::sqrt(1.0 + b * b);
+  double den = std::sqrt(1.0 + (b * b));
   double b_u = 1.0 / den;
   double b_v = b / den;
 
   double u1 = SolveUForS(0.5 * length, length, b_u, b, c, d);
   double u2 = SolveUForS(length, length, b_u, b, c, d);
 
-  double v1 = a + u1 * (b + u1 * (c + d * u1));
-  double v2 = a + u2 * (b + u2 * (c + d * u2));
+  double v1 = a + (u1 * (b + u1 * (c + d * u1)));
+  double v2 = a + (u2 * (b + u2 * (c + d * u2)));
 
   param.a_u = 0.0;
   param.b_u = b_u;
@@ -129,21 +130,21 @@ constexpr double kGd[] = {1.0,
                           0.0044099273693067311209,
                           -0.00009070958410429993314};
 
-constexpr double kPi = 3.14159265358979323846;
+constexpr double kPi = std::numbers::pi;
 constexpr double kPi2 = 1.57079632679489661923;
-constexpr double k1SqrtPi = 0.56418958354775628695;
+constexpr double k1SqrtPi = std::numbers::inv_sqrtpi;
 
 inline void FresnelCS(double y, double& c, double& s) noexcept {
   constexpr double kEps = 1e-15;
   double x = y > 0.0 ? y : -y;
 
   if (x < 1.0) {
-    double twofn;
-    double fact;
-    double denterm;
-    double numterm;
-    double sum;
-    double term;
+    double twofn = NAN;
+    double fact = NAN;
+    double denterm = NAN;
+    double numterm = NAN;
+    double sum = NAN;
+    double term = NAN;
 
     double s_val = kPi2 * (x * x);
     double t_val = -s_val * s_val;
@@ -184,27 +185,27 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
     double sumn = 0.0;
     double sumd = kFd[11];
     for (int k = 10; k >= 0; --k) {
-      sumn = kFn[k] + x * sumn;
-      sumd = kFd[k] + x * sumd;
+      sumn = kFn[k] + (x * sumn);
+      sumd = kFd[k] + (x * sumd);
     }
     double f_val = sumn / sumd;
 
     sumn = 0.0;
     sumd = kGd[11];
     for (int k = 10; k >= 0; --k) {
-      sumn = kGn[k] + x * sumn;
-      sumd = kGd[k] + x * sumd;
+      sumn = kGn[k] + (x * sumn);
+      sumd = kGd[k] + (x * sumd);
     }
     double g_val = sumn / sumd;
 
     double u_val = kPi2 * (x * x);
     double sin_u = std::sin(u_val);
     double cos_u = std::cos(u_val);
-    c = 0.5 + f_val * sin_u - g_val * cos_u;
-    s = 0.5 - f_val * cos_u - g_val * sin_u;
+    c = 0.5 + (f_val * sin_u) - (g_val * cos_u);
+    s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
 
   } else {
-    double absterm;
+    double absterm = NAN;
     double s_val = kPi * x * x;
     double t_val = -1.0 / (s_val * s_val);
 
@@ -249,8 +250,8 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
     double u_val = kPi2 * (x * x);
     double sin_u = std::sin(u_val);
     double cos_u = std::cos(u_val);
-    c = 0.5 + f_val * sin_u - g_val * cos_u;
-    s = 0.5 - f_val * cos_u - g_val * sin_u;
+    c = 0.5 + (f_val * sin_u) - (g_val * cos_u);
+    s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
   }
 
   if (y < 0.0) {
@@ -278,8 +279,8 @@ inline void EvalXYaLarge(double a, double b, double& x_val, double& y_val) noexc
   double dc0 = cz - cl;
   double ds0 = sz - sl;
 
-  x_val = cg * dc0 - s * sg * ds0;
-  y_val = sg * dc0 + s * cg * ds0;
+  x_val = (cg * dc0) - (s * sg * ds0);
+  y_val = (sg * dc0) + (s * cg * ds0);
 }
 
 inline void EvaluateClothoidIntegrals(double param_a, double param_b, double& x_val, double& y_val) noexcept {

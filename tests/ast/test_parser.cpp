@@ -286,26 +286,26 @@ TEST(ParserTest, ParseExtensions) {
 
 TEST(ParserTest, ThrowsXmlParseErrorOnMalformedXml) {
   // Arrange
-  const std::string malformed_xml = "<not valid xml <<< >";
+  const std::string kMalformedXml = "<not valid xml <<< >";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(malformed_xml), strada::parser::XmlParseError);
+  EXPECT_THROW(strada::parser::ParseString(kMalformedXml), strada::parser::XmlParseError);
 }
 
 TEST(ParserTest, ThrowsMissingElementErrorOnMissingRoot) {
   // Arrange
-  const std::string xml = "<NotOpenDRIVE />";
+  const std::string kXml = "<NotOpenDRIVE />";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, ThrowsMissingElementErrorOnMissingHeader) {
   // Arrange
-  const std::string xml = R"(<?xml version="1.0"?><OpenDRIVE></OpenDRIVE>)";
+  const std::string kXml = R"(<?xml version="1.0"?><OpenDRIVE></OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, ThrowsMissingElementErrorOnMissingRoadId) {
@@ -336,13 +336,13 @@ TEST(ParserTest, ErrorMessageContainsRoadIdOnMissingPlanView) {
     strada::parser::ParseString(xml);
     FAIL() << "Expected MissingElementError to be thrown";
   } catch (const strada::parser::MissingElementError& err) {
-    EXPECT_NE(std::string(err.what()).find("1"), std::string::npos);
+    EXPECT_NE(std::string(err.what()).find('1'), std::string::npos);
   }
 }
 
 TEST(ParserTest, ParseCrossSectionSurface) {
   // Arrange
-  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -377,7 +377,7 @@ TEST(ParserTest, ParseCrossSectionSurface) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(kXml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);

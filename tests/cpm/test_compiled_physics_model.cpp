@@ -1,15 +1,12 @@
 #include <gtest/gtest.h>
 
-#include <cmath>
 #include <filesystem>
-#include <iomanip>
-#include <iostream>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/parser/parser.hpp>
 
 TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
   // Arrange
-  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -43,7 +40,7 @@ TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(xml);
+  auto ast = strada::parser::ParseString(kXml);
 
   // Act
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
@@ -161,7 +158,7 @@ TEST(CompiledPhysicsModelTest, QueryMultiStripCrossSectionSurface) {
 
 TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
   // Arrange
-  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -212,7 +209,7 @@ TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(xml);
+  auto ast = strada::parser::ParseString(kXml);
 
   // Act
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
