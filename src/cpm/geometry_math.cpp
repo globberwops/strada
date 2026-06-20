@@ -46,7 +46,7 @@ constexpr auto kGd = std::array{1.0,
                                 -0.00009070958410429993314};
 
 constexpr double kPi = std::numbers::pi;
-constexpr double kPi2 = 1.57079632679489661923;
+constexpr double kPi2 = 0.5 * std::numbers::pi;
 constexpr double k1SqrtPi = std::numbers::inv_sqrtpi;
 constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 

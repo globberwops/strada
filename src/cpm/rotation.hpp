@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cmath>
+#include <numbers>
 
 namespace strada::cpm {
 
@@ -85,7 +86,7 @@ class Rotation {
   static auto MatrixToEuler(const Matrix3x3& rot_matrix) noexcept -> EulerAngles {
     EulerAngles euler;
     double sin_pitch = -rot_matrix[2][0];
-    constexpr double kPiDiv2 = 1.5707963267948966;
+    constexpr double kPiDiv2 = 0.5 * std::numbers::pi;
     constexpr double kClipLimit = 1.0;
     constexpr double kGimbalLockThreshold = 0.9999999;
 
