@@ -244,40 +244,29 @@ class CompiledPhysicsModel {
  private:
   friend auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;
 
-  // Road ID mapping tables
   std::vector<std::string> road_string_ids_;
   std::vector<double> road_lengths_;
 
-  // Reference line
   ReferenceLine ref_line_;
 
-  // Elevation and Superelevation indexing
   ElevationSoA elevation_;
 
-  // Cross section surface flat SoA structures
   PolynomialsSoA polynomials_;
   StripsSoA strips_;
   RoadCrossSectionSurfaceSoA road_css_;
 
-  // Lane sections flat SoA structures (CSR-style)
   LaneSectionsSoA lane_sections_;
 
-  // Lanes flat SoA structures
   LanesSoA lanes_;
 
-  // Lane widths flat SoA structures
   LaneWidthsSoA lane_widths_;
 
-  // Lane heights flat SoA structures
   LaneHeightsSoA lane_heights_;
 
-  // Lane offsets flat SoA structures (road level)
   LaneOffsetsSoA lane_offsets_;
 
-  // Shape profile flat SoA structures
   ShapesSoA shapes_;
 
-  // Global spatial index (Flat Bounding Volume Hierarchy)
   BoundingVolumeHierarchy bounding_volume_hierarchy_;
 
   void GetRoadWidthLimits(uint32_t road_idx, double s_coord, double& t_left, double& t_right) const noexcept;
