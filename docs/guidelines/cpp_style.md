@@ -16,6 +16,7 @@ The Strada codebase overrides the standard Google C++ Style Guide in several key
   - Functions returning `void` must use leading return type syntax (`void FunctionName(params);`).
   - Return type deduction without a trailing arrow (e.g., `auto Function();` or `auto Function() { ... }`) is **forbidden**.
   - Constructors and destructors are excluded from return type annotations.
+- **Constexpr All the Things:** Prefer `constexpr` (or `consteval` if applicable) for all functions, variables, and constants that can be evaluated or constructed at compile time.
 - **Non-Owning Views:** Prefer passing `std::span<const T>` and `std::string_view` by value instead of `const std::vector<T>&` and `const std::string&` for read-only contiguous sequences and string parameters.
 - **Member Initializers:**
   - Initialize fundamental/primitive types (e.g., `int`, `double`, `bool`, pointers) using `{}` (e.g., `double length{};`) to prevent uninitialized values.
@@ -289,8 +290,8 @@ namespace {
 // Variables in anonymous namespaces have internal linkage.
 constexpr char kDefaultProtocol[] = "https://";
 
-// Helper function internal to this source file. Uses trailing return type.
-auto HasValidProtocol(std::string_view url) -> bool {
+// Helper function internal to this source file. Evaluated at compile-time when possible.
+constexpr auto HasValidProtocol(std::string_view url) -> bool {
   return url.rfind(kDefaultProtocol, 0) == 0;
 }
 
@@ -374,6 +375,7 @@ Strada integrates the C++ Core Guidelines to promote safety, type correctness, a
 
 ### 8.2 Const Correctness & State
 - **Const by Default (CG Con.1, Con.2, Con.3):** Declare all variables, parameters, and return types `const` or `constexpr` by default unless they must be mutable.
+- **Constexpr All the Things:** Prefer `constexpr` (or `consteval` if applicable) for all functions, variables, and constants that can be evaluated or constructed at compile time. Compile-time execution is preferred to minimize runtime compute, improve performance, and allow compile-time checks.
 - **Const Member Functions (CG M.2):** Mark member functions `const` if they do not modify the logical state of the object.
 - **No `const_cast` (CG ES.50):** Avoid `const_cast` to modify variables. If a variable must change state, it should not be `const`.
 
