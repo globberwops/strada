@@ -86,109 +86,6 @@ auto EvaluateStripHeight(const PolynomialsSoA& poly, const StripsSoA& strips, ui
   return h_accum;
 }
 
-auto FindSegmentIndex(const ReferenceLineSoA& ref_line, RoadPose pose, QueryContext& ctx, uint32_t first_seg,
-                      uint32_t seg_count) noexcept -> uint32_t {
-  uint32_t seg_idx = first_seg;
-  bool hit = false;
-
-  if (ctx.last_road == pose.road && ctx.last_segment_idx.has_value()) {
-    uint32_t last_idx = *ctx.last_segment_idx;
-    if (last_idx >= first_seg && last_idx < first_seg + seg_count) {
-      double s_start = ref_line.s_offset[last_idx];
-      double s_end = s_start + ref_line.length[last_idx];
-      if (pose.s >= s_start && pose.s < s_end) [[likely]] {
-        seg_idx = last_idx;
-        hit = true;
-      }
-    }
-  }
-
-  if (!hit) [[unlikely]] {
-    for (uint32_t i = 0; i < seg_count; ++i) {
-      uint32_t idx = first_seg + i;
-      if (pose.s >= ref_line.s_offset[idx]) {
-        seg_idx = idx;
-      } else {
-        break;
-      }
-    }
-    ctx.last_road = pose.road;
-    ctx.last_segment_idx = seg_idx;
-  }
-  return seg_idx;
-}
-
-void EvaluateReferenceLine(const ReferenceLineSoA& ref_line, const AlignedVector<double>& arc_curvature,
-                           uint32_t seg_idx, double s_coord, double& ref_x, double& ref_y,
-                           double& tangent_hdg) noexcept {
-  double ds_val = s_coord - ref_line.s_offset[seg_idx];
-  ref_x = ref_line.x[seg_idx];
-  ref_y = ref_line.y[seg_idx];
-  double ref_hdg = ref_line.hdg[seg_idx];
-  tangent_hdg = ref_hdg;
-
-  GeometryType type = ref_line.type[seg_idx];
-  uint32_t type_idx = ref_line.type_index[seg_idx];
-
-  if (type == GeometryType::kLine) {
-    ref_x += ds_val * std::cos(ref_hdg);
-    ref_y += ds_val * std::sin(ref_hdg);
-  } else if (type == GeometryType::kArc) {
-    double curvature = arc_curvature[type_idx];
-    if (std::abs(curvature) > kCurvatureThreshold) {
-      tangent_hdg += curvature * ds_val;
-      ref_x += (1.0 / curvature) * (std::sin(tangent_hdg) - std::sin(ref_hdg));
-      ref_y -= (1.0 / curvature) * (std::cos(tangent_hdg) - std::cos(ref_hdg));
-    } else {
-      ref_x += ds_val * std::cos(ref_hdg);
-      ref_y += ds_val * std::sin(ref_hdg);
-    }
-  } else if (type == GeometryType::kSpiral) {
-    double curv_start = ref_line.spiral_curv_start[seg_idx];
-    double curv_end = ref_line.spiral_curv_end[seg_idx];
-    double length = ref_line.length[seg_idx];
-    double lambda = (length > 0.0) ? ((curv_end - curv_start) / length) : 0.0;
-
-    tangent_hdg += (curv_start * ds_val) + (0.5 * (lambda * (ds_val * ds_val)));
-
-    double param_a = lambda * ds_val * ds_val;
-    double param_b = curv_start * ds_val;
-    auto [local_x, local_y] = EvaluateClothoidIntegrals(param_a, param_b);
-
-    ref_x += ds_val * (std::cos(ref_hdg) * local_x - std::sin(ref_hdg) * local_y);
-    ref_y += ds_val * (std::sin(ref_hdg) * local_x + std::cos(ref_hdg) * local_y);
-  } else if (type == GeometryType::kParamPoly3) {
-    double a_u = ref_line.pp3_a_u[seg_idx];
-    double b_u = ref_line.pp3_b_u[seg_idx];
-    double c_u = ref_line.pp3_c_u[seg_idx];
-    double d_u = ref_line.pp3_d_u[seg_idx];
-    double a_v = ref_line.pp3_a_v[seg_idx];
-    double b_v = ref_line.pp3_b_v[seg_idx];
-    double c_v = ref_line.pp3_c_v[seg_idx];
-    double d_v = ref_line.pp3_d_v[seg_idx];
-    uint8_t p_range = ref_line.pp3_p_range[seg_idx];
-
-    double length = ref_line.length[seg_idx];
-    double p_val = ds_val;
-    if (p_range == 0U) {
-      p_val = (length > 0.0) ? (ds_val / length) : 0.0;
-    }
-
-    double u_p = a_u + (p_val * (b_u + (p_val * (c_u + (d_u * p_val)))));
-    double v_p = a_v + (p_val * (b_v + (p_val * (c_v + (d_v * p_val)))));
-
-    double du_dp = b_u + (p_val * ((kPolyCoeff2 * c_u) + (kPolyCoeff3 * d_u * p_val)));
-    double dv_dp = b_v + (p_val * ((kPolyCoeff2 * c_v) + (kPolyCoeff3 * d_v * p_val)));
-
-    double cos_hdg = std::cos(ref_hdg);
-    double sin_hdg = std::sin(ref_hdg);
-
-    ref_x += (u_p * cos_hdg) - (v_p * sin_hdg);
-    ref_y += (u_p * sin_hdg) + (v_p * cos_hdg);
-    tangent_hdg += std::atan2(dv_dp, du_dp);
-  }
-}
-
 void EvaluateNaturalOrientationAndElev(const PolynomialsSoA& polynomials,
                                        const std::vector<uint32_t>& road_elevation_first_idx,
                                        const std::vector<uint32_t>& road_elevation_count,
@@ -266,13 +163,13 @@ void EvaluateCrossSectionSurfaceOffset(const PolynomialsSoA& polynomials, const 
   }
 }
 
-struct Aabb {
+struct BvhAabb {
   double min_x{std::numeric_limits<double>::max()};
   double min_y{std::numeric_limits<double>::max()};
   double max_x{-std::numeric_limits<double>::max()};
   double max_y{-std::numeric_limits<double>::max()};
 
-  void Grow(const Aabb& other) noexcept {
+  void Grow(const BvhAabb& other) noexcept {
     min_x = std::min(min_x, other.min_x);
     min_y = std::min(min_y, other.min_y);
     max_x = std::max(max_x, other.max_x);
@@ -293,7 +190,7 @@ struct Aabb {
   }
 };
 
-auto MakeLeafNode(std::vector<BvhNode>& nodes, uint32_t node_idx, const Aabb& bounds,
+auto MakeLeafNode(std::vector<BvhNode>& nodes, uint32_t node_idx, const BvhAabb& bounds,
                   std::vector<BvhPrimitiveInfo>& final_primitives, const std::vector<uint32_t>& prim_indices,
                   const std::vector<BvhPrimitiveInfo>& temp_primitives, uint32_t start_idx, uint32_t count) noexcept
     -> uint32_t {
@@ -314,12 +211,13 @@ auto MakeLeafNode(std::vector<BvhNode>& nodes, uint32_t node_idx, const Aabb& bo
 
 auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo>& final_primitives,
                        std::vector<uint32_t>& prim_indices, const std::vector<BvhPrimitiveInfo>& temp_primitives,
-                       const std::vector<Aabb>& temp_aabbs, uint32_t start_idx, uint32_t end_idx) noexcept -> uint32_t {
+                       const std::vector<BvhAabb>& temp_aabbs, uint32_t start_idx, uint32_t end_idx) noexcept
+    -> uint32_t {
   auto node_idx = static_cast<uint32_t>(nodes.size());
   nodes.push_back(BvhNode{});
 
-  Aabb bounds;
-  Aabb centroid_bounds;
+  BvhAabb bounds;
+  BvhAabb centroid_bounds;
   for (uint32_t idx = start_idx; idx < end_idx; ++idx) {
     uint32_t prim_idx = prim_indices[idx];
     bounds.Grow(temp_aabbs[prim_idx]);
@@ -349,7 +247,7 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
   constexpr int kNumBins = 16;
   struct Bin {
     uint32_t count{0};
-    Aabb bounds;
+    BvhAabb bounds;
   };
   std::array<Bin, kNumBins> bins{};
 
@@ -367,9 +265,9 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
   double min_split_cost = std::numeric_limits<double>::max();
   int best_split_bin = -1;
 
-  std::array<Aabb, kNumBins - 1> left_bounds{};
+  std::array<BvhAabb, kNumBins - 1> left_bounds{};
   std::array<uint32_t, kNumBins - 1> left_counts{};
-  Aabb left_accum;
+  BvhAabb left_accum;
   uint32_t left_cnt = 0;
   for (int idx = 0; idx < kNumBins - 1; ++idx) {
     left_accum.Grow(bins[idx].bounds);
@@ -378,9 +276,9 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
     left_counts[idx] = left_cnt;
   }
 
-  std::array<Aabb, kNumBins - 1> right_bounds{};
+  std::array<BvhAabb, kNumBins - 1> right_bounds{};
   std::array<uint32_t, kNumBins - 1> right_counts{};
-  Aabb right_accum;
+  BvhAabb right_accum;
   uint32_t right_cnt = 0;
   for (int idx = kNumBins - 1; idx > 0; --idx) {
     right_accum.Grow(bins[idx].bounds);
@@ -443,41 +341,6 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
   return node_idx;
 }
 
-auto ComputeSegmentAabb(const ReferenceLineSoA& ref_line, const AlignedVector<double>& arc_curvature, uint32_t seg_idx,
-                        double inflation_radius) noexcept -> Aabb {
-  double min_x = std::numeric_limits<double>::max();
-  double min_y = std::numeric_limits<double>::max();
-  double max_x = -std::numeric_limits<double>::max();
-  double max_y = -std::numeric_limits<double>::max();
-
-  double length = ref_line.length[seg_idx];
-  double s_start = ref_line.s_offset[seg_idx];
-
-  int num_samples = 1;
-  if (ref_line.type[seg_idx] != GeometryType::kLine) {
-    num_samples = 32;
-  }
-
-  for (int idx = 0; idx <= num_samples; ++idx) {
-    double s_local = (static_cast<double>(idx) / num_samples) * length;
-    double rx = 0.0;
-    double ry = 0.0;
-    double r_hdg = 0.0;
-    EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + s_local, rx, ry, r_hdg);
-    min_x = std::min(min_x, rx);
-    min_y = std::min(min_y, ry);
-    max_x = std::max(max_x, rx);
-    max_y = std::max(max_y, ry);
-  }
-
-  Aabb bounds;
-  bounds.min_x = min_x - inflation_radius;
-  bounds.min_y = min_y - inflation_radius;
-  bounds.max_x = max_x + inflation_radius;
-  bounds.max_y = max_y + inflation_radius;
-  return bounds;
-}
-
 auto EvaluateAstLaneWidth(const ast::Lane& lane, double s_local_to_section) noexcept -> double {
   if (lane.widths.empty()) {
     return 0.0;
@@ -513,52 +376,6 @@ inline auto DistancePointToAabb(double px, double py, double min_x, double min_y
   double dx = std::max({0.0, min_x - px, px - max_x});
   double dy = std::max({0.0, min_y - py, py - max_y});
   return std::sqrt((dx * dx) + (dy * dy));
-}
-
-auto ProjectToGenericSegment(const ReferenceLineSoA& ref_line, const AlignedVector<double>& arc_curvature,
-                             uint32_t seg_idx, double seg_length, double px, double py) noexcept -> double {
-  constexpr int kNumIntervals = 10;
-  double best_s = 0.0;
-  double min_dist_sq = std::numeric_limits<double>::max();
-  double s_start = ref_line.s_offset[seg_idx];
-
-  for (int i = 0; i <= kNumIntervals; ++i) {
-    double s_test = (static_cast<double>(i) / kNumIntervals) * seg_length;
-    double rx = 0.0;
-    double ry = 0.0;
-    double r_hdg = 0.0;
-    EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + s_test, rx, ry, r_hdg);
-    double dx = px - rx;
-    double dy = py - ry;
-    double dist_sq = (dx * dx) + (dy * dy);
-    if (dist_sq < min_dist_sq) {
-      min_dist_sq = dist_sq;
-      best_s = s_test;
-    }
-  }
-
-  double left_s = std::max(0.0, best_s - (seg_length / kNumIntervals));
-  double right_s = std::min(seg_length, best_s + (seg_length / kNumIntervals));
-  for (int iter = 0; iter < 30; ++iter) {
-    double m1 = left_s + ((right_s - left_s) / 3.0);
-    double m2 = right_s - ((right_s - left_s) / 3.0);
-    double rx1 = 0.0;
-    double ry1 = 0.0;
-    double rhdg1 = 0.0;
-    double rx2 = 0.0;
-    double ry2 = 0.0;
-    double rhdg2 = 0.0;
-    EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + m1, rx1, ry1, rhdg1);
-    EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + m2, rx2, ry2, rhdg2);
-    double dist1 = ((px - rx1) * (px - rx1)) + ((py - ry1) * (py - ry1));
-    double dist2 = ((px - rx2) * (px - rx2)) + ((py - ry2) * (py - ry2));
-    if (dist1 < dist2) {
-      right_s = m2;
-    } else {
-      left_s = m1;
-    }
-  }
-  return 0.5 * (left_s + right_s);
 }
 
 struct ShapeGroup {
@@ -724,24 +541,16 @@ auto EvaluateShapeTGradient(const ShapesSoA& shapes, uint32_t first_idx, uint32_
 [[gnu::hot]] auto CompiledPhysicsModel::RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept
     -> InertialPose {
   auto road_idx = static_cast<uint32_t>(pose.road);
-  if (road_idx >= road_ref_line_count_.size()) {
-    return InertialPose{};
-  }
-
-  uint32_t first_seg = road_ref_line_first_idx_[road_idx];
-  uint32_t seg_count = road_ref_line_count_[road_idx];
+  auto [first_seg, seg_count] = ref_line_.GetRoadSegments(pose.road);
   if (seg_count == 0) {
     return InertialPose{};
   }
 
   // 1. Find segment index
-  uint32_t seg_idx = FindSegmentIndex(ref_line_, pose, ctx, first_seg, seg_count);
+  uint32_t seg_idx = ref_line_.FindSegmentIndex(pose.road, pose.s, ctx);
 
   // 2. Evaluate reference line
-  double ref_x = 0.0;
-  double ref_y = 0.0;
-  double tangent_hdg = 0.0;
-  EvaluateReferenceLine(ref_line_, arc_curvature_, seg_idx, pose.s, ref_x, ref_y, tangent_hdg);
+  auto pt = ref_line_.Evaluate(seg_idx, pose.s);
 
   // 3. Evaluate natural pitch, roll, and elevation
   double elev = 0.0;
@@ -762,7 +571,7 @@ auto EvaluateShapeTGradient(const ShapesSoA& shapes, uint32_t first_idx, uint32_
 
   // 5. Position composition
   double roll_total = natural_roll + std::atan(shape_grad);
-  Matrix3x3 r_road = EulerToMatrix(tangent_hdg, natural_pitch, roll_total);
+  Matrix3x3 r_road = EulerToMatrix(pt.heading, natural_pitch, roll_total);
 
   double local_t = pose.t;
   double local_h = pose.h + h_surf + h_shape;
@@ -772,8 +581,8 @@ auto EvaluateShapeTGradient(const ShapesSoA& shapes, uint32_t first_idx, uint32_
   double offset_z = (r_road[2][1] * local_t) + (r_road[2][2] * local_h);
 
   InertialPose inertial_pose;
-  inertial_pose.x = ref_x + offset_x;
-  inertial_pose.y = ref_y + offset_y;
+  inertial_pose.x = pt.x + offset_x;
+  inertial_pose.y = pt.y + offset_y;
   inertial_pose.z = elev + offset_z;
 
   // Composed orientation composition
@@ -796,8 +605,7 @@ auto CompiledPhysicsModel::LaneToInertial(LanePose pose, QueryContext& ctx) cons
 auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) const noexcept
     -> std::optional<RoadPose> {
   auto snap_to_road = [&](uint32_t road_idx) noexcept -> std::optional<RoadPose> {
-    auto first_seg = road_ref_line_first_idx_[road_idx];
-    auto seg_count = road_ref_line_count_[road_idx];
+    auto [first_seg, seg_count] = ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
     if (seg_count == 0) {
       return std::nullopt;
     }
@@ -809,65 +617,17 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
     for (uint32_t i = 0; i < seg_count; ++i) {
       uint32_t seg_idx = first_seg + i;
-      double seg_length = ref_line_.length[seg_idx];
-      double s_local = 0.0;
+      double global_s = ref_line_.Project(seg_idx, pose.x, pose.y);
+      auto pt = ref_line_.Evaluate(seg_idx, global_s);
 
-      if (ref_line_.type[seg_idx] == GeometryType::kLine) {
-        double dx = pose.x - ref_line_.x[seg_idx];
-        double dy = pose.y - ref_line_.y[seg_idx];
-        double hdg = ref_line_.hdg[seg_idx];
-        double ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
-        s_local = std::clamp(ds, 0.0, seg_length);
-      } else if (ref_line_.type[seg_idx] == GeometryType::kArc) {
-        double dx = pose.x - ref_line_.x[seg_idx];
-        double dy = pose.y - ref_line_.y[seg_idx];
-        double hdg = ref_line_.hdg[seg_idx];
-        double curvature = arc_curvature_[ref_line_.type_index[seg_idx]];
-        if (std::abs(curvature) < 1e-12) {
-          s_local = std::clamp((dx * std::cos(hdg)) + (dy * std::sin(hdg)), 0.0, seg_length);
-        } else {
-          double radius = 1.0 / curvature;
-          double center_x = ref_line_.x[seg_idx] - (radius * std::sin(hdg));
-          double center_y = ref_line_.y[seg_idx] + (radius * std::cos(hdg));
-          double qdx = pose.x - center_x;
-          double qdy = pose.y - center_y;
-          double angle_query = std::atan2(qdy, qdx);
-          double angle_start = std::atan2(ref_line_.y[seg_idx] - center_y, ref_line_.x[seg_idx] - center_x);
-          double delta_angle = angle_query - angle_start;
-          if (curvature > 0.0) {
-            while (delta_angle < 0.0) {
-              delta_angle += 2.0 * M_PI;
-            }
-            while (delta_angle >= 2.0 * M_PI) {
-              delta_angle -= 2.0 * M_PI;
-            }
-          } else {
-            while (delta_angle > 0.0) {
-              delta_angle -= 2.0 * M_PI;
-            }
-            while (delta_angle <= -2.0 * M_PI) {
-              delta_angle += 2.0 * M_PI;
-            }
-          }
-          s_local = std::clamp(delta_angle / curvature, 0.0, seg_length);
-        }
-      } else {
-        s_local = ProjectToGenericSegment(ref_line_, arc_curvature_, seg_idx, seg_length, pose.x, pose.y);
-      }
-
-      double rx = 0.0;
-      double ry = 0.0;
-      double r_hdg = 0.0;
-      EvaluateReferenceLine(ref_line_, arc_curvature_, seg_idx, ref_line_.s_offset[seg_idx] + s_local, rx, ry, r_hdg);
-
-      double dx = pose.x - rx;
-      double dy = pose.y - ry;
+      double dx = pose.x - pt.x;
+      double dy = pose.y - pt.y;
       double dist_sq = (dx * dx) + (dy * dy);
       if (dist_sq < min_dist_sq) {
         min_dist_sq = dist_sq;
-        best_s = ref_line_.s_offset[seg_idx] + s_local;
-        best_t = (-dx * std::sin(r_hdg)) + (dy * std::cos(r_hdg));
-        best_rhdg = r_hdg;
+        best_s = global_s;
+        best_t = (-dx * std::sin(pt.heading)) + (dy * std::cos(pt.heading));
+        best_rhdg = pt.heading;
       }
     }
 
@@ -878,22 +638,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
                                       road_superelevation_first_idx_, road_superelevation_count_, road_css_, road_idx,
                                       best_s, elev, natural_pitch, natural_roll);
 
-    uint32_t best_seg_idx = first_seg;
-    for (uint32_t i = 0; i < seg_count; ++i) {
-      uint32_t cur_seg = first_seg + i;
-      if (best_s >= ref_line_.s_offset[cur_seg]) {
-        best_seg_idx = cur_seg;
-      } else {
-        break;
-      }
-    }
-    double rx = 0.0;
-    double ry = 0.0;
-    double r_hdg = 0.0;
-    EvaluateReferenceLine(ref_line_, arc_curvature_, best_seg_idx, best_s, rx, ry, r_hdg);
+    uint32_t best_seg_idx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
+    auto pt = ref_line_.Evaluate(best_seg_idx, best_s);
 
-    double dx = pose.x - rx;
-    double dy = pose.y - ry;
+    double dx = pose.x - pt.x;
+    double dy = pose.y - pt.y;
     double dz = pose.z - elev;
 
     // Base roll calculation
@@ -946,17 +695,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     auto road_idx = static_cast<uint32_t>(*ctx.last_road);
     auto fast_pose = snap_to_road(road_idx);
     if (fast_pose.has_value()) {
-      auto first_seg = road_ref_line_first_idx_[road_idx];
-      auto seg_count = road_ref_line_count_[road_idx];
-      for (uint32_t i = 0; i < seg_count; ++i) {
-        auto idx = first_seg + i;
-        double s_start = ref_line_.s_offset[idx];
-        double s_end = s_start + ref_line_.length[idx];
-        if (fast_pose->s >= s_start && fast_pose->s <= s_end) {
-          ctx.last_segment_idx = idx;
-          break;
-        }
-      }
+      ref_line_.FindSegmentIndex(*ctx.last_road, fast_pose->s, ctx);
       return fast_pose;
     }
   }
@@ -1019,19 +758,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
   }
 
   if (best_overall_pose.has_value()) {
-    ctx.last_road = best_overall_pose->road;
-    auto road_idx = static_cast<uint32_t>(best_overall_pose->road);
-    auto first_seg = road_ref_line_first_idx_[road_idx];
-    auto seg_count = road_ref_line_count_[road_idx];
-    for (uint32_t i = 0; i < seg_count; ++i) {
-      auto idx = first_seg + i;
-      double s_start = ref_line_.s_offset[idx];
-      double s_end = s_start + ref_line_.length[idx];
-      if (best_overall_pose->s >= s_start && best_overall_pose->s <= s_end) {
-        ctx.last_segment_idx = idx;
-        break;
-      }
-    }
+    ref_line_.FindSegmentIndex(best_overall_pose->road, best_overall_pose->s, ctx);
   }
 
   return best_overall_pose;
@@ -1436,99 +1163,11 @@ auto CompiledPhysicsModel::LaneWidth(LaneId lane_id, double s_coord) const noexc
 
 auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel {
   CompiledPhysicsModel model;
+  model.ref_line_ = ReferenceLine::Build(map);
 
   for (const auto& road : map.roads) {
     model.road_string_ids_.push_back(road.id);
     model.road_lengths_.push_back(road.length);
-
-    // Reference line compilation
-    model.road_ref_line_first_idx_.push_back(static_cast<uint32_t>(model.ref_line_.s_offset.size()));
-    model.road_ref_line_count_.push_back(static_cast<uint32_t>(road.plan_view.size()));
-
-    for (const auto& geom : road.plan_view) {
-      model.ref_line_.s_offset.push_back(geom.s);
-      model.ref_line_.length.push_back(geom.length);
-      model.ref_line_.x.push_back(geom.x);
-      model.ref_line_.y.push_back(geom.y);
-      model.ref_line_.hdg.push_back(geom.hdg);
-
-      if (std::holds_alternative<ast::Line>(geom.shape)) {
-        model.ref_line_.type.push_back(GeometryType::kLine);
-        model.ref_line_.type_index.push_back(0);
-        model.ref_line_.spiral_curv_start.push_back(0.0);
-        model.ref_line_.spiral_curv_end.push_back(0.0);
-        model.ref_line_.pp3_a_u.push_back(0.0);
-        model.ref_line_.pp3_b_u.push_back(0.0);
-        model.ref_line_.pp3_c_u.push_back(0.0);
-        model.ref_line_.pp3_d_u.push_back(0.0);
-        model.ref_line_.pp3_a_v.push_back(0.0);
-        model.ref_line_.pp3_b_v.push_back(0.0);
-        model.ref_line_.pp3_c_v.push_back(0.0);
-        model.ref_line_.pp3_d_v.push_back(0.0);
-        model.ref_line_.pp3_p_range.push_back(0);
-      } else if (std::holds_alternative<ast::Arc>(geom.shape)) {
-        model.ref_line_.type.push_back(GeometryType::kArc);
-        model.ref_line_.type_index.push_back(static_cast<uint32_t>(model.arc_curvature_.size()));
-        model.arc_curvature_.push_back(std::get<ast::Arc>(geom.shape).curvature);
-        model.ref_line_.spiral_curv_start.push_back(0.0);
-        model.ref_line_.spiral_curv_end.push_back(0.0);
-        model.ref_line_.pp3_a_u.push_back(0.0);
-        model.ref_line_.pp3_b_u.push_back(0.0);
-        model.ref_line_.pp3_c_u.push_back(0.0);
-        model.ref_line_.pp3_d_u.push_back(0.0);
-        model.ref_line_.pp3_a_v.push_back(0.0);
-        model.ref_line_.pp3_b_v.push_back(0.0);
-        model.ref_line_.pp3_c_v.push_back(0.0);
-        model.ref_line_.pp3_d_v.push_back(0.0);
-        model.ref_line_.pp3_p_range.push_back(0);
-      } else if (std::holds_alternative<ast::Spiral>(geom.shape)) {
-        model.ref_line_.type.push_back(GeometryType::kSpiral);
-        model.ref_line_.type_index.push_back(0);
-        const auto& spiral = std::get<ast::Spiral>(geom.shape);
-        model.ref_line_.spiral_curv_start.push_back(spiral.curv_start);
-        model.ref_line_.spiral_curv_end.push_back(spiral.curv_end);
-        model.ref_line_.pp3_a_u.push_back(0.0);
-        model.ref_line_.pp3_b_u.push_back(0.0);
-        model.ref_line_.pp3_c_u.push_back(0.0);
-        model.ref_line_.pp3_d_u.push_back(0.0);
-        model.ref_line_.pp3_a_v.push_back(0.0);
-        model.ref_line_.pp3_b_v.push_back(0.0);
-        model.ref_line_.pp3_c_v.push_back(0.0);
-        model.ref_line_.pp3_d_v.push_back(0.0);
-        model.ref_line_.pp3_p_range.push_back(0);
-      } else if (std::holds_alternative<ast::Poly3>(geom.shape)) {
-        model.ref_line_.type.push_back(GeometryType::kParamPoly3);
-        model.ref_line_.type_index.push_back(0);
-        model.ref_line_.spiral_curv_start.push_back(0.0);
-        model.ref_line_.spiral_curv_end.push_back(0.0);
-        const auto& poly = std::get<ast::Poly3>(geom.shape);
-        ast::ParamPoly3 param = ConvertPoly3ToParamPoly3(geom.length, poly.a, poly.b, poly.c, poly.d);
-        model.ref_line_.pp3_a_u.push_back(param.a_u);
-        model.ref_line_.pp3_b_u.push_back(param.b_u);
-        model.ref_line_.pp3_c_u.push_back(param.c_u);
-        model.ref_line_.pp3_d_u.push_back(param.d_u);
-        model.ref_line_.pp3_a_v.push_back(param.a_v);
-        model.ref_line_.pp3_b_v.push_back(param.b_v);
-        model.ref_line_.pp3_c_v.push_back(param.c_v);
-        model.ref_line_.pp3_d_v.push_back(param.d_v);
-        model.ref_line_.pp3_p_range.push_back(1);
-      } else if (std::holds_alternative<ast::ParamPoly3>(geom.shape)) {
-        model.ref_line_.type.push_back(GeometryType::kParamPoly3);
-        model.ref_line_.type_index.push_back(0);
-        model.ref_line_.spiral_curv_start.push_back(0.0);
-        model.ref_line_.spiral_curv_end.push_back(0.0);
-        const auto& param = std::get<ast::ParamPoly3>(geom.shape);
-        model.ref_line_.pp3_a_u.push_back(param.a_u);
-        model.ref_line_.pp3_b_u.push_back(param.b_u);
-        model.ref_line_.pp3_c_u.push_back(param.c_u);
-        model.ref_line_.pp3_d_u.push_back(param.d_u);
-        model.ref_line_.pp3_a_v.push_back(param.a_v);
-        model.ref_line_.pp3_b_v.push_back(param.b_v);
-        model.ref_line_.pp3_c_v.push_back(param.c_v);
-        model.ref_line_.pp3_d_v.push_back(param.d_v);
-        model.ref_line_.pp3_p_range.push_back(param.p_range == ast::PRange::kArcLength ? 1 : 0);
-      }
-    }
 
     // Elevation profile compilation
     {
@@ -1766,17 +1405,17 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
   }
 
   std::vector<BvhPrimitiveInfo> temp_primitives;
-  std::vector<Aabb> temp_aabbs;
+  std::vector<BvhAabb> temp_aabbs;
 
   auto num_roads = static_cast<uint32_t>(model.road_lengths_.size());
   for (uint32_t road_idx = 0; road_idx < num_roads; ++road_idx) {
-    auto first_seg = model.road_ref_line_first_idx_[road_idx];
-    auto seg_count = model.road_ref_line_count_[road_idx];
+    auto [first_seg, seg_count] = model.ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
     double inflation = road_max_t[road_idx];
     for (uint32_t i = 0; i < seg_count; ++i) {
       uint32_t seg_idx = first_seg + i;
       temp_primitives.push_back(BvhPrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
-      temp_aabbs.push_back(ComputeSegmentAabb(model.ref_line_, model.arc_curvature_, seg_idx, inflation));
+      auto aabb = model.ref_line_.ComputeSegmentAabb(seg_idx, inflation);
+      temp_aabbs.push_back(BvhAabb{.min_x = aabb.min_x, .min_y = aabb.min_y, .max_x = aabb.max_x, .max_y = aabb.max_y});
     }
   }
 

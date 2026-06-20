@@ -7,38 +7,11 @@
 #include <strada/cpm/coordinate.hpp>
 #include <strada/cpm/ids.hpp>
 #include <strada/cpm/query_context.hpp>
+#include <strada/cpm/reference_line.hpp>
 #include <string_view>
 #include <vector>
 
 namespace strada::cpm {
-
-constexpr std::size_t kAlignmentBytes = 64;
-
-template <typename T>
-using AlignedVector = std::vector<T, AlignedAllocator<T, kAlignmentBytes>>;
-
-enum class GeometryType : uint8_t { kLine, kArc, kSpiral, kPoly3, kParamPoly3 };
-
-struct ReferenceLineSoA {
-  AlignedVector<double> s_offset;
-  AlignedVector<double> length;
-  AlignedVector<double> x;
-  AlignedVector<double> y;
-  AlignedVector<double> hdg;
-  std::vector<GeometryType> type;
-  std::vector<uint32_t> type_index;
-  AlignedVector<double> spiral_curv_start;
-  AlignedVector<double> spiral_curv_end;
-  AlignedVector<double> pp3_a_u;
-  AlignedVector<double> pp3_b_u;
-  AlignedVector<double> pp3_c_u;
-  AlignedVector<double> pp3_d_u;
-  AlignedVector<double> pp3_a_v;
-  AlignedVector<double> pp3_b_v;
-  AlignedVector<double> pp3_c_v;
-  AlignedVector<double> pp3_d_v;
-  std::vector<uint8_t> pp3_p_range;
-};
 
 // Flat SoA structures for Cross Section Surface per ADR 0005
 struct PolynomialsSoA {
@@ -145,11 +118,8 @@ class CompiledPhysicsModel {
   std::vector<std::string> road_string_ids_;
   std::vector<double> road_lengths_;
 
-  // Reference line SoA
-  ReferenceLineSoA ref_line_;
-  AlignedVector<double> arc_curvature_;
-  std::vector<uint32_t> road_ref_line_first_idx_;
-  std::vector<uint32_t> road_ref_line_count_;
+  // Reference line
+  ReferenceLine ref_line_;
 
   // Elevation and Superelevation indexing
   std::vector<uint32_t> road_elevation_first_idx_;

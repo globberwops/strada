@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture review — strada</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      
+      <!-- Header -->
+      <header class="border-b border-stone-200 pb-8 space-y-4">
+        <h1 class="text-4xl font-serif font-semibold tracking-tight text-slate-950">Strada Codebase Architecture Review</h1>
+        <div class="flex flex-wrap items-center gap-6 text-sm text-stone-500">
+          <span><strong>Repository:</strong> globberwops/strada</span>
+          <span><strong>Date:</strong> 2026-06-20</span>
+        </div>
+        
+        <!-- Legend -->
+        <div class="p-4 bg-white border border-stone-200 rounded-lg flex flex-wrap gap-6 text-xs font-mono uppercase tracking-wider text-stone-600">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-4 h-4 bg-white border border-stone-400 rounded"></span>
+            <span>Module</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-4 h-4 bg-white border border-dashed border-stone-400 rounded"></span>
+            <span>Seam</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-6 border-b-2 border-red-500 relative"><span class="absolute right-0 -top-1 font-bold text-red-500">&gt;</span></span>
+            <span>Leakage</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-4 h-4 bg-gradient-to-br from-slate-900 to-slate-800 rounded"></span>
+            <span>Deep Module</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Candidates Section -->
+      <section id="candidates" class="space-y-12">
+        <h2 class="text-2xl font-serif font-bold text-slate-900">Deepening Candidates</h2>
+        
+        <!-- Candidate 1 -->
+        <article class="p-6 bg-white border border-stone-200 rounded-xl shadow-sm space-y-6">
+          <div class="flex items-start justify-between">
+            <h3 class="text-xl font-serif font-semibold text-slate-950">1. Consolidate Reference Line Evaluation and Projection</h3>
+            <span class="px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full">Strong</span>
+          </div>
+          
+          <div class="text-stone-400 font-mono text-xs">
+            Files: include/strada/cpm/compiled_physics_model.hpp | src/cpm/compiled_physics_model.cpp
+          </div>
+
+          <!-- Diagram Block -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-stone-100 p-4 rounded-lg">
+            <div class="space-y-2">
+              <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500 text-center">Before (Shallow & Inline)</h4>
+              <div class="h-64 rounded bg-white p-2 border border-stone-200">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph CPM [CompiledPhysicsModel]
+                      direction TB
+                      I2R[InertialToRoad]
+                      R2I[RoadToInertial]
+                      subgraph Inline [Inline Math & scattered helpers]
+                        EVAL[EvaluateReferenceLine]
+                        PROJ[ProjectToGenericSegment]
+                      end
+                      I2R -->|Analytical Line/Arc| EVAL
+                      I2R -->|Spirals/Polynomials| PROJ
+                      PROJ --> EVAL
+                      R2I --> EVAL
+                    end
+                </pre>
+              </div>
+            </div>
+            
+            <div class="space-y-2">
+              <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500 text-center">After (Deep ReferenceLine Module)</h4>
+              <div class="h-64 rounded bg-white p-2 border border-stone-200">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph CPM [CompiledPhysicsModel]
+                      direction TB
+                      I2R[InertialToRoad]
+                      R2I[RoadToInertial]
+                    end
+                    subgraph RL [Deep ReferenceLine Module]
+                      direction TB
+                      REP[ReferenceLine]
+                      REP -.->|Evaluate| E[Evaluate Point/Tangent]
+                      REP -.->|Project| P[Solve closest s]
+                    end
+                    I2R -->|Simple API call| REP
+                    R2I -->|Simple API call| REP
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-sm"><strong class="text-stone-700">Problem:</strong> Geometry evaluation and coordinate projection are shallow, forcing the compiled physics model to manually dispatch across analytical helpers and numerical solvers.</p>
+            <p class="text-sm"><strong class="text-stone-700">Solution:</strong> Consolidate geometry math and projection searches behind a deep <code>ReferenceLine</code> module with a clean evaluation and projection interface.</p>
+          </div>
+
+          <div class="space-y-1">
+            <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500">Wins</h4>
+            <ul class="list-disc list-inside text-sm text-stone-600 space-y-0.5">
+              <li>Locality: geometry mathematics concentrate in one module.</li>
+              <li>Leverage: index query uses one unified interface.</li>
+              <li>Tests verify geometry through a direct seam.</li>
+              <li>Simplifies the spatial index querying code.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 2 -->
+        <article class="p-6 bg-white border border-stone-200 rounded-xl shadow-sm space-y-6">
+          <div class="flex items-start justify-between">
+            <h3 class="text-xl font-serif font-semibold text-slate-950">2. Promoted and Formalized Geometry Math Seam</h3>
+            <span class="px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full">Worth exploring</span>
+          </div>
+
+          <div class="text-stone-400 font-mono text-xs">
+            Files: src/cpm/geometry_math.hpp | src/cpm/geometry_math.cpp | tests/cpm/test_geometry_math.cpp
+          </div>
+
+          <!-- Diagram Block -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-stone-100 p-4 rounded-lg">
+            <div class="space-y-2">
+              <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500 text-center">Before (Leaked Test Seam)</h4>
+              <div class="h-64 rounded bg-white p-2 border border-stone-200">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Src [src/cpm/]
+                      M[geometry_math.hpp]
+                    end
+                    subgraph Tests [tests/cpm/]
+                      T[test_geometry_math.cpp]
+                    end
+                    T --leak--> M
+                    classDef leak stroke:#dc2626,stroke-width:2px;
+                    class T leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500 text-center">After (Clean Public Seam)</h4>
+              <div class="h-64 rounded bg-white p-2 border border-stone-200">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Public [include/strada/cpm/]
+                      M[geometry_math.hpp]
+                    end
+                    subgraph Tests [tests/cpm/]
+                      T[test_geometry_math.cpp]
+                    end
+                    T -.->|Satisfies Public Interface| M
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-sm"><strong class="text-stone-700">Problem:</strong> Geometry math tests leak across the directory layout into private headers, violating the public-only test seam constraint.</p>
+            <p class="text-sm"><strong class="text-stone-700">Solution:</strong> Promote the private math helper to a public utility module with a formal, supported interface.</p>
+          </div>
+
+          <div class="space-y-1">
+            <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500">Wins</h4>
+            <ul class="list-disc list-inside text-sm text-stone-600 space-y-0.5">
+              <li>Seam alignment: test respects module boundaries.</li>
+              <li>Leverage: optimized math exposed for downstream modules.</li>
+              <li>Prevents future compile breaks on private refactors.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 3 -->
+        <article class="p-6 bg-white border border-stone-200 rounded-xl shadow-sm space-y-6">
+          <div class="flex items-start justify-between">
+            <h3 class="text-xl font-serif font-semibold text-slate-950">3. Encapsulate 3D Rotation Operations in Rotation Module</h3>
+            <span class="px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full">Strong</span>
+          </div>
+
+          <div class="text-stone-400 font-mono text-xs">
+            Files: src/cpm/rotation.hpp | src/cpm/compiled_physics_model.cpp
+          </div>
+
+          <!-- Diagram Block -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-stone-100 p-4 rounded-lg">
+            <div class="space-y-2">
+              <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500 text-center">Before (Shallow Matrix Math)</h4>
+              <div class="h-64 rounded bg-white p-2 border border-stone-200">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph CPM [CompiledPhysicsModel]
+                      C[EulerToMatrix]
+                      D[ComposeRotations]
+                      E[TransposeMatrix]
+                      F[MatrixToEuler]
+                    end
+                    CPM -->|Raw Matrix3x3 math| C
+                    CPM -->|Manual transposition| E
+                    CPM -->|Manual composition| D
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500 text-center">After (Deep Rotation Module)</h4>
+              <div class="h-64 rounded bg-white p-2 border border-stone-200">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph CPM [CompiledPhysicsModel]
+                      I[InertialToRoad]
+                      R[RoadToInertial]
+                    end
+                    subgraph ROT [Deep Rotation Module]
+                      Direction[Rotation]
+                    end
+                    I -->|Simple compose/inverse| ROT
+                    R -->|Simple compose/inverse| ROT
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-sm"><strong class="text-stone-700">Problem:</strong> Rotation math functions are shallow utility wrappers exposing raw matrix data layouts and forcing callers to manually orchestrate compositions and transpositions.</p>
+            <p class="text-sm"><strong class="text-stone-700">Solution:</strong> Replace raw matrix manipulation with a deep <code>Rotation</code> module hiding algebraic details and exposing high-level composition and coordinate transformation methods.</p>
+          </div>
+
+          <div class="space-y-1">
+            <h4 class="text-xs uppercase tracking-wider font-mono text-stone-500">Wins</h4>
+            <ul class="list-disc list-inside text-sm text-stone-600 space-y-0.5">
+              <li>Depth: raw matrix representation is hidden inside the module.</li>
+              <li>Leverage: coordinate frame transformations write like text.</li>
+              <li>Locality: gimbal lock limits are resolved in one place.</li>
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <!-- Top Recommendation -->
+      <section id="top-recommendation" class="p-6 bg-slate-900 text-stone-100 rounded-xl shadow-lg space-y-4">
+        <h2 class="text-2xl font-serif font-semibold">Top Recommendation</h2>
+        <p class="text-sm text-stone-300">
+          Our top recommendation is to <strong class="text-white">Consolidate Reference Line Evaluation and Projection (Candidate 1)</strong>. 
+          By taking the reference line compilation data structure and pairing it directly with its evaluation algorithms and projection solver, we transition the geometry code from a series of shallow helper functions into a deep, cohesive module. 
+          This increases mathematical locality, eliminates inline projection math inside the spatial search, and provides a clear, mockable test surface for the core geometric projection engine.
+        </p>
+      </section>
+
+    </main>
+  </body>
+</html>
