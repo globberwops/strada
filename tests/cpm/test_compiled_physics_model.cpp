@@ -751,8 +751,8 @@ TEST(CompiledPhysicsModelTest, OrientationStripping) {
   // If we pass an InertialPose with heading = 0.5, pitch = 0.0, roll = 0.0:
   {
     strada::cpm::InertialPose ip;
-    ip.x = 10.0 + 5.0 * std::cos(0.5);
-    ip.y = 20.0 + 5.0 * std::sin(0.5);
+    ip.x = 10.0 + (5.0 * std::cos(0.5));
+    ip.y = 20.0 + (5.0 * std::sin(0.5));
     ip.z = 0.0;
     ip.heading = 0.5;
     ip.pitch = 0.0;
@@ -806,8 +806,8 @@ TEST(CompiledPhysicsModelTest, BvhQueryContextFastPath) {
 
   // 1. Cold query (inside the road) -> should succeed and populate context
   strada::cpm::InertialPose ip_first;
-  ip_first.x = 10.0 + 5.0 * std::cos(0.5);
-  ip_first.y = 20.0 + 5.0 * std::sin(0.5);
+  ip_first.x = 10.0 + (5.0 * std::cos(0.5));
+  ip_first.y = 20.0 + (5.0 * std::sin(0.5));
   ip_first.z = 0.0;
   ip_first.heading = 0.5;
   ip_first.pitch = 0.0;
@@ -823,8 +823,8 @@ TEST(CompiledPhysicsModelTest, BvhQueryContextFastPath) {
 
   // 3. Warm query on a different point -> should still succeed via fast path because the cached road is used
   strada::cpm::InertialPose ip_second;
-  ip_second.x = 10.0 + 6.0 * std::cos(0.5);
-  ip_second.y = 20.0 + 6.0 * std::sin(0.5);
+  ip_second.x = 10.0 + (6.0 * std::cos(0.5));
+  ip_second.y = 20.0 + (6.0 * std::sin(0.5));
   ip_second.z = 0.0;
   ip_second.heading = 0.5;
   ip_second.pitch = 0.0;
@@ -1071,8 +1071,8 @@ TEST(CompiledPhysicsModelTest, BivariateShapeProfile) {
     double roll_total = std::atan(0.15);
     double cos_roll = std::cos(roll_total);
     double sin_roll = std::sin(roll_total);
-    double expected_y = cos_roll * 2.0 - sin_roll * 0.8;
-    double expected_z = sin_roll * 2.0 + cos_roll * 0.8;
+    double expected_y = (cos_roll * 2.0) - (sin_roll * 0.8);
+    double expected_z = (sin_roll * 2.0) + (cos_roll * 0.8);
 
     EXPECT_NEAR(ip.x, 5.0, 1e-6);
     EXPECT_NEAR(ip.y, expected_y, 1e-6);

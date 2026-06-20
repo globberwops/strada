@@ -286,7 +286,7 @@ struct Aabb {
     max_y = std::max(max_y, py);
   }
 
-  double Area() const noexcept {
+  [[nodiscard]] auto Area() const noexcept -> double {
     double dx = max_x - min_x;
     double dy = max_y - min_y;
     return (dx > 0.0 ? dx : 0.0) + (dy > 0.0 ? dy : 0.0);
@@ -390,30 +390,31 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
   }
 
   double parent_area = bounds.Area();
-  constexpr double c_trav = 1.0;
-  constexpr double c_isect = 1.0;
+  constexpr double kCTrav = 1.0;
+  constexpr double kCIsect = 1.0;
 
   for (int idx = 0; idx < kNumBins - 1; ++idx) {
     if (left_counts[idx] == 0 || right_counts[idx] == 0) {
       continue;
     }
     double cost =
-        c_trav + c_isect * (left_bounds[idx].Area() * left_counts[idx] + right_bounds[idx].Area() * right_counts[idx]) /
-                     parent_area;
+        kCTrav +
+        (kCIsect * (left_bounds[idx].Area() * left_counts[idx] + right_bounds[idx].Area() * right_counts[idx]) /
+         parent_area);
     if (cost < min_split_cost) {
       min_split_cost = cost;
       best_split_bin = idx;
     }
   }
 
-  double no_split_cost = count * c_isect;
+  double no_split_cost = count * kCIsect;
 
   if (min_split_cost >= no_split_cost) {
     return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
   }
 
-  auto split_it =
-      std::stable_partition(prim_indices.begin() + start_idx, prim_indices.begin() + end_idx, [&](uint32_t prim_idx) {
+  auto split_it = std::stable_partition(
+      prim_indices.begin() + start_idx, prim_indices.begin() + end_idx, [&](uint32_t prim_idx) -> bool {
         double centroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
                                       : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
         int bin_idx = static_cast<int>((centroid - min_coord) * scale);
@@ -424,7 +425,7 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
   auto mid_idx = static_cast<uint32_t>(std::distance(prim_indices.begin(), split_it));
 
   if (mid_idx == start_idx || mid_idx == end_idx) {
-    mid_idx = start_idx + count / 2;
+    mid_idx = start_idx + (count / 2);
   }
 
   uint32_t left_child =
@@ -459,7 +460,9 @@ auto ComputeSegmentAabb(const ReferenceLineSoA& ref_line, const AlignedVector<do
 
   for (int idx = 0; idx <= num_samples; ++idx) {
     double s_local = (static_cast<double>(idx) / num_samples) * length;
-    double rx = 0.0, ry = 0.0, r_hdg = 0.0;
+    double rx = 0.0;
+    double ry = 0.0;
+    double r_hdg = 0.0;
     EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + s_local, rx, ry, r_hdg);
     min_x = std::min(min_x, rx);
     min_y = std::min(min_y, ry);
@@ -479,7 +482,7 @@ auto EvaluateAstLaneWidth(const ast::Lane& lane, double s_local_to_section) noex
   if (lane.widths.empty()) {
     return 0.0;
   }
-  const ast::LaneWidth* active = &lane.widths[0];
+  const ast::LaneWidth* active = lane.widths.data();
   for (const auto& width_poly : lane.widths) {
     if (s_local_to_section >= width_poly.s_offset) {
       active = &width_poly;
@@ -488,7 +491,7 @@ auto EvaluateAstLaneWidth(const ast::Lane& lane, double s_local_to_section) noex
     }
   }
   double ds = s_local_to_section - active->s_offset;
-  return active->a + active->b * ds + active->c * ds * ds + active->d * ds * ds * ds;
+  return active->a + (active->b * ds) + (active->c * ds * ds) + (active->d * ds * ds * ds);
 }
 
 inline auto TransposeMatrix(const Matrix3x3& mat) noexcept -> Matrix3x3 {
@@ -507,9 +510,9 @@ inline auto TransposeMatrix(const Matrix3x3& mat) noexcept -> Matrix3x3 {
 
 inline auto DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x, double max_y) noexcept
     -> double {
-  double dx = std::max(0.0, std::max(min_x - px, px - max_x));
-  double dy = std::max(0.0, std::max(min_y - py, py - max_y));
-  return std::sqrt(dx * dx + dy * dy);
+  double dx = std::max({0.0, min_x - px, px - max_x});
+  double dy = std::max({0.0, min_y - py, py - max_y});
+  return std::sqrt((dx * dx) + (dy * dy));
 }
 
 auto ProjectToGenericSegment(const ReferenceLineSoA& ref_line, const AlignedVector<double>& arc_curvature,
@@ -521,28 +524,34 @@ auto ProjectToGenericSegment(const ReferenceLineSoA& ref_line, const AlignedVect
 
   for (int i = 0; i <= kNumIntervals; ++i) {
     double s_test = (static_cast<double>(i) / kNumIntervals) * seg_length;
-    double rx = 0.0, ry = 0.0, r_hdg = 0.0;
+    double rx = 0.0;
+    double ry = 0.0;
+    double r_hdg = 0.0;
     EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + s_test, rx, ry, r_hdg);
     double dx = px - rx;
     double dy = py - ry;
-    double dist_sq = dx * dx + dy * dy;
+    double dist_sq = (dx * dx) + (dy * dy);
     if (dist_sq < min_dist_sq) {
       min_dist_sq = dist_sq;
       best_s = s_test;
     }
   }
 
-  double left_s = std::max(0.0, best_s - seg_length / kNumIntervals);
-  double right_s = std::min(seg_length, best_s + seg_length / kNumIntervals);
+  double left_s = std::max(0.0, best_s - (seg_length / kNumIntervals));
+  double right_s = std::min(seg_length, best_s + (seg_length / kNumIntervals));
   for (int iter = 0; iter < 30; ++iter) {
-    double m1 = left_s + (right_s - left_s) / 3.0;
-    double m2 = right_s - (right_s - left_s) / 3.0;
-    double rx1 = 0.0, ry1 = 0.0, rhdg1 = 0.0;
-    double rx2 = 0.0, ry2 = 0.0, rhdg2 = 0.0;
+    double m1 = left_s + ((right_s - left_s) / 3.0);
+    double m2 = right_s - ((right_s - left_s) / 3.0);
+    double rx1 = 0.0;
+    double ry1 = 0.0;
+    double rhdg1 = 0.0;
+    double rx2 = 0.0;
+    double ry2 = 0.0;
+    double rhdg2 = 0.0;
     EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + m1, rx1, ry1, rhdg1);
     EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + m2, rx2, ry2, rhdg2);
-    double dist1 = (px - rx1) * (px - rx1) + (py - ry1) * (py - ry1);
-    double dist2 = (px - rx2) * (px - rx2) + (py - ry2) * (py - ry2);
+    double dist1 = ((px - rx1) * (px - rx1)) + ((py - ry1) * (py - ry1));
+    double dist2 = ((px - rx2) * (px - rx2)) + ((py - ry2) * (py - ry2));
     if (dist1 < dist2) {
       right_s = m2;
     } else {
@@ -640,7 +649,7 @@ auto EvaluateGroupHeight(const ShapesSoA& shapes, const ShapeGroup& group, doubl
     }
   }
   double dt = t_coord - shapes.t[active_idx];
-  return shapes.a[active_idx] + dt * (shapes.b[active_idx] + dt * (shapes.c[active_idx] + dt * shapes.d[active_idx]));
+  return shapes.a[active_idx] + (dt * (shapes.b[active_idx] + dt * (shapes.c[active_idx] + dt * shapes.d[active_idx])));
 }
 
 auto EvaluateGroupTGradient(const ShapesSoA& shapes, const ShapeGroup& group, double t_coord) noexcept -> double {
@@ -657,7 +666,7 @@ auto EvaluateGroupTGradient(const ShapesSoA& shapes, const ShapeGroup& group, do
     }
   }
   double dt = t_coord - shapes.t[active_idx];
-  return shapes.b[active_idx] + dt * (2.0 * shapes.c[active_idx] + dt * 3.0 * shapes.d[active_idx]);
+  return shapes.b[active_idx] + (dt * (2.0 * shapes.c[active_idx] + dt * 3.0 * shapes.d[active_idx]));
 }
 
 auto EvaluateShapeHeight(const ShapesSoA& shapes, uint32_t first_idx, uint32_t count, double s_coord,
@@ -682,7 +691,7 @@ auto EvaluateShapeHeight(const ShapesSoA& shapes, uint32_t first_idx, uint32_t c
   }
   double h2 = EvaluateGroupHeight(shapes, *g2, t_coord);
   double f = (s_coord - g1->s) / (g2->s - g1->s);
-  return (1.0 - f) * h1 + f * h2;
+  return ((1.0 - f) * h1) + (f * h2);
 }
 
 auto EvaluateShapeTGradient(const ShapesSoA& shapes, uint32_t first_idx, uint32_t count, double s_coord,
@@ -707,7 +716,7 @@ auto EvaluateShapeTGradient(const ShapesSoA& shapes, uint32_t first_idx, uint32_
   }
   double g2_val = EvaluateGroupTGradient(shapes, *g2, t_coord);
   double f = (s_coord - g1->s) / (g2->s - g1->s);
-  return (1.0 - f) * g1_val + f * g2_val;
+  return ((1.0 - f) * g1_val) + (f * g2_val);
 }
 
 }  // namespace
@@ -786,7 +795,7 @@ auto CompiledPhysicsModel::LaneToInertial(LanePose pose, QueryContext& ctx) cons
 
 auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) const noexcept
     -> std::optional<RoadPose> {
-  auto SnapToRoad = [&](uint32_t road_idx) noexcept -> std::optional<RoadPose> {
+  auto snap_to_road = [&](uint32_t road_idx) noexcept -> std::optional<RoadPose> {
     auto first_seg = road_ref_line_first_idx_[road_idx];
     auto seg_count = road_ref_line_count_[road_idx];
     if (seg_count == 0) {
@@ -807,7 +816,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
         double dx = pose.x - ref_line_.x[seg_idx];
         double dy = pose.y - ref_line_.y[seg_idx];
         double hdg = ref_line_.hdg[seg_idx];
-        double ds = dx * std::cos(hdg) + dy * std::sin(hdg);
+        double ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
         s_local = std::clamp(ds, 0.0, seg_length);
       } else if (ref_line_.type[seg_idx] == GeometryType::kArc) {
         double dx = pose.x - ref_line_.x[seg_idx];
@@ -815,11 +824,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
         double hdg = ref_line_.hdg[seg_idx];
         double curvature = arc_curvature_[ref_line_.type_index[seg_idx]];
         if (std::abs(curvature) < 1e-12) {
-          s_local = std::clamp(dx * std::cos(hdg) + dy * std::sin(hdg), 0.0, seg_length);
+          s_local = std::clamp((dx * std::cos(hdg)) + (dy * std::sin(hdg)), 0.0, seg_length);
         } else {
           double radius = 1.0 / curvature;
-          double center_x = ref_line_.x[seg_idx] - radius * std::sin(hdg);
-          double center_y = ref_line_.y[seg_idx] + radius * std::cos(hdg);
+          double center_x = ref_line_.x[seg_idx] - (radius * std::sin(hdg));
+          double center_y = ref_line_.y[seg_idx] + (radius * std::cos(hdg));
           double qdx = pose.x - center_x;
           double qdy = pose.y - center_y;
           double angle_query = std::atan2(qdy, qdx);
@@ -846,21 +855,25 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
         s_local = ProjectToGenericSegment(ref_line_, arc_curvature_, seg_idx, seg_length, pose.x, pose.y);
       }
 
-      double rx = 0.0, ry = 0.0, r_hdg = 0.0;
+      double rx = 0.0;
+      double ry = 0.0;
+      double r_hdg = 0.0;
       EvaluateReferenceLine(ref_line_, arc_curvature_, seg_idx, ref_line_.s_offset[seg_idx] + s_local, rx, ry, r_hdg);
 
       double dx = pose.x - rx;
       double dy = pose.y - ry;
-      double dist_sq = dx * dx + dy * dy;
+      double dist_sq = (dx * dx) + (dy * dy);
       if (dist_sq < min_dist_sq) {
         min_dist_sq = dist_sq;
         best_s = ref_line_.s_offset[seg_idx] + s_local;
-        best_t = -dx * std::sin(r_hdg) + dy * std::cos(r_hdg);
+        best_t = (-dx * std::sin(r_hdg)) + (dy * std::cos(r_hdg));
         best_rhdg = r_hdg;
       }
     }
 
-    double elev = 0.0, natural_pitch = 0.0, natural_roll = 0.0;
+    double elev = 0.0;
+    double natural_pitch = 0.0;
+    double natural_roll = 0.0;
     EvaluateNaturalOrientationAndElev(polynomials_, road_elevation_first_idx_, road_elevation_count_,
                                       road_superelevation_first_idx_, road_superelevation_count_, road_css_, road_idx,
                                       best_s, elev, natural_pitch, natural_roll);
@@ -874,7 +887,9 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
         break;
       }
     }
-    double rx = 0.0, ry = 0.0, r_hdg = 0.0;
+    double rx = 0.0;
+    double ry = 0.0;
+    double r_hdg = 0.0;
     EvaluateReferenceLine(ref_line_, arc_curvature_, best_seg_idx, best_s, rx, ry, r_hdg);
 
     double dx = pose.x - rx;
@@ -883,7 +898,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
     // Base roll calculation
     Matrix3x3 r_road_base = EulerToMatrix(best_rhdg, natural_pitch, natural_roll);
-    double road_t_base = r_road_base[0][1] * dx + r_road_base[1][1] * dy + r_road_base[2][1] * dz;
+    double road_t_base = (r_road_base[0][1] * dx) + (r_road_base[1][1] * dy) + (r_road_base[2][1] * dz);
 
     // Shape evaluation and roll correction
     double shape_grad = EvaluateShapeTGradient(shapes_, road_shape_first_idx_[road_idx], road_shape_count_[road_idx],
@@ -891,7 +906,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     double roll_total = natural_roll + std::atan(shape_grad);
 
     Matrix3x3 r_road = EulerToMatrix(best_rhdg, natural_pitch, roll_total);
-    double road_t = r_road[0][1] * dx + r_road[1][1] * dy + r_road[2][1] * dz;
+    double road_t = (r_road[0][1] * dx) + (r_road[1][1] * dy) + (r_road[2][1] * dz);
 
     double t_left = 0.0;
     double t_right = 0.0;
@@ -910,7 +925,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
       double h_shape =
           EvaluateShapeHeight(shapes_, road_shape_first_idx_[road_idx], road_shape_count_[road_idx], best_s, road_t);
 
-      double local_h = r_road[0][2] * dx + r_road[1][2] * dy + r_road[2][2] * dz;
+      double local_h = (r_road[0][2] * dx) + (r_road[1][2] * dy) + (r_road[2][2] * dz);
       road_pose.h = local_h - h_surf - h_shape;
 
       Matrix3x3 r_inertial = EulerToMatrix(pose.heading, pose.pitch, pose.roll);
@@ -929,7 +944,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
   // 1. Check temporal coherence fast path
   if (ctx.last_road.has_value()) {
     auto road_idx = static_cast<uint32_t>(*ctx.last_road);
-    auto fast_pose = SnapToRoad(road_idx);
+    auto fast_pose = snap_to_road(road_idx);
     if (fast_pose.has_value()) {
       auto first_seg = road_ref_line_first_idx_[road_idx];
       auto seg_count = road_ref_line_count_[road_idx];
@@ -974,7 +989,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
       for (uint32_t i = 0; i < prim_count; ++i) {
         const auto& prim = bvh_primitives_[prim_start + i];
-        auto candidate = SnapToRoad(prim.road_idx);
+        auto candidate = snap_to_road(prim.road_idx);
         if (candidate.has_value()) {
           double abs_t = std::abs(candidate->t);
           if (abs_t < min_t_distance) {
@@ -1074,7 +1089,7 @@ auto CompiledPhysicsModel::RoadToLane(RoadPose pose, QueryContext& ctx) const no
     double ds_lo = pose.s - lane_offset_s_start_[active_lo];
     lane_offset_val =
         lane_offset_a_[active_lo] +
-        ds_lo * (lane_offset_b_[active_lo] + ds_lo * (lane_offset_c_[active_lo] + ds_lo * lane_offset_d_[active_lo]));
+        (ds_lo * (lane_offset_b_[active_lo] + ds_lo * (lane_offset_c_[active_lo] + ds_lo * lane_offset_d_[active_lo])));
   }
 
   double t_relative = pose.t - lane_offset_val;
@@ -1098,7 +1113,7 @@ auto CompiledPhysicsModel::RoadToLane(RoadPose pose, QueryContext& ctx) const no
       double t_outer = t_inner + w;
       if (w > 0.0 && t_relative >= t_inner && t_relative <= t_outer) {
         matched_lane_idx = lane_idx;
-        t_center = t_inner + 0.5 * w;
+        t_center = t_inner + (0.5 * w);
         w_target = w;
         target_id = lane_id;
         found = true;
@@ -1120,7 +1135,7 @@ auto CompiledPhysicsModel::RoadToLane(RoadPose pose, QueryContext& ctx) const no
       double t_outer = t_inner - w;
       if (w > 0.0 && t_relative <= t_inner && t_relative >= t_outer) {
         matched_lane_idx = lane_idx;
-        t_center = t_inner - 0.5 * w;
+        t_center = t_inner - (0.5 * w);
         w_target = w;
         target_id = lane_id;
         found = true;
@@ -1163,7 +1178,7 @@ auto CompiledPhysicsModel::RoadToLane(RoadPose pose, QueryContext& ctx) const no
     }
   }
   f = std::clamp(f, 0.0, 1.0);
-  double h_offset = h_inner + f * (h_outer - h_inner);
+  double h_offset = h_inner + (f * (h_outer - h_inner));
 
   LanePose lane_pose;
   lane_pose.s = pose.s;
@@ -1232,7 +1247,7 @@ void CompiledPhysicsModel::GetRoadWidthLimits(uint32_t road_idx, double s_coord,
     double ds_lo = s_coord - lane_offset_s_start_[active_lo];
     lane_offset_val =
         lane_offset_a_[active_lo] +
-        ds_lo * (lane_offset_b_[active_lo] + ds_lo * (lane_offset_c_[active_lo] + ds_lo * lane_offset_d_[active_lo]));
+        (ds_lo * (lane_offset_b_[active_lo] + ds_lo * (lane_offset_c_[active_lo] + ds_lo * lane_offset_d_[active_lo])));
   }
 
   t_left += lane_offset_val;
@@ -1248,7 +1263,7 @@ auto CompiledPhysicsModel::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) cons
   double s = pose.s;
   int target_id = lane_original_id_[lane_idx];
   RoadId road_id = lane_road_id_[lane_idx];
-  uint32_t road_idx = static_cast<uint32_t>(road_id);
+  auto road_idx = static_cast<uint32_t>(road_id);
   uint32_t sec_idx = lane_section_idx_[lane_idx];
 
   // 1. Compute cumulative inner boundary width
@@ -1280,9 +1295,9 @@ auto CompiledPhysicsModel::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) cons
   // 3. Center line t of the lane
   double t_center = 0.0;
   if (target_id > 0) {
-    t_center = inner_boundary_t + 0.5 * w_target;
+    t_center = inner_boundary_t + (0.5 * w_target);
   } else if (target_id < 0) {
-    t_center = inner_boundary_t - 0.5 * w_target;
+    t_center = inner_boundary_t - (0.5 * w_target);
   }
 
   double road_t = t_center + pose.t;
@@ -1335,7 +1350,7 @@ auto CompiledPhysicsModel::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) cons
     }
   }
   f = std::clamp(f, 0.0, 1.0);
-  double h_offset = h_inner + f * (h_outer - h_inner);
+  double h_offset = h_inner + (f * (h_outer - h_inner));
   double road_h = pose.h + h_offset;
 
   RoadPose road_pose;
@@ -1377,24 +1392,24 @@ auto CompiledPhysicsModel::RoadLength(RoadId road_id) const noexcept -> double {
 
 auto CompiledPhysicsModel::LaneCount() const noexcept -> std::size_t { return lane_original_id_.size(); }
 
-auto CompiledPhysicsModel::LaneRoad(LaneId id) const noexcept -> RoadId {
-  auto idx = static_cast<uint32_t>(id);
+auto CompiledPhysicsModel::LaneRoad(LaneId lane_id) const noexcept -> RoadId {
+  auto idx = static_cast<uint32_t>(lane_id);
   if (idx < lane_road_id_.size()) {
     return lane_road_id_[idx];
   }
   return RoadId{0};
 }
 
-auto CompiledPhysicsModel::OriginalLaneId(LaneId id) const noexcept -> int {
-  auto idx = static_cast<uint32_t>(id);
+auto CompiledPhysicsModel::OriginalLaneId(LaneId lane_id) const noexcept -> int {
+  auto idx = static_cast<uint32_t>(lane_id);
   if (idx < lane_original_id_.size()) {
     return lane_original_id_[idx];
   }
   return 0;
 }
 
-auto CompiledPhysicsModel::LaneWidth(LaneId id, double s_coord) const noexcept -> double {
-  auto idx = static_cast<uint32_t>(id);
+auto CompiledPhysicsModel::LaneWidth(LaneId lane_id, double s_coord) const noexcept -> double {
+  auto idx = static_cast<uint32_t>(lane_id);
   if (idx >= lane_original_id_.size()) {
     return 0.0;
   }
