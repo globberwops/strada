@@ -4,33 +4,55 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <span>
 #include <strada/cpm/coordinate.hpp>
 #include <strada/cpm/reference_line.hpp>
 #include <vector>
 
 namespace strada::cpm {
 
+/// Bounding Volume Hierarchy (BVH) spatial index.
+///
+/// This class builds a flat, contiguous 2D bounding volume hierarchy over plan-view
+/// axis-aligned bounding boxes (AABBs) for fast road/segment lookup.
 class BoundingVolumeHierarchy {
  public:
+  /// Represents a flat node in the bounding volume hierarchy.
   struct Node {
     double min_x{};
     double min_y{};
     double max_x{};
     double max_y{};
-    uint32_t left{};
-    uint32_t right{};
+    uint32_t left{};   ///< For leaf nodes: primitive start index. For internal nodes: left child index.
+    uint32_t right{};  ///< For leaf nodes: primitive count with MSB set. For internal nodes: right child index.
   };
 
+  /// Represents association mapping of a leaf primitive to the road and segment.
   struct PrimitiveInfo {
-    uint32_t road_idx{};
-    uint32_t segment_idx{};
+    uint32_t road_idx{};     ///< Index of the road in the compiled physics model.
+    uint32_t segment_idx{};  ///< Index of the road segment in the reference line.
   };
 
+  /// Default-constructs an empty BoundingVolumeHierarchy.
   BoundingVolumeHierarchy() = default;
 
-  static auto Build(std::vector<uint32_t>& prim_indices, const std::vector<PrimitiveInfo>& temp_primitives,
-                    const std::vector<Aabb>& temp_aabbs) -> BoundingVolumeHierarchy;
+  /// Builds a BoundingVolumeHierarchy from a set of primitives and their AABBs.
+  ///
+  /// \param prim_indices A list of primitive indices that will be partition-sorted during build.
+  /// \param temp_primitives A view over the source primitives info.
+  /// \param temp_aabbs A view over the corresponding source plan-view AABBs.
+  /// \return The fully constructed BoundingVolumeHierarchy.
+  static auto Build(std::vector<uint32_t>& prim_indices, std::span<const PrimitiveInfo> temp_primitives,
+                    std::span<const Aabb> temp_aabbs) -> BoundingVolumeHierarchy;
 
+  /// Queries the hierarchy for primitives that contain or are close to a given point.
+  ///
+  /// Traverses the tree using a stack and invokes the provided callback on overlapping primitives.
+  ///
+  /// \param px The target point's x coordinate.
+  /// \param py The target point's y coordinate.
+  /// \param callback A callable invoked for each overlapping leaf primitive. It should have the
+  ///        signature `(const PrimitiveInfo&, double current_min_dist) -> std::optional<double>`.
   template <typename F>
   void Query(double px, double py, F&& callback) const noexcept {
     if (nodes_.empty()) {
@@ -83,8 +105,17 @@ class BoundingVolumeHierarchy {
     }
   }
 
+  /// Returns a reference to the flat vector of nodes.
+  ///
+  /// \return The contiguous array of hierarchy nodes.
   [[nodiscard]] auto Nodes() const noexcept -> const std::vector<Node>& { return nodes_; }
+
+  /// Returns a reference to the flat vector of leaf primitives.
+  ///
+  /// \return The contiguous array of primitives in leaf order.
   [[nodiscard]] auto Primitives() const noexcept -> const std::vector<PrimitiveInfo>& { return primitives_; }
+
+  /// Clears the hierarchy, releasing or clearing the nodes.
   void Clear() noexcept { nodes_.clear(); }
 
  private:

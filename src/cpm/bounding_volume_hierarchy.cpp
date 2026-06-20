@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <span>
 #include <strada/cpm/bounding_volume_hierarchy.hpp>
 
 namespace strada::cpm {
@@ -46,7 +47,7 @@ auto MakeLeafNode(std::vector<BoundingVolumeHierarchy::Node>& nodes, uint32_t no
                   const BoundingVolumeHierarchyAabb& bounds,
                   std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& final_primitives,
                   const std::vector<uint32_t>& prim_indices,
-                  const std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& temp_primitives, uint32_t start_idx,
+                  std::span<const BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives, uint32_t start_idx,
                   uint32_t count) noexcept -> uint32_t {
   auto prim_start = static_cast<uint32_t>(final_primitives.size());
   for (uint32_t idx = 0; idx < count; ++idx) {
@@ -66,8 +67,8 @@ auto MakeLeafNode(std::vector<BoundingVolumeHierarchy::Node>& nodes, uint32_t no
 auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::Node>& nodes,
                                            std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& final_primitives,
                                            std::vector<uint32_t>& prim_indices,
-                                           const std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& temp_primitives,
-                                           const std::vector<Aabb>& temp_aabbs, uint32_t start_idx,
+                                           std::span<const BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives,
+                                           std::span<const Aabb> temp_aabbs, uint32_t start_idx,
                                            uint32_t end_idx) noexcept -> uint32_t {
   auto node_idx = static_cast<uint32_t>(nodes.size());
   nodes.push_back(BoundingVolumeHierarchy::Node{});
@@ -199,9 +200,8 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
 
 }  // namespace
 
-auto BoundingVolumeHierarchy::Build(std::vector<uint32_t>& prim_indices,
-                                    const std::vector<PrimitiveInfo>& temp_primitives,
-                                    const std::vector<Aabb>& temp_aabbs) -> BoundingVolumeHierarchy {
+auto BoundingVolumeHierarchy::Build(std::vector<uint32_t>& prim_indices, std::span<const PrimitiveInfo> temp_primitives,
+                                    std::span<const Aabb> temp_aabbs) -> BoundingVolumeHierarchy {
   BoundingVolumeHierarchy bounding_volume_hierarchy;
   if (temp_primitives.empty()) {
     return bounding_volume_hierarchy;
