@@ -130,6 +130,43 @@ class CompiledPhysicsModel {
   PolynomialsSoA polynomials_;
   StripsSoA strips_;
   RoadCrossSectionSurfaceSoA road_css_;
+
+  // Lane sections flat SoA structures (CSR-style)
+  std::vector<double> section_s_;
+  std::vector<uint32_t> section_first_lane_idx_;
+  std::vector<uint32_t> section_lane_count_;
+  std::vector<uint32_t> road_section_first_idx_;
+  std::vector<uint32_t> road_section_count_;
+
+  // Lanes flat SoA structures
+  std::vector<int> lane_original_id_;
+  std::vector<RoadId> lane_road_id_;
+  std::vector<uint32_t> lane_section_idx_;
+  std::vector<uint32_t> lane_first_width_idx_;
+  std::vector<uint32_t> lane_width_count_;
+  std::vector<uint32_t> lane_first_height_idx_;
+  std::vector<uint32_t> lane_height_count_;
+
+  // Lane widths flat SoA structures
+  std::vector<double> lane_width_s_start_;
+  std::vector<double> lane_width_a_;
+  std::vector<double> lane_width_b_;
+  std::vector<double> lane_width_c_;
+  std::vector<double> lane_width_d_;
+
+  // Lane heights flat SoA structures
+  std::vector<double> lane_height_s_start_;
+  std::vector<double> lane_height_inner_;
+  std::vector<double> lane_height_outer_;
+
+  // Lane offsets flat SoA structures (road level)
+  std::vector<double> lane_offset_s_start_;
+  std::vector<double> lane_offset_a_;
+  std::vector<double> lane_offset_b_;
+  std::vector<double> lane_offset_c_;
+  std::vector<double> lane_offset_d_;
+  std::vector<uint32_t> road_lane_offset_first_idx_;
+  std::vector<uint32_t> road_lane_offset_count_;
 };
 
 auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;

@@ -237,7 +237,7 @@ auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> Cloth
     }
     double x_val = x0 - (0.5 * (param_a * y2));
     double y_val = y0 + (0.5 * (param_a * x2));
-    return ClothoidResult{.x = x_val, .y = y_val};
+    return {.x = x_val, .y = y_val};
   }
   return EvalXYaLarge(param_a, param_b);
 }

@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <numbers>
 #include <strada/cpm/aligned_allocator.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
 
@@ -330,9 +329,9 @@ void EvaluateCrossSectionSurfaceOffset(const PolynomialsSoA& polynomials, const 
   return inertial_pose;
 }
 
-auto CompiledPhysicsModel::LaneToInertial(LanePose /*pose*/, QueryContext& /*ctx*/) const noexcept -> InertialPose {
-  (void)road_lengths_;
-  return InertialPose{};
+auto CompiledPhysicsModel::LaneToInertial(LanePose pose, QueryContext& ctx) const noexcept -> InertialPose {
+  RoadPose road_pose = LaneToRoad(pose, ctx);
+  return RoadToInertial(road_pose, ctx);
 }
 
 auto CompiledPhysicsModel::InertialToRoad(InertialPosition /*position*/, QueryContext& /*ctx*/) const noexcept
@@ -353,9 +352,114 @@ auto CompiledPhysicsModel::RoadToLane(RoadPose /*pose*/, QueryContext& /*ctx*/) 
   return std::nullopt;
 }
 
-auto CompiledPhysicsModel::LaneToRoad(LanePose /*pose*/, QueryContext& /*ctx*/) const noexcept -> RoadPose {
-  (void)road_lengths_;
-  return RoadPose{};
+auto CompiledPhysicsModel::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) const noexcept -> RoadPose {
+  auto lane_idx = static_cast<uint32_t>(pose.lane);
+  if (lane_idx >= lane_original_id_.size()) {
+    return RoadPose{};
+  }
+
+  double s = pose.s;
+  int target_id = lane_original_id_[lane_idx];
+  RoadId road_id = lane_road_id_[lane_idx];
+  uint32_t road_idx = static_cast<uint32_t>(road_id);
+  uint32_t sec_idx = lane_section_idx_[lane_idx];
+
+  // 1. Compute cumulative inner boundary width
+  double inner_boundary_t = 0.0;
+  uint32_t first_lane_in_sec = section_first_lane_idx_[sec_idx];
+  uint32_t lane_cnt_in_sec = section_lane_count_[sec_idx];
+
+  for (uint32_t i = 0; i < lane_cnt_in_sec; ++i) {
+    uint32_t other_idx = first_lane_in_sec + i;
+    int other_id = lane_original_id_[other_idx];
+    if (target_id > 0) {
+      if (other_id > 0 && other_id < target_id) {
+        inner_boundary_t += LaneWidth(static_cast<LaneId>(other_idx), s);
+      }
+    } else if (target_id < 0) {
+      if (other_id < 0 && other_id > target_id) {
+        inner_boundary_t += LaneWidth(static_cast<LaneId>(other_idx), s);
+      }
+    }
+  }
+
+  if (target_id < 0) {
+    inner_boundary_t = -inner_boundary_t;
+  }
+
+  // 2. Target lane width
+  double w_target = LaneWidth(pose.lane, s);
+
+  // 3. Center line t of the lane
+  double t_center = 0.0;
+  if (target_id > 0) {
+    t_center = inner_boundary_t + 0.5 * w_target;
+  } else if (target_id < 0) {
+    t_center = inner_boundary_t - 0.5 * w_target;
+  }
+
+  double road_t = t_center + pose.t;
+
+  // 4. Add road-level laneOffset
+  double lane_offset_val = 0.0;
+  uint32_t lo_first = road_lane_offset_first_idx_[road_idx];
+  uint32_t lo_count = road_lane_offset_count_[road_idx];
+  if (lo_count > 0) {
+    uint32_t active_lo = lo_first;
+    for (uint32_t i = 0; i < lo_count; ++i) {
+      uint32_t cur_lo = lo_first + i;
+      if (s >= lane_offset_s_start_[cur_lo]) {
+        active_lo = cur_lo;
+      } else {
+        break;
+      }
+    }
+    double ds_lo = s - lane_offset_s_start_[active_lo];
+    lane_offset_val = lane_offset_a_[active_lo] + (lane_offset_b_[active_lo] * ds_lo) +
+                      (lane_offset_c_[active_lo] * ds_lo * ds_lo) + (lane_offset_d_[active_lo] * ds_lo * ds_lo * ds_lo);
+  }
+  road_t += lane_offset_val;
+
+  // 5. Evaluate lane height offset
+  double h_inner = 0.0;
+  double h_outer = 0.0;
+  uint32_t h_first = lane_first_height_idx_[lane_idx];
+  uint32_t h_count = lane_height_count_[lane_idx];
+  if (h_count > 0) {
+    uint32_t active_h = h_first;
+    for (uint32_t i = 0; i < h_count; ++i) {
+      uint32_t cur_h = h_first + i;
+      if (s >= lane_height_s_start_[cur_h]) {
+        active_h = cur_h;
+      } else {
+        break;
+      }
+    }
+    h_inner = lane_height_inner_[active_h];
+    h_outer = lane_height_outer_[active_h];
+  }
+
+  double f = 0.0;
+  if (w_target > 0.0) {
+    if (target_id > 0) {
+      f = 0.5 + (pose.t / w_target);
+    } else if (target_id < 0) {
+      f = 0.5 - (pose.t / w_target);
+    }
+  }
+  f = std::clamp(f, 0.0, 1.0);
+  double h_offset = h_inner + f * (h_outer - h_inner);
+  double road_h = pose.h + h_offset;
+
+  RoadPose road_pose;
+  road_pose.s = s;
+  road_pose.t = road_t;
+  road_pose.h = road_h;
+  road_pose.heading = pose.heading;
+  road_pose.pitch = pose.pitch;
+  road_pose.roll = pose.roll;
+  road_pose.road = road_id;
+  return road_pose;
 }
 
 auto CompiledPhysicsModel::RoadCount() const noexcept -> std::size_t { return road_string_ids_.size(); }
@@ -384,24 +488,48 @@ auto CompiledPhysicsModel::RoadLength(RoadId road_id) const noexcept -> double {
   return 0.0;
 }
 
-auto CompiledPhysicsModel::LaneCount() const noexcept -> std::size_t {
-  (void)road_lengths_;
-  return 0;
-}
+auto CompiledPhysicsModel::LaneCount() const noexcept -> std::size_t { return lane_original_id_.size(); }
 
-auto CompiledPhysicsModel::LaneRoad(LaneId /*id*/) const noexcept -> RoadId {
-  (void)road_lengths_;
+auto CompiledPhysicsModel::LaneRoad(LaneId id) const noexcept -> RoadId {
+  auto idx = static_cast<uint32_t>(id);
+  if (idx < lane_road_id_.size()) {
+    return lane_road_id_[idx];
+  }
   return RoadId{0};
 }
 
-auto CompiledPhysicsModel::OriginalLaneId(LaneId /*id*/) const noexcept -> int {
-  (void)road_lengths_;
+auto CompiledPhysicsModel::OriginalLaneId(LaneId id) const noexcept -> int {
+  auto idx = static_cast<uint32_t>(id);
+  if (idx < lane_original_id_.size()) {
+    return lane_original_id_[idx];
+  }
   return 0;
 }
 
-auto CompiledPhysicsModel::LaneWidth(LaneId /*id*/, double /*s_coord*/) const noexcept -> double {
-  (void)road_lengths_;
-  return 0.0;
+auto CompiledPhysicsModel::LaneWidth(LaneId id, double s_coord) const noexcept -> double {
+  auto idx = static_cast<uint32_t>(id);
+  if (idx >= lane_original_id_.size()) {
+    return 0.0;
+  }
+  uint32_t w_first = lane_first_width_idx_[idx];
+  uint32_t w_count = lane_width_count_[idx];
+  if (w_count == 0) {
+    return 0.0;
+  }
+
+  uint32_t active_idx = w_first;
+  for (uint32_t i = 0; i < w_count; ++i) {
+    uint32_t cur_idx = w_first + i;
+    if (s_coord >= lane_width_s_start_[cur_idx]) {
+      active_idx = cur_idx;
+    } else {
+      break;
+    }
+  }
+
+  double ds = s_coord - lane_width_s_start_[active_idx];
+  return lane_width_a_[active_idx] + (lane_width_b_[active_idx] * ds) + (lane_width_c_[active_idx] * ds * ds) +
+         (lane_width_d_[active_idx] * ds * ds * ds);
 }
 
 auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel {
@@ -578,6 +706,91 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
       model.road_css_.strip_count.push_back(0);
       model.road_css_.t_offset_first_idx.push_back(0);
       model.road_css_.t_offset_count.push_back(0);
+    }
+
+    // Lane offset profile compilation (road level)
+    {
+      auto first_idx = static_cast<uint32_t>(model.lane_offset_s_start_.size());
+      auto count = static_cast<uint32_t>(road.lanes.offsets.size());
+      for (const auto& offset : road.lanes.offsets) {
+        model.lane_offset_s_start_.push_back(offset.s);
+        model.lane_offset_a_.push_back(offset.a);
+        model.lane_offset_b_.push_back(offset.b);
+        model.lane_offset_c_.push_back(offset.c);
+        model.lane_offset_d_.push_back(offset.d);
+      }
+      model.road_lane_offset_first_idx_.push_back(first_idx);
+      model.road_lane_offset_count_.push_back(count);
+    }
+
+    // Lane sections compilation
+    {
+      auto road_sec_first = static_cast<uint32_t>(model.section_s_.size());
+      auto road_sec_count = static_cast<uint32_t>(road.lanes.sections.size());
+
+      for (const auto& section : road.lanes.sections) {
+        model.section_s_.push_back(section.s);
+
+        // Accumulate all lanes in this section: right, center, left.
+        // We will sort them by ID ascending.
+        std::vector<ast::Lane> sorted_section_lanes;
+        sorted_section_lanes.reserve(section.right.size() + section.center.size() + section.left.size());
+        for (const auto& lane : section.right) {
+          sorted_section_lanes.push_back(lane);
+        }
+        for (const auto& lane : section.center) {
+          sorted_section_lanes.push_back(lane);
+        }
+        for (const auto& lane : section.left) {
+          sorted_section_lanes.push_back(lane);
+        }
+
+        // Sort by ID ascending
+        std::ranges::sort(sorted_section_lanes, [](const auto& lhs_lane, const auto& rhs_lane) noexcept -> bool {
+          return lhs_lane.id < rhs_lane.id;
+        });
+
+        auto section_first_lane = static_cast<uint32_t>(model.lane_original_id_.size());
+        auto section_lane_count = static_cast<uint32_t>(sorted_section_lanes.size());
+
+        model.section_first_lane_idx_.push_back(section_first_lane);
+        model.section_lane_count_.push_back(section_lane_count);
+
+        // Now compile each lane in this section
+        for (const auto& lane : sorted_section_lanes) {
+          model.lane_original_id_.push_back(lane.id);
+          model.lane_road_id_.push_back(static_cast<RoadId>(model.road_string_ids_.size() - 1));
+          model.lane_section_idx_.push_back(static_cast<uint32_t>(model.section_s_.size() - 1));
+
+          // Width polynomials for this lane
+          auto w_first = static_cast<uint32_t>(model.lane_width_s_start_.size());
+          auto w_count = static_cast<uint32_t>(lane.widths.size());
+          for (const auto& width_poly : lane.widths) {
+            // Note: sOffset is relative to section start s.
+            model.lane_width_s_start_.push_back(section.s + width_poly.s_offset);
+            model.lane_width_a_.push_back(width_poly.a);
+            model.lane_width_b_.push_back(width_poly.b);
+            model.lane_width_c_.push_back(width_poly.c);
+            model.lane_width_d_.push_back(width_poly.d);
+          }
+          model.lane_first_width_idx_.push_back(w_first);
+          model.lane_width_count_.push_back(w_count);
+
+          // Height polynomials for this lane
+          auto h_first = static_cast<uint32_t>(model.lane_height_s_start_.size());
+          auto h_count = static_cast<uint32_t>(lane.heights.size());
+          for (const auto& height_poly : lane.heights) {
+            // sOffset is relative to section start s.
+            model.lane_height_s_start_.push_back(section.s + height_poly.s_offset);
+            model.lane_height_inner_.push_back(height_poly.inner);
+            model.lane_height_outer_.push_back(height_poly.outer);
+          }
+          model.lane_first_height_idx_.push_back(h_first);
+          model.lane_height_count_.push_back(h_count);
+        }
+      }
+      model.road_section_first_idx_.push_back(road_sec_first);
+      model.road_section_count_.push_back(road_sec_count);
     }
   }
 

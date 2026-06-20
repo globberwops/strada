@@ -510,3 +510,115 @@ TEST(CompiledPhysicsModelTest, QueryPoly3AndParamPoly3ReferenceLine) {
     EXPECT_NEAR(inertial.heading, 2.026619153539606, 1e-9);
   }
 }
+
+TEST(CompiledPhysicsModelTest, LanesCompilationAndInspection) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+
+  // Act
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+
+  // Assert
+  EXPECT_EQ(cpm_model.LaneCount(), 3);
+
+  auto lane0 = strada::cpm::LaneId{0};
+  auto lane1 = strada::cpm::LaneId{1};
+  auto lane2 = strada::cpm::LaneId{2};
+
+  EXPECT_EQ(cpm_model.OriginalLaneId(lane0), -1);
+  EXPECT_EQ(cpm_model.OriginalLaneId(lane1), 0);
+  EXPECT_EQ(cpm_model.OriginalLaneId(lane2), 1);
+
+  EXPECT_EQ(cpm_model.LaneRoad(lane0), strada::cpm::RoadId{0});
+  EXPECT_EQ(cpm_model.LaneRoad(lane1), strada::cpm::RoadId{0});
+  EXPECT_EQ(cpm_model.LaneRoad(lane2), strada::cpm::RoadId{0});
+
+  // Verify Lane widths
+  // Lane 1 (original 1): width at s = 10.0 is 3.0 + 0.1 * 10.0 = 4.0
+  EXPECT_NEAR(cpm_model.LaneWidth(lane2, 10.0), 4.0, 1e-9);
+
+  // Lane -1 (original -1): width at s = 10.0 (relative ds = 9.0) is 3.2 + 0.2 * 9.0 = 5.0
+  EXPECT_NEAR(cpm_model.LaneWidth(lane0, 10.0), 5.0, 1e-9);
+
+  // Center Lane (original 0): width is 0.0
+  EXPECT_NEAR(cpm_model.LaneWidth(lane1, 10.0), 0.0, 1e-9);
+}
+
+TEST(CompiledPhysicsModelTest, LaneTransforms) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+
+  auto lane0 = strada::cpm::LaneId{0};  // Original ID: -1
+  auto lane2 = strada::cpm::LaneId{2};  // Original ID: 1
+
+  strada::cpm::QueryContext ctx;
+
+  // Act & Assert 1: Query left lane (lane2, original ID 1) at s = 10.0, t = 0.0, h = 0.0
+  {
+    strada::cpm::LanePose pose;
+    pose.s = 10.0;
+    pose.t = 0.0;
+    pose.h = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = strada::cpm::RoadId{0};
+    pose.lane = lane2;
+
+    auto road_pose = cpm_model.LaneToRoad(pose, ctx);
+    EXPECT_NEAR(road_pose.s, 10.0, 1e-9);
+    EXPECT_NEAR(road_pose.t, 878.5, 1e-9);
+    EXPECT_NEAR(road_pose.h, 0.05, 1e-9);
+    EXPECT_EQ(road_pose.road, strada::cpm::RoadId{0});
+
+    auto inertial_pose = cpm_model.LaneToInertial(pose, ctx);
+    auto expected_inertial = cpm_model.RoadToInertial(road_pose, ctx);
+    EXPECT_NEAR(inertial_pose.x, expected_inertial.x, 1e-9);
+    EXPECT_NEAR(inertial_pose.y, expected_inertial.y, 1e-9);
+    EXPECT_NEAR(inertial_pose.z, expected_inertial.z, 1e-9);
+    EXPECT_NEAR(inertial_pose.heading, expected_inertial.heading, 1e-9);
+    EXPECT_NEAR(inertial_pose.pitch, expected_inertial.pitch, 1e-9);
+    EXPECT_NEAR(inertial_pose.roll, expected_inertial.roll, 1e-9);
+  }
+
+  // Act & Assert 2: Query right lane (lane0, original ID -1) at s = 10.0, t = -0.5, h = 0.0
+  {
+    strada::cpm::LanePose pose;
+    pose.s = 10.0;
+    pose.t = -0.5;
+    pose.h = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+    pose.road = strada::cpm::RoadId{0};
+    pose.lane = lane0;
+
+    auto road_pose = cpm_model.LaneToRoad(pose, ctx);
+    EXPECT_NEAR(road_pose.s, 10.0, 1e-9);
+    EXPECT_NEAR(road_pose.t, 873.5, 1e-9);
+    EXPECT_NEAR(road_pose.h, 0.0, 1e-9);
+    EXPECT_EQ(road_pose.road, strada::cpm::RoadId{0});
+
+    auto inertial_pose = cpm_model.LaneToInertial(pose, ctx);
+    auto expected_inertial = cpm_model.RoadToInertial(road_pose, ctx);
+    EXPECT_NEAR(inertial_pose.x, expected_inertial.x, 1e-9);
+    EXPECT_NEAR(inertial_pose.y, expected_inertial.y, 1e-9);
+    EXPECT_NEAR(inertial_pose.z, expected_inertial.z, 1e-9);
+    EXPECT_NEAR(inertial_pose.heading, expected_inertial.heading, 1e-9);
+    EXPECT_NEAR(inertial_pose.pitch, expected_inertial.pitch, 1e-9);
+    EXPECT_NEAR(inertial_pose.roll, expected_inertial.roll, 1e-9);
+  }
+
+  // Act & Assert 3: Verify QueryContext caches road segment index
+  {
+    EXPECT_TRUE(ctx.last_road.has_value());
+    EXPECT_EQ(*ctx.last_road, strada::cpm::RoadId{0});
+    EXPECT_TRUE(ctx.last_segment_idx.has_value());
+    EXPECT_EQ(*ctx.last_segment_idx, 0U);
+  }
+}
