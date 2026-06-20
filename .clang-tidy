@@ -71,3 +71,7 @@ CheckOptions:
     value:           CamelCase
   - key:             readability-identifier-naming.ConstexprVariablePrefix
     value:           k
+  - key:             readability-identifier-naming.TypeTemplateParameterCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.ConceptCase
+    value:           CamelCase
