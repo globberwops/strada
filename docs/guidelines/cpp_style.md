@@ -44,7 +44,7 @@ The style of a name immediately identifies the category of the entity without lo
 | **Struct Data Members** | `snake_case` | `table_name`, `pool` | Data members in a `struct`. Do **not** use trailing underscores. |
 | **Constant Names** | `kPascalCase` | `kDaysInWeek`, `kAndroidVersion` | Fixed values declared `const` or `constexpr` at global, namespace, or class scope. Optional/discouraged for local function constants. |
 | **Function Names** | `PascalCase` | `AddTableEntry()`, `OpenFileOrDie()` | Normal methods and free functions. |
-| **Accessors & Mutators** | `snake_case` | `table_name()`, `set_table_name()` | Read/write helpers matching the underlying variable name. |
+| **Accessors & Mutators** | `PascalCase` | `TableName()`, `SetTableName()` | Under Strada overrides, accessors/mutators follow regular function naming (`PascalCase`). |
 | **Namespace Names** | `snake_case` | `my_project::my_component` | Lowercase. Nested namespaces must avoid collisions with `std` or other external libraries. |
 | **Enumerator Names** | `kPascalCase` | `kOk`, `kOutOfMemory` | Enum values (scoped/unscoped). Do **not** use `ALL_CAPS`. |
 | **Template Type Parameters** | `CamelCase` | `typename T`, `typename ElementType` | Matches Type Names. |
@@ -254,9 +254,9 @@ class UrlFrobber {
   /// Since this function returns void, it must use the leading return type.
   void ResetProcessedCount();
 
-  // Accessors and mutators use trailing return type (returning non-void).
-  auto processed_count() const -> int { return processed_count_; }
-  auto options() const -> const FrobberOptions& { return options_; }
+  // Accessors and mutators use trailing return type (returning non-void) and follow PascalCase.
+  auto ProcessedCount() const -> int { return processed_count_; }
+  auto Options() const -> const FrobberOptions& { return options_; }
 
  private:
   /// Verifies if the target URL exists in the local preload cache.
