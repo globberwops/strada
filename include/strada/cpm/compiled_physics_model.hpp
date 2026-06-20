@@ -160,13 +160,4 @@ class CompiledPhysicsModel {
   LaneNetwork lane_network_;
   BoundingVolumeHierarchy bounding_volume_hierarchy_;
 };
-
-/// Backward-compatible compilation helper. Calls CompiledPhysicsModel::Build.
-///
-/// \param map The parsed AST of the road network map.
-/// \return The compiled physics model ready for query execution.
-inline auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel {
-  return CompiledPhysicsModel::Build(map);
-}
-
 }  // namespace strada::cpm
