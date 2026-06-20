@@ -92,11 +92,11 @@ class CompiledPhysicsModel {
 
   // Bounding volume hierarchy inspection
   [[nodiscard]] auto GetBoundingVolumeHierarchyNodes() const noexcept
-      -> const std::vector<BoundingVolumeHierarchyNode>& {
+      -> const std::vector<BoundingVolumeHierarchy::Node>& {
     return bounding_volume_hierarchy_.Nodes();
   }
   [[nodiscard]] auto GetBoundingVolumeHierarchyPrimitives() const noexcept
-      -> const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& {
+      -> const std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& {
     return bounding_volume_hierarchy_.Primitives();
   }
   auto ClearBoundingVolumeHierarchyNodes() noexcept -> void { bounding_volume_hierarchy_.Clear(); }

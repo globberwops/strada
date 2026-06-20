@@ -510,7 +510,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
   bounding_volume_hierarchy_.Query(
       pose.x, pose.y,
-      [&](const BoundingVolumeHierarchyPrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {
+      [&](const BoundingVolumeHierarchy::PrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {
         auto candidate = snap_to_road(prim.road_idx);
         if (candidate.has_value()) {
           double abs_t = std::abs(candidate->t);
@@ -1169,7 +1169,7 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
     road_max_t.push_back(max_road_t);
   }
 
-  std::vector<BoundingVolumeHierarchyPrimitiveInfo> temp_primitives;
+  std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives;
   std::vector<Aabb> temp_aabbs;
 
   auto num_roads = static_cast<uint32_t>(model.road_lengths_.size());
@@ -1178,7 +1178,7 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
     double inflation = road_max_t[road_idx];
     for (uint32_t i = 0; i < seg_count; ++i) {
       uint32_t seg_idx = first_seg + i;
-      temp_primitives.push_back(BoundingVolumeHierarchyPrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
+      temp_primitives.push_back(BoundingVolumeHierarchy::PrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
       auto aabb = model.ref_line_.ComputeSegmentAabb(seg_idx, inflation);
       temp_aabbs.push_back(aabb);
     }

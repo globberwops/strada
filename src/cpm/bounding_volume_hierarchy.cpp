@@ -42,11 +42,11 @@ struct BoundingVolumeHierarchyAabb {
   }
 };
 
-auto MakeLeafNode(std::vector<BoundingVolumeHierarchyNode>& nodes, uint32_t node_idx,
+auto MakeLeafNode(std::vector<BoundingVolumeHierarchy::Node>& nodes, uint32_t node_idx,
                   const BoundingVolumeHierarchyAabb& bounds,
-                  std::vector<BoundingVolumeHierarchyPrimitiveInfo>& final_primitives,
+                  std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& final_primitives,
                   const std::vector<uint32_t>& prim_indices,
-                  const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& temp_primitives, uint32_t start_idx,
+                  const std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& temp_primitives, uint32_t start_idx,
                   uint32_t count) noexcept -> uint32_t {
   auto prim_start = static_cast<uint32_t>(final_primitives.size());
   for (uint32_t idx = 0; idx < count; ++idx) {
@@ -63,14 +63,14 @@ auto MakeLeafNode(std::vector<BoundingVolumeHierarchyNode>& nodes, uint32_t node
   return node_idx;
 }
 
-auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchyNode>& nodes,
-                                           std::vector<BoundingVolumeHierarchyPrimitiveInfo>& final_primitives,
+auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::Node>& nodes,
+                                           std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& final_primitives,
                                            std::vector<uint32_t>& prim_indices,
-                                           const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& temp_primitives,
+                                           const std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& temp_primitives,
                                            const std::vector<Aabb>& temp_aabbs, uint32_t start_idx,
                                            uint32_t end_idx) noexcept -> uint32_t {
   auto node_idx = static_cast<uint32_t>(nodes.size());
-  nodes.push_back(BoundingVolumeHierarchyNode{});
+  nodes.push_back(BoundingVolumeHierarchy::Node{});
 
   BoundingVolumeHierarchyAabb bounds;
   BoundingVolumeHierarchyAabb centroid_bounds;
@@ -200,7 +200,7 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchyNo
 }  // namespace
 
 auto BoundingVolumeHierarchy::Build(std::vector<uint32_t>& prim_indices,
-                                    const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& temp_primitives,
+                                    const std::vector<PrimitiveInfo>& temp_primitives,
                                     const std::vector<Aabb>& temp_aabbs) -> BoundingVolumeHierarchy {
   BoundingVolumeHierarchy bounding_volume_hierarchy;
   if (temp_primitives.empty()) {

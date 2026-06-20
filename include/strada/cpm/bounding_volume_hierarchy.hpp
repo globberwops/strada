@@ -10,27 +10,25 @@
 
 namespace strada::cpm {
 
-struct BoundingVolumeHierarchyNode {
-  double min_x{};
-  double min_y{};
-  double max_x{};
-  double max_y{};
-  uint32_t left{};
-  uint32_t right{};
-};
-static_assert(sizeof(BoundingVolumeHierarchyNode) == 40, "BoundingVolumeHierarchyNode must be exactly 40 bytes");
-
-struct BoundingVolumeHierarchyPrimitiveInfo {
-  uint32_t road_idx{};
-  uint32_t segment_idx{};
-};
-
 class BoundingVolumeHierarchy {
  public:
+  struct Node {
+    double min_x{};
+    double min_y{};
+    double max_x{};
+    double max_y{};
+    uint32_t left{};
+    uint32_t right{};
+  };
+
+  struct PrimitiveInfo {
+    uint32_t road_idx{};
+    uint32_t segment_idx{};
+  };
+
   BoundingVolumeHierarchy() = default;
 
-  static auto Build(std::vector<uint32_t>& prim_indices,
-                    const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& temp_primitives,
+  static auto Build(std::vector<uint32_t>& prim_indices, const std::vector<PrimitiveInfo>& temp_primitives,
                     const std::vector<Aabb>& temp_aabbs) -> BoundingVolumeHierarchy;
 
   template <typename F>
@@ -85,18 +83,18 @@ class BoundingVolumeHierarchy {
     }
   }
 
-  [[nodiscard]] auto Nodes() const noexcept -> const std::vector<BoundingVolumeHierarchyNode>& { return nodes_; }
-  [[nodiscard]] auto Primitives() const noexcept -> const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& {
-    return primitives_;
-  }
+  [[nodiscard]] auto Nodes() const noexcept -> const std::vector<Node>& { return nodes_; }
+  [[nodiscard]] auto Primitives() const noexcept -> const std::vector<PrimitiveInfo>& { return primitives_; }
   void Clear() noexcept { nodes_.clear(); }
 
  private:
-  std::vector<BoundingVolumeHierarchyNode> nodes_;
-  std::vector<BoundingVolumeHierarchyPrimitiveInfo> primitives_;
+  std::vector<Node> nodes_;
+  std::vector<PrimitiveInfo> primitives_;
 
   static auto DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x, double max_y) noexcept
       -> double;
 };
+
+static_assert(sizeof(BoundingVolumeHierarchy::Node) == 40, "BoundingVolumeHierarchy::Node must be exactly 40 bytes");
 
 }  // namespace strada::cpm
