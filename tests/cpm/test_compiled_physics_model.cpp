@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <filesystem>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/parser/parser.hpp>
@@ -620,5 +621,293 @@ TEST(CompiledPhysicsModelTest, LaneTransforms) {
     EXPECT_EQ(*ctx.last_road, strada::cpm::RoadId{0});
     EXPECT_TRUE(ctx.last_segment_idx.has_value());
     EXPECT_EQ(*ctx.last_segment_idx, 0U);
+  }
+}
+
+TEST(CompiledPhysicsModelTest, BvhConstructionAndLayout) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "geometry.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+
+  // Act
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+  const auto& nodes = cpm_model.GetBvhNodes();
+  const auto& primitives = cpm_model.GetBvhPrimitives();
+
+  // Assert
+  // Since geometry.xodr has 1 road with multiple plan-view geometry segments, we expect at least 1 BVH node
+  ASSERT_FALSE(nodes.empty());
+  ASSERT_FALSE(primitives.empty());
+
+  // Root node should encompass all geometry
+  const auto& root = nodes[0];
+  EXPECT_LT(root.min_x, root.max_x);
+  EXPECT_LT(root.min_y, root.max_y);
+
+  // Traverse the BVH and assert properties
+  for (const auto& node : nodes) {
+    bool is_leaf = (node.right & 0x80000000) != 0;
+    if (is_leaf) {
+      uint32_t start = node.left;
+      uint32_t count = node.right & 0x7FFFFFFF;
+      EXPECT_LT(start, primitives.size());
+      EXPECT_LE(start + count, primitives.size());
+      EXPECT_GT(count, 0U);
+    } else {
+      uint32_t left_child = node.left;
+      uint32_t right_child = node.right & 0x7FFFFFFF;
+      EXPECT_LT(left_child, nodes.size());
+      EXPECT_LT(right_child, nodes.size());
+      EXPECT_NE(left_child, 0U);
+      EXPECT_NE(right_child, 0U);
+    }
+  }
+}
+
+TEST(CompiledPhysicsModelTest, InertialToRoadSnapping) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "geometry.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+  auto road_id = *cpm_model.RoadIdFromString("1");
+
+  strada::cpm::QueryContext ctx;
+
+  // Act & Assert 1: Snap to Line segment
+  // Expected pose: s=5.0, t=2.0, h=0.5
+  {
+    strada::cpm::InertialPose ip;
+    ip.x = 13.429061732243458;
+    ip.y = 24.15229281680176;
+    ip.z = 0.5;
+    ip.heading = 0.5;  // Natural tangent heading is 0.5
+    ip.pitch = 0.0;
+    ip.roll = 0.0;
+
+    auto rp_opt = cpm_model.InertialToRoad(ip, ctx);
+    ASSERT_TRUE(rp_opt.has_value());
+    auto rp = *rp_opt;
+    EXPECT_EQ(rp.road, road_id);
+    EXPECT_NEAR(rp.s, 5.0, 1e-6);
+    EXPECT_NEAR(rp.t, 2.0, 1e-6);
+    EXPECT_NEAR(rp.h, 0.5, 1e-6);
+  }
+
+  // Act & Assert 2: Snap to Arc segment
+  // Expected pose: s=30.0, t=-1.0, h=0.2
+  {
+    strada::cpm::InertialPose ip;
+    ip.x = 39.19737185582303;
+    ip.y = 48.08149886694822;
+    ip.z = 0.2;
+    ip.heading = 0.95;  // Natural tangent heading is 0.95
+    ip.pitch = 0.0;
+    ip.roll = 0.0;
+
+    auto rp_opt = cpm_model.InertialToRoad(ip, ctx);
+    ASSERT_TRUE(rp_opt.has_value());
+    auto rp = *rp_opt;
+    EXPECT_EQ(rp.road, road_id);
+    EXPECT_NEAR(rp.s, 30.0, 1e-6);
+    EXPECT_NEAR(rp.t, -1.0, 1e-6);
+    EXPECT_NEAR(rp.h, 0.2, 1e-6);
+  }
+
+  // Act & Assert 3: Snap to ParamPoly3 segment
+  // Expected pose: s=85.0, t=0.0, h=0.0
+  {
+    strada::cpm::InertialPose ip;
+    ip.x = -3572.0136520507344;
+    ip.y = 9408.846724488534;
+    ip.z = 0.0;
+    ip.heading = 1.943310312623995;
+    ip.pitch = 0.0;
+    ip.roll = 0.0;
+
+    auto rp_opt = cpm_model.InertialToRoad(ip, ctx);
+    ASSERT_TRUE(rp_opt.has_value());
+    auto rp = *rp_opt;
+    EXPECT_EQ(rp.road, road_id);
+    EXPECT_NEAR(rp.s, 85.0, 1e-3);  // Numerical projection tolerance
+    EXPECT_NEAR(rp.t, 0.0, 1e-3);
+    EXPECT_NEAR(rp.h, 0.0, 1e-3);
+  }
+}
+
+TEST(CompiledPhysicsModelTest, OrientationStripping) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "geometry.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+
+  strada::cpm::QueryContext ctx;
+
+  // Let's query a point on the Line segment (s=5.0, t=0.0, h=0.0)
+  // Tangent heading is 0.5.
+  // Natural pitch and roll are 0.0 because there's no elevation/superelevation.
+  // If we pass an InertialPose with heading = 0.5, pitch = 0.0, roll = 0.0:
+  {
+    strada::cpm::InertialPose ip;
+    ip.x = 10.0 + 5.0 * std::cos(0.5);
+    ip.y = 20.0 + 5.0 * std::sin(0.5);
+    ip.z = 0.0;
+    ip.heading = 0.5;
+    ip.pitch = 0.0;
+    ip.roll = 0.0;
+
+    auto rp_opt = cpm_model.InertialToRoad(ip, ctx);
+    ASSERT_TRUE(rp_opt.has_value());
+    auto rp = *rp_opt;
+    EXPECT_NEAR(rp.heading, 0.0, 1e-9);
+    EXPECT_NEAR(rp.pitch, 0.0, 1e-9);
+    EXPECT_NEAR(rp.roll, 0.0, 1e-9);
+  }
+
+  // If we pass an InertialPose with heading = 0.6, pitch = 0.2, roll = 0.3
+  // (which represents offset heading = 0.1, pitch = 0.2, roll = 0.3 relative to the road):
+  {
+    // The road rotation at s=5 is: R_road = R_z(0.5)
+    // The query inertial rotation is: R_inertial = R_road * R_offset
+    // Where R_offset = R_z(0.1) * R_y(0.2) * R_x(0.3)
+    // We compose R_road and R_offset:
+    strada::cpm::RoadPose rp_target;
+    rp_target.s = 5.0;
+    rp_target.t = 0.0;
+    rp_target.h = 0.0;
+    rp_target.heading = 0.1;
+    rp_target.pitch = 0.2;
+    rp_target.roll = 0.3;
+    rp_target.road = strada::cpm::RoadId{0};
+
+    auto ip = cpm_model.RoadToInertial(rp_target, ctx);
+
+    // Now snap this ip back to road-relative coordinates:
+    auto rp_opt = cpm_model.InertialToRoad(ip, ctx);
+    ASSERT_TRUE(rp_opt.has_value());
+    auto rp = *rp_opt;
+    EXPECT_NEAR(rp.heading, 0.1, 1e-9);
+    EXPECT_NEAR(rp.pitch, 0.2, 1e-9);
+    EXPECT_NEAR(rp.roll, 0.3, 1e-9);
+  }
+}
+
+TEST(CompiledPhysicsModelTest, BvhQueryContextFastPath) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "geometry.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+  auto road_id = *cpm_model.RoadIdFromString("1");
+
+  strada::cpm::QueryContext ctx;
+
+  // 1. Cold query (inside the road) -> should succeed and populate context
+  strada::cpm::InertialPose ip_first;
+  ip_first.x = 10.0 + 5.0 * std::cos(0.5);
+  ip_first.y = 20.0 + 5.0 * std::sin(0.5);
+  ip_first.z = 0.0;
+  ip_first.heading = 0.5;
+  ip_first.pitch = 0.0;
+  ip_first.roll = 0.0;
+
+  auto rp_first = cpm_model.InertialToRoad(ip_first, ctx);
+  ASSERT_TRUE(rp_first.has_value());
+  EXPECT_TRUE(ctx.last_road.has_value());
+  EXPECT_EQ(*ctx.last_road, road_id);
+
+  // 2. Clear BVH nodes in the model
+  cpm_model.ClearBvhNodes();
+
+  // 3. Warm query on a different point -> should still succeed via fast path because the cached road is used
+  strada::cpm::InertialPose ip_second;
+  ip_second.x = 10.0 + 6.0 * std::cos(0.5);
+  ip_second.y = 20.0 + 6.0 * std::sin(0.5);
+  ip_second.z = 0.0;
+  ip_second.heading = 0.5;
+  ip_second.pitch = 0.0;
+  ip_second.roll = 0.0;
+
+  auto rp_warm = cpm_model.InertialToRoad(ip_second, ctx);
+  ASSERT_TRUE(rp_warm.has_value());
+  EXPECT_NEAR(rp_warm->s, 6.0, 1e-6);
+
+  // 4. Cold query (empty context) on the same second point -> should fail because BVH is cleared
+  strada::cpm::QueryContext ctx_cold;
+  auto rp_cold = cpm_model.InertialToRoad(ip_second, ctx_cold);
+  EXPECT_FALSE(rp_cold.has_value());
+}
+
+TEST(CompiledPhysicsModelTest, RoundTripInertialRoadInertial) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "geometry.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+
+  strada::cpm::QueryContext ctx;
+
+  // Let's test a point on the Line segment (s=5.0, t=1.0, h=0.2)
+  {
+    strada::cpm::RoadPose rp_orig;
+    rp_orig.s = 5.0;
+    rp_orig.t = 1.0;
+    rp_orig.h = 0.2;
+    rp_orig.heading = 0.1;
+    rp_orig.pitch = -0.15;
+    rp_orig.roll = 0.05;
+    rp_orig.road = strada::cpm::RoadId{0};
+
+    // Forward transformation
+    auto ip = cpm_model.RoadToInertial(rp_orig, ctx);
+
+    // Backward snapping
+    auto rp_snap_opt = cpm_model.InertialToRoad(ip, ctx);
+    ASSERT_TRUE(rp_snap_opt.has_value());
+    auto rp_snap = *rp_snap_opt;
+
+    // Convert snapped back to world
+    auto ip_snap = cpm_model.RoadToInertial(rp_snap, ctx);
+
+    // Verify round-trip matches the input world pose within 1e-9
+    EXPECT_NEAR(ip_snap.x, ip.x, 1e-9);
+    EXPECT_NEAR(ip_snap.y, ip.y, 1e-9);
+    EXPECT_NEAR(ip_snap.z, ip.z, 1e-9);
+    EXPECT_NEAR(ip_snap.heading, ip.heading, 1e-9);
+    EXPECT_NEAR(ip_snap.pitch, ip.pitch, 1e-9);
+    EXPECT_NEAR(ip_snap.roll, ip.roll, 1e-9);
+  }
+
+  // Let's test a point on the Arc segment (s=30.0, t=-1.5, h=0.3)
+  {
+    strada::cpm::RoadPose rp_orig;
+    rp_orig.s = 30.0;
+    rp_orig.t = -1.5;
+    rp_orig.h = 0.3;
+    rp_orig.heading = -0.2;
+    rp_orig.pitch = 0.1;
+    rp_orig.roll = -0.1;
+    rp_orig.road = strada::cpm::RoadId{0};
+
+    // Forward transformation
+    auto ip = cpm_model.RoadToInertial(rp_orig, ctx);
+
+    // Backward snapping
+    auto rp_snap_opt = cpm_model.InertialToRoad(ip, ctx);
+    ASSERT_TRUE(rp_snap_opt.has_value());
+    auto rp_snap = *rp_snap_opt;
+
+    // Convert snapped back to world
+    auto ip_snap = cpm_model.RoadToInertial(rp_snap, ctx);
+
+    // Verify round-trip matches the input world pose within 1e-9
+    EXPECT_NEAR(ip_snap.x, ip.x, 1e-9);
+    EXPECT_NEAR(ip_snap.y, ip.y, 1e-9);
+    EXPECT_NEAR(ip_snap.z, ip.z, 1e-9);
+    EXPECT_NEAR(ip_snap.heading, ip.heading, 1e-9);
+    EXPECT_NEAR(ip_snap.pitch, ip.pitch, 1e-9);
+    EXPECT_NEAR(ip_snap.roll, ip.roll, 1e-9);
   }
 }

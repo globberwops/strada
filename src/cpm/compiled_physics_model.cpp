@@ -266,6 +266,292 @@ void EvaluateCrossSectionSurfaceOffset(const PolynomialsSoA& polynomials, const 
   }
 }
 
+struct Aabb {
+  double min_x{std::numeric_limits<double>::max()};
+  double min_y{std::numeric_limits<double>::max()};
+  double max_x{-std::numeric_limits<double>::max()};
+  double max_y{-std::numeric_limits<double>::max()};
+
+  void Grow(const Aabb& other) noexcept {
+    min_x = std::min(min_x, other.min_x);
+    min_y = std::min(min_y, other.min_y);
+    max_x = std::max(max_x, other.max_x);
+    max_y = std::max(max_y, other.max_y);
+  }
+
+  void Grow(double px, double py) noexcept {
+    min_x = std::min(min_x, px);
+    min_y = std::min(min_y, py);
+    max_x = std::max(max_x, px);
+    max_y = std::max(max_y, py);
+  }
+
+  double Area() const noexcept {
+    double dx = max_x - min_x;
+    double dy = max_y - min_y;
+    return (dx > 0.0 ? dx : 0.0) + (dy > 0.0 ? dy : 0.0);
+  }
+};
+
+auto MakeLeafNode(std::vector<BvhNode>& nodes, uint32_t node_idx, const Aabb& bounds,
+                  std::vector<BvhPrimitiveInfo>& final_primitives, const std::vector<uint32_t>& prim_indices,
+                  const std::vector<BvhPrimitiveInfo>& temp_primitives, uint32_t start_idx, uint32_t count) noexcept
+    -> uint32_t {
+  auto prim_start = static_cast<uint32_t>(final_primitives.size());
+  for (uint32_t idx = 0; idx < count; ++idx) {
+    final_primitives.push_back(temp_primitives[prim_indices[start_idx + idx]]);
+  }
+
+  nodes[node_idx].min_x = bounds.min_x;
+  nodes[node_idx].min_y = bounds.min_y;
+  nodes[node_idx].max_x = bounds.max_x;
+  nodes[node_idx].max_y = bounds.max_y;
+  nodes[node_idx].left = prim_start;
+  nodes[node_idx].right = count | 0x80000000;
+
+  return node_idx;
+}
+
+auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo>& final_primitives,
+                       std::vector<uint32_t>& prim_indices, const std::vector<BvhPrimitiveInfo>& temp_primitives,
+                       const std::vector<Aabb>& temp_aabbs, uint32_t start_idx, uint32_t end_idx) noexcept -> uint32_t {
+  auto node_idx = static_cast<uint32_t>(nodes.size());
+  nodes.push_back(BvhNode{});
+
+  Aabb bounds;
+  Aabb centroid_bounds;
+  for (uint32_t idx = start_idx; idx < end_idx; ++idx) {
+    uint32_t prim_idx = prim_indices[idx];
+    bounds.Grow(temp_aabbs[prim_idx]);
+    double cx = 0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x);
+    double cy = 0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y);
+    centroid_bounds.Grow(cx, cy);
+  }
+
+  uint32_t count = end_idx - start_idx;
+  constexpr uint32_t kLeafThreshold = 4;
+
+  if (count <= kLeafThreshold) {
+    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
+  }
+
+  double ext_x = centroid_bounds.max_x - centroid_bounds.min_x;
+  double ext_y = centroid_bounds.max_y - centroid_bounds.min_y;
+  int axis = (ext_x > ext_y) ? 0 : 1;
+
+  double min_coord = (axis == 0) ? centroid_bounds.min_x : centroid_bounds.min_y;
+  double max_coord = (axis == 0) ? centroid_bounds.max_x : centroid_bounds.max_y;
+
+  if (max_coord - min_coord < 1e-9) {
+    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
+  }
+
+  constexpr int kNumBins = 16;
+  struct Bin {
+    uint32_t count{0};
+    Aabb bounds;
+  };
+  std::array<Bin, kNumBins> bins{};
+
+  double scale = kNumBins / (max_coord - min_coord);
+  for (uint32_t idx = start_idx; idx < end_idx; ++idx) {
+    uint32_t prim_idx = prim_indices[idx];
+    double centroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
+                                  : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
+    int bin_idx = static_cast<int>((centroid - min_coord) * scale);
+    bin_idx = std::clamp(bin_idx, 0, kNumBins - 1);
+    bins[bin_idx].count++;
+    bins[bin_idx].bounds.Grow(temp_aabbs[prim_idx]);
+  }
+
+  double min_split_cost = std::numeric_limits<double>::max();
+  int best_split_bin = -1;
+
+  std::array<Aabb, kNumBins - 1> left_bounds{};
+  std::array<uint32_t, kNumBins - 1> left_counts{};
+  Aabb left_accum;
+  uint32_t left_cnt = 0;
+  for (int idx = 0; idx < kNumBins - 1; ++idx) {
+    left_accum.Grow(bins[idx].bounds);
+    left_cnt += bins[idx].count;
+    left_bounds[idx] = left_accum;
+    left_counts[idx] = left_cnt;
+  }
+
+  std::array<Aabb, kNumBins - 1> right_bounds{};
+  std::array<uint32_t, kNumBins - 1> right_counts{};
+  Aabb right_accum;
+  uint32_t right_cnt = 0;
+  for (int idx = kNumBins - 1; idx > 0; --idx) {
+    right_accum.Grow(bins[idx].bounds);
+    right_cnt += bins[idx].count;
+    right_bounds[idx - 1] = right_accum;
+    right_counts[idx - 1] = right_cnt;
+  }
+
+  double parent_area = bounds.Area();
+  constexpr double c_trav = 1.0;
+  constexpr double c_isect = 1.0;
+
+  for (int idx = 0; idx < kNumBins - 1; ++idx) {
+    if (left_counts[idx] == 0 || right_counts[idx] == 0) {
+      continue;
+    }
+    double cost =
+        c_trav + c_isect * (left_bounds[idx].Area() * left_counts[idx] + right_bounds[idx].Area() * right_counts[idx]) /
+                     parent_area;
+    if (cost < min_split_cost) {
+      min_split_cost = cost;
+      best_split_bin = idx;
+    }
+  }
+
+  double no_split_cost = count * c_isect;
+
+  if (min_split_cost >= no_split_cost) {
+    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
+  }
+
+  auto split_it =
+      std::stable_partition(prim_indices.begin() + start_idx, prim_indices.begin() + end_idx, [&](uint32_t prim_idx) {
+        double centroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
+                                      : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
+        int bin_idx = static_cast<int>((centroid - min_coord) * scale);
+        bin_idx = std::clamp(bin_idx, 0, kNumBins - 1);
+        return bin_idx <= best_split_bin;
+      });
+
+  auto mid_idx = static_cast<uint32_t>(std::distance(prim_indices.begin(), split_it));
+
+  if (mid_idx == start_idx || mid_idx == end_idx) {
+    mid_idx = start_idx + count / 2;
+  }
+
+  uint32_t left_child =
+      BuildBvhRecursive(nodes, final_primitives, prim_indices, temp_primitives, temp_aabbs, start_idx, mid_idx);
+  uint32_t right_child =
+      BuildBvhRecursive(nodes, final_primitives, prim_indices, temp_primitives, temp_aabbs, mid_idx, end_idx);
+
+  nodes[node_idx].min_x = bounds.min_x;
+  nodes[node_idx].min_y = bounds.min_y;
+  nodes[node_idx].max_x = bounds.max_x;
+  nodes[node_idx].max_y = bounds.max_y;
+  nodes[node_idx].left = left_child;
+  nodes[node_idx].right = right_child;
+
+  return node_idx;
+}
+
+auto ComputeSegmentAabb(const ReferenceLineSoA& ref_line, const AlignedVector<double>& arc_curvature, uint32_t seg_idx,
+                        double inflation_radius) noexcept -> Aabb {
+  double min_x = std::numeric_limits<double>::max();
+  double min_y = std::numeric_limits<double>::max();
+  double max_x = -std::numeric_limits<double>::max();
+  double max_y = -std::numeric_limits<double>::max();
+
+  double length = ref_line.length[seg_idx];
+  double s_start = ref_line.s_offset[seg_idx];
+
+  int num_samples = 1;
+  if (ref_line.type[seg_idx] != GeometryType::kLine) {
+    num_samples = 32;
+  }
+
+  for (int idx = 0; idx <= num_samples; ++idx) {
+    double s_local = (static_cast<double>(idx) / num_samples) * length;
+    double rx = 0.0, ry = 0.0, r_hdg = 0.0;
+    EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + s_local, rx, ry, r_hdg);
+    min_x = std::min(min_x, rx);
+    min_y = std::min(min_y, ry);
+    max_x = std::max(max_x, rx);
+    max_y = std::max(max_y, ry);
+  }
+
+  Aabb bounds;
+  bounds.min_x = min_x - inflation_radius;
+  bounds.min_y = min_y - inflation_radius;
+  bounds.max_x = max_x + inflation_radius;
+  bounds.max_y = max_y + inflation_radius;
+  return bounds;
+}
+
+auto EvaluateAstLaneWidth(const ast::Lane& lane, double s_local_to_section) noexcept -> double {
+  if (lane.widths.empty()) {
+    return 0.0;
+  }
+  const ast::LaneWidth* active = &lane.widths[0];
+  for (const auto& width_poly : lane.widths) {
+    if (s_local_to_section >= width_poly.s_offset) {
+      active = &width_poly;
+    } else {
+      break;
+    }
+  }
+  double ds = s_local_to_section - active->s_offset;
+  return active->a + active->b * ds + active->c * ds * ds + active->d * ds * ds * ds;
+}
+
+inline auto TransposeMatrix(const Matrix3x3& mat) noexcept -> Matrix3x3 {
+  Matrix3x3 res;
+  res[0][0] = mat[0][0];
+  res[0][1] = mat[1][0];
+  res[0][2] = mat[2][0];
+  res[1][0] = mat[0][1];
+  res[1][1] = mat[1][1];
+  res[1][2] = mat[2][1];
+  res[2][0] = mat[0][2];
+  res[2][1] = mat[1][2];
+  res[2][2] = mat[2][2];
+  return res;
+}
+
+inline auto DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x, double max_y) noexcept
+    -> double {
+  double dx = std::max(0.0, std::max(min_x - px, px - max_x));
+  double dy = std::max(0.0, std::max(min_y - py, py - max_y));
+  return std::sqrt(dx * dx + dy * dy);
+}
+
+auto ProjectToGenericSegment(const ReferenceLineSoA& ref_line, const AlignedVector<double>& arc_curvature,
+                             uint32_t seg_idx, double seg_length, double px, double py) noexcept -> double {
+  constexpr int kNumIntervals = 10;
+  double best_s = 0.0;
+  double min_dist_sq = std::numeric_limits<double>::max();
+  double s_start = ref_line.s_offset[seg_idx];
+
+  for (int i = 0; i <= kNumIntervals; ++i) {
+    double s_test = (static_cast<double>(i) / kNumIntervals) * seg_length;
+    double rx = 0.0, ry = 0.0, r_hdg = 0.0;
+    EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + s_test, rx, ry, r_hdg);
+    double dx = px - rx;
+    double dy = py - ry;
+    double dist_sq = dx * dx + dy * dy;
+    if (dist_sq < min_dist_sq) {
+      min_dist_sq = dist_sq;
+      best_s = s_test;
+    }
+  }
+
+  double left_s = std::max(0.0, best_s - seg_length / kNumIntervals);
+  double right_s = std::min(seg_length, best_s + seg_length / kNumIntervals);
+  for (int iter = 0; iter < 30; ++iter) {
+    double m1 = left_s + (right_s - left_s) / 3.0;
+    double m2 = right_s - (right_s - left_s) / 3.0;
+    double rx1 = 0.0, ry1 = 0.0, rhdg1 = 0.0;
+    double rx2 = 0.0, ry2 = 0.0, rhdg2 = 0.0;
+    EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + m1, rx1, ry1, rhdg1);
+    EvaluateReferenceLine(ref_line, arc_curvature, seg_idx, s_start + m2, rx2, ry2, rhdg2);
+    double dist1 = (px - rx1) * (px - rx1) + (py - ry1) * (py - ry1);
+    double dist2 = (px - rx2) * (px - rx2) + (py - ry2) * (py - ry2);
+    if (dist1 < dist2) {
+      right_s = m2;
+    } else {
+      left_s = m1;
+    }
+  }
+  return 0.5 * (left_s + right_s);
+}
+
 }  // namespace
 
 [[gnu::hot]] auto CompiledPhysicsModel::RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept
@@ -334,22 +620,290 @@ auto CompiledPhysicsModel::LaneToInertial(LanePose pose, QueryContext& ctx) cons
   return RoadToInertial(road_pose, ctx);
 }
 
-auto CompiledPhysicsModel::InertialToRoad(InertialPosition /*position*/, QueryContext& /*ctx*/) const noexcept
+auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) const noexcept
     -> std::optional<RoadPose> {
-  (void)road_lengths_;
-  return std::nullopt;
+  auto SnapToRoad = [&](uint32_t road_idx) noexcept -> std::optional<RoadPose> {
+    auto first_seg = road_ref_line_first_idx_[road_idx];
+    auto seg_count = road_ref_line_count_[road_idx];
+    if (seg_count == 0) {
+      return std::nullopt;
+    }
+
+    double min_dist_sq = std::numeric_limits<double>::max();
+    double best_s = 0.0;
+    double best_t = 0.0;
+    double best_rhdg = 0.0;
+
+    for (uint32_t i = 0; i < seg_count; ++i) {
+      uint32_t seg_idx = first_seg + i;
+      double seg_length = ref_line_.length[seg_idx];
+      double s_local = 0.0;
+
+      if (ref_line_.type[seg_idx] == GeometryType::kLine) {
+        double dx = pose.x - ref_line_.x[seg_idx];
+        double dy = pose.y - ref_line_.y[seg_idx];
+        double hdg = ref_line_.hdg[seg_idx];
+        double ds = dx * std::cos(hdg) + dy * std::sin(hdg);
+        s_local = std::clamp(ds, 0.0, seg_length);
+      } else if (ref_line_.type[seg_idx] == GeometryType::kArc) {
+        double dx = pose.x - ref_line_.x[seg_idx];
+        double dy = pose.y - ref_line_.y[seg_idx];
+        double hdg = ref_line_.hdg[seg_idx];
+        double curvature = arc_curvature_[ref_line_.type_index[seg_idx]];
+        if (std::abs(curvature) < 1e-12) {
+          s_local = std::clamp(dx * std::cos(hdg) + dy * std::sin(hdg), 0.0, seg_length);
+        } else {
+          double radius = 1.0 / curvature;
+          double center_x = ref_line_.x[seg_idx] - radius * std::sin(hdg);
+          double center_y = ref_line_.y[seg_idx] + radius * std::cos(hdg);
+          double qdx = pose.x - center_x;
+          double qdy = pose.y - center_y;
+          double angle_query = std::atan2(qdy, qdx);
+          double angle_start = std::atan2(ref_line_.y[seg_idx] - center_y, ref_line_.x[seg_idx] - center_x);
+          double delta_angle = angle_query - angle_start;
+          if (curvature > 0.0) {
+            while (delta_angle < 0.0) {
+              delta_angle += 2.0 * M_PI;
+            }
+            while (delta_angle >= 2.0 * M_PI) {
+              delta_angle -= 2.0 * M_PI;
+            }
+          } else {
+            while (delta_angle > 0.0) {
+              delta_angle -= 2.0 * M_PI;
+            }
+            while (delta_angle <= -2.0 * M_PI) {
+              delta_angle += 2.0 * M_PI;
+            }
+          }
+          s_local = std::clamp(delta_angle / curvature, 0.0, seg_length);
+        }
+      } else {
+        s_local = ProjectToGenericSegment(ref_line_, arc_curvature_, seg_idx, seg_length, pose.x, pose.y);
+      }
+
+      double rx = 0.0, ry = 0.0, r_hdg = 0.0;
+      EvaluateReferenceLine(ref_line_, arc_curvature_, seg_idx, ref_line_.s_offset[seg_idx] + s_local, rx, ry, r_hdg);
+
+      double dx = pose.x - rx;
+      double dy = pose.y - ry;
+      double dist_sq = dx * dx + dy * dy;
+      if (dist_sq < min_dist_sq) {
+        min_dist_sq = dist_sq;
+        best_s = ref_line_.s_offset[seg_idx] + s_local;
+        best_t = -dx * std::sin(r_hdg) + dy * std::cos(r_hdg);
+        best_rhdg = r_hdg;
+      }
+    }
+
+    double t_left = 0.0;
+    double t_right = 0.0;
+    GetRoadWidthLimits(road_idx, best_s, t_left, t_right);
+    constexpr double kSnappingTolerance = 5.0;
+    if (best_t >= t_right - kSnappingTolerance && best_t <= t_left + kSnappingTolerance) {
+      RoadPose road_pose;
+      road_pose.road = static_cast<RoadId>(road_idx);
+      road_pose.s = best_s;
+      road_pose.t = best_t;
+
+      double elev = 0.0, natural_pitch = 0.0, natural_roll = 0.0;
+      EvaluateNaturalOrientationAndElev(polynomials_, road_elevation_first_idx_, road_elevation_count_,
+                                        road_superelevation_first_idx_, road_superelevation_count_, road_css_, road_idx,
+                                        best_s, elev, natural_pitch, natural_roll);
+      double h_surf = 0.0;
+      EvaluateCrossSectionSurfaceOffset(polynomials_, strips_, road_css_, road_idx, best_s, best_t, h_surf);
+
+      Matrix3x3 r_road = EulerToMatrix(best_rhdg, natural_pitch, natural_roll);
+      double r22 = r_road[2][2];
+      double r21 = r_road[2][1];
+      double h_val = 0.0;
+      if (std::abs(r22) > 1e-6) {
+        h_val = (pose.z - elev - r21 * best_t) / r22 - h_surf;
+      } else {
+        h_val = pose.z - elev - h_surf;
+      }
+      road_pose.h = h_val;
+
+      Matrix3x3 r_inertial = EulerToMatrix(pose.heading, pose.pitch, pose.roll);
+      Matrix3x3 r_road_t = TransposeMatrix(r_road);
+      Matrix3x3 r_offset = ComposeRotations(r_road_t, r_inertial);
+      EulerAngles offset_angles = MatrixToEuler(r_offset);
+      road_pose.heading = offset_angles.heading;
+      road_pose.pitch = offset_angles.pitch;
+      road_pose.roll = offset_angles.roll;
+
+      return road_pose;
+    }
+    return std::nullopt;
+  };
+
+  // 1. Check temporal coherence fast path
+  if (ctx.last_road.has_value()) {
+    auto road_idx = static_cast<uint32_t>(*ctx.last_road);
+    auto fast_pose = SnapToRoad(road_idx);
+    if (fast_pose.has_value()) {
+      auto first_seg = road_ref_line_first_idx_[road_idx];
+      auto seg_count = road_ref_line_count_[road_idx];
+      for (uint32_t i = 0; i < seg_count; ++i) {
+        auto idx = first_seg + i;
+        double s_start = ref_line_.s_offset[idx];
+        double s_end = s_start + ref_line_.length[idx];
+        if (fast_pose->s >= s_start && fast_pose->s <= s_end) {
+          ctx.last_segment_idx = idx;
+          break;
+        }
+      }
+      return fast_pose;
+    }
+  }
+
+  // 2. Traversal stack-based BVH search
+  if (bvh_nodes_.empty()) {
+    return std::nullopt;
+  }
+
+  std::array<uint32_t, 64> stack{};
+  int stack_ptr = 0;
+  stack[stack_ptr++] = 0;
+
+  double min_t_distance = std::numeric_limits<double>::max();
+  std::optional<RoadPose> best_overall_pose;
+
+  while (stack_ptr > 0) {
+    auto curr_idx = stack[--stack_ptr];
+    const auto& node = bvh_nodes_[curr_idx];
+
+    double dist_to_box = DistancePointToAabb(pose.x, pose.y, node.min_x, node.min_y, node.max_x, node.max_y);
+    if (dist_to_box > min_t_distance) {
+      continue;
+    }
+
+    bool is_leaf = (node.right & 0x80000000) != 0;
+    if (is_leaf) {
+      auto prim_start = node.left;
+      auto prim_count = node.right & 0x7FFFFFFF;
+
+      for (uint32_t i = 0; i < prim_count; ++i) {
+        const auto& prim = bvh_primitives_[prim_start + i];
+        auto candidate = SnapToRoad(prim.road_idx);
+        if (candidate.has_value()) {
+          double abs_t = std::abs(candidate->t);
+          if (abs_t < min_t_distance) {
+            min_t_distance = abs_t;
+            best_overall_pose = candidate;
+          }
+        }
+      }
+    } else {
+      auto left_child = node.left;
+      auto right_child = node.right & 0x7FFFFFFF;
+
+      double dist_left = DistancePointToAabb(pose.x, pose.y, bvh_nodes_[left_child].min_x, bvh_nodes_[left_child].min_y,
+                                             bvh_nodes_[left_child].max_x, bvh_nodes_[left_child].max_y);
+      double dist_right =
+          DistancePointToAabb(pose.x, pose.y, bvh_nodes_[right_child].min_x, bvh_nodes_[right_child].min_y,
+                              bvh_nodes_[right_child].max_x, bvh_nodes_[right_child].max_y);
+
+      if (dist_left < dist_right) {
+        stack[stack_ptr++] = right_child;
+        stack[stack_ptr++] = left_child;
+      } else {
+        stack[stack_ptr++] = left_child;
+        stack[stack_ptr++] = right_child;
+      }
+    }
+  }
+
+  if (best_overall_pose.has_value()) {
+    ctx.last_road = best_overall_pose->road;
+    auto road_idx = static_cast<uint32_t>(best_overall_pose->road);
+    auto first_seg = road_ref_line_first_idx_[road_idx];
+    auto seg_count = road_ref_line_count_[road_idx];
+    for (uint32_t i = 0; i < seg_count; ++i) {
+      auto idx = first_seg + i;
+      double s_start = ref_line_.s_offset[idx];
+      double s_end = s_start + ref_line_.length[idx];
+      if (best_overall_pose->s >= s_start && best_overall_pose->s <= s_end) {
+        ctx.last_segment_idx = idx;
+        break;
+      }
+    }
+  }
+
+  return best_overall_pose;
 }
 
-auto CompiledPhysicsModel::InertialToLane(InertialPosition /*position*/, QueryContext& /*ctx*/) const noexcept
+auto CompiledPhysicsModel::InertialToLane(InertialPose pose, QueryContext& ctx) const noexcept
     -> std::optional<LanePose> {
-  (void)road_lengths_;
-  return std::nullopt;
+  auto road_pose_opt = InertialToRoad(pose, ctx);
+  if (!road_pose_opt.has_value()) {
+    return std::nullopt;
+  }
+  return RoadToLane(*road_pose_opt, ctx);
 }
 
 auto CompiledPhysicsModel::RoadToLane(RoadPose /*pose*/, QueryContext& /*ctx*/) const noexcept
     -> std::optional<LanePose> {
   (void)road_lengths_;
   return std::nullopt;
+}
+
+void CompiledPhysicsModel::GetRoadWidthLimits(uint32_t road_idx, double s_coord, double& t_left,
+                                              double& t_right) const noexcept {
+  t_left = 0.0;
+  t_right = 0.0;
+
+  auto road_sec_first = road_section_first_idx_[road_idx];
+  auto road_sec_count = road_section_count_[road_idx];
+  if (road_sec_count == 0) {
+    return;
+  }
+
+  auto sec_idx = road_sec_first;
+  for (uint32_t i = 0; i < road_sec_count; ++i) {
+    auto cur_sec = road_sec_first + i;
+    if (s_coord >= section_s_[cur_sec]) {
+      sec_idx = cur_sec;
+    } else {
+      break;
+    }
+  }
+
+  auto first_lane_in_sec = section_first_lane_idx_[sec_idx];
+  auto lane_cnt_in_sec = section_lane_count_[sec_idx];
+
+  for (uint32_t i = 0; i < lane_cnt_in_sec; ++i) {
+    auto lane_idx = first_lane_in_sec + i;
+    auto lane_id = lane_original_id_[lane_idx];
+    double w = LaneWidth(static_cast<LaneId>(lane_idx), s_coord);
+    if (lane_id > 0) {
+      t_left += w;
+    } else if (lane_id < 0) {
+      t_right -= w;
+    }
+  }
+
+  double lane_offset_val = 0.0;
+  auto lo_first = road_lane_offset_first_idx_[road_idx];
+  auto lo_count = road_lane_offset_count_[road_idx];
+  if (lo_count > 0) {
+    auto active_lo = lo_first;
+    for (uint32_t i = 0; i < lo_count; ++i) {
+      auto cur_lo = lo_first + i;
+      if (s_coord >= lane_offset_s_start_[cur_lo]) {
+        active_lo = cur_lo;
+      } else {
+        break;
+      }
+    }
+    double ds_lo = s_coord - lane_offset_s_start_[active_lo];
+    lane_offset_val =
+        lane_offset_a_[active_lo] +
+        ds_lo * (lane_offset_b_[active_lo] + ds_lo * (lane_offset_c_[active_lo] + ds_lo * lane_offset_d_[active_lo]));
+  }
+
+  t_left += lane_offset_val;
+  t_right += lane_offset_val;
 }
 
 auto CompiledPhysicsModel::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) const noexcept -> RoadPose {
@@ -792,6 +1346,83 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
       model.road_section_first_idx_.push_back(road_sec_first);
       model.road_section_count_.push_back(road_sec_count);
     }
+  }
+
+  // Global BVH construction
+  std::vector<double> road_max_t;
+  road_max_t.reserve(map.roads.size());
+
+  for (const auto& road : map.roads) {
+    double max_road_t = 0.0;
+    for (size_t sec_idx = 0; sec_idx < road.lanes.sections.size(); ++sec_idx) {
+      const auto& section = road.lanes.sections[sec_idx];
+      double sec_length = 0.0;
+      if (sec_idx + 1 < road.lanes.sections.size()) {
+        sec_length = road.lanes.sections[sec_idx + 1].s - section.s;
+      } else {
+        sec_length = road.length - section.s;
+      }
+
+      constexpr int kSecSamples = 10;
+      for (int i = 0; i <= kSecSamples; ++i) {
+        double s_local = (static_cast<double>(i) / kSecSamples) * sec_length;
+        double left_width = 0.0;
+        double right_width = 0.0;
+
+        for (const auto& lane : section.left) {
+          left_width += EvaluateAstLaneWidth(lane, s_local);
+        }
+        for (const auto& lane : section.right) {
+          right_width += EvaluateAstLaneWidth(lane, s_local);
+        }
+
+        // Evaluate road laneOffset
+        double lane_offset_val = 0.0;
+        if (!road.lanes.offsets.empty()) {
+          const ast::LaneOffset* active = road.lanes.offsets.data();
+          double s_road = section.s + s_local;
+          for (const auto& offset : road.lanes.offsets) {
+            if (s_road >= offset.s) {
+              active = &offset;
+            } else {
+              break;
+            }
+          }
+          double ds_offset = s_road - active->s;
+          lane_offset_val = active->a + (ds_offset * (active->b + (ds_offset * (active->c + (ds_offset * active->d)))));
+        }
+
+        max_road_t = std::max(max_road_t, left_width + std::abs(lane_offset_val));
+        max_road_t = std::max(max_road_t, right_width + std::abs(lane_offset_val));
+      }
+    }
+    constexpr double kRoadWidthSafetyBuffer = 0.1;
+    max_road_t += kRoadWidthSafetyBuffer;
+    road_max_t.push_back(max_road_t);
+  }
+
+  std::vector<BvhPrimitiveInfo> temp_primitives;
+  std::vector<Aabb> temp_aabbs;
+
+  auto num_roads = static_cast<uint32_t>(model.road_lengths_.size());
+  for (uint32_t road_idx = 0; road_idx < num_roads; ++road_idx) {
+    auto first_seg = model.road_ref_line_first_idx_[road_idx];
+    auto seg_count = model.road_ref_line_count_[road_idx];
+    double inflation = road_max_t[road_idx];
+    for (uint32_t i = 0; i < seg_count; ++i) {
+      uint32_t seg_idx = first_seg + i;
+      temp_primitives.push_back(BvhPrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
+      temp_aabbs.push_back(ComputeSegmentAabb(model.ref_line_, model.arc_curvature_, seg_idx, inflation));
+    }
+  }
+
+  if (!temp_primitives.empty()) {
+    std::vector<uint32_t> prim_indices(temp_primitives.size());
+    for (uint32_t i = 0; i < prim_indices.size(); ++i) {
+      prim_indices[i] = i;
+    }
+    BuildBvhRecursive(model.bvh_nodes_, model.bvh_primitives_, prim_indices, temp_primitives, temp_aabbs, 0,
+                      static_cast<uint32_t>(temp_primitives.size()));
   }
 
   return model;

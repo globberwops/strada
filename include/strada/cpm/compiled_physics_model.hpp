@@ -71,6 +71,21 @@ struct RoadCrossSectionSurfaceSoA {
   std::vector<uint32_t> t_offset_count;
 };
 
+struct BvhNode {
+  double min_x{};
+  double min_y{};
+  double max_x{};
+  double max_y{};
+  uint32_t left{};
+  uint32_t right{};
+};
+static_assert(sizeof(BvhNode) == 40, "BvhNode must be exactly 40 bytes");
+
+struct BvhPrimitiveInfo {
+  uint32_t road_idx{};
+  uint32_t segment_idx{};
+};
+
 class CompiledPhysicsModel {
  public:
   CompiledPhysicsModel() = default;
@@ -85,8 +100,8 @@ class CompiledPhysicsModel {
   // Hot-path queries: noexcept, take QueryContext&.
   auto RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept -> InertialPose;
   auto LaneToInertial(LanePose pose, QueryContext& ctx) const noexcept -> InertialPose;
-  auto InertialToRoad(InertialPosition position, QueryContext& ctx) const noexcept -> std::optional<RoadPose>;
-  auto InertialToLane(InertialPosition position, QueryContext& ctx) const noexcept -> std::optional<LanePose>;
+  auto InertialToRoad(InertialPose pose, QueryContext& ctx) const noexcept -> std::optional<RoadPose>;
+  auto InertialToLane(InertialPose pose, QueryContext& ctx) const noexcept -> std::optional<LanePose>;
   auto RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept -> std::optional<LanePose>;
   auto LaneToRoad(LanePose pose, QueryContext& ctx) const noexcept -> RoadPose;
 
@@ -106,6 +121,13 @@ class CompiledPhysicsModel {
   [[nodiscard]] auto OriginalLaneId(LaneId lane_id) const noexcept -> int;
 
   [[nodiscard]] auto LaneWidth(LaneId lane_id, double s_coord) const noexcept -> double;
+
+  // BVH inspection
+  [[nodiscard]] auto GetBvhNodes() const noexcept -> const std::vector<BvhNode>& { return bvh_nodes_; }
+  [[nodiscard]] auto GetBvhPrimitives() const noexcept -> const std::vector<BvhPrimitiveInfo>& {
+    return bvh_primitives_;
+  }
+  void ClearBvhNodes() noexcept { bvh_nodes_.clear(); }
 
  private:
   friend auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;
@@ -167,6 +189,12 @@ class CompiledPhysicsModel {
   std::vector<double> lane_offset_d_;
   std::vector<uint32_t> road_lane_offset_first_idx_;
   std::vector<uint32_t> road_lane_offset_count_;
+
+  // Global spatial index (Flat BVH)
+  std::vector<BvhNode> bvh_nodes_;
+  std::vector<BvhPrimitiveInfo> bvh_primitives_;
+
+  void GetRoadWidthLimits(uint32_t road_idx, double s_coord, double& t_left, double& t_right) const noexcept;
 };
 
 auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;
