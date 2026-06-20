@@ -1,5 +1,5 @@
 add_library(strada parser/parser.cpp cpm/compiled_physics_model.cpp
-                   cpm/geometry_math.cpp cpm/reference_line.cpp)
+                   cpm/geometry_math.cpp cpm/reference_line.cpp cpm/bvh.cpp)
 add_library(Strada::strada ALIAS strada)
 
 target_sources(
@@ -18,6 +18,7 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/ast/road.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/coordinate.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/geometry_math.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/bvh.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/ids.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/query_context.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/compiled_physics_model.hpp
