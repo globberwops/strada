@@ -911,3 +911,134 @@ TEST(CompiledPhysicsModelTest, RoundTripInertialRoadInertial) {
     EXPECT_NEAR(ip_snap.roll, ip.roll, 1e-9);
   }
 }
+
+TEST(CompiledPhysicsModelTest, CrossPoseQueries) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+
+  auto lane0 = strada::cpm::LaneId{0};  // Original ID: -1
+  auto lane1 = strada::cpm::LaneId{1};  // Original ID: 0 (center)
+  auto lane2 = strada::cpm::LaneId{2};  // Original ID: 1 (left)
+
+  strada::cpm::QueryContext ctx;
+
+  // Act & Assert 1: RoadToLane for left lane (lane2, original ID 1)
+  // At s = 10.0, laneOffset is 876.5.
+  // Left lane 2 starts from 0 to 4.0. Center of lane is at 2.0 (t = 878.5 in road frame).
+  // So road pose with t = 878.5, h = 0.05 (with height offset 0.05) should snap to lane2 with t = 0.0, h = 0.0
+  {
+    strada::cpm::RoadPose rp;
+    rp.s = 10.0;
+    rp.t = 878.5;
+    rp.h = 0.05;
+    rp.heading = 0.15;
+    rp.pitch = -0.2;
+    rp.roll = 0.3;
+    rp.road = strada::cpm::RoadId{0};
+
+    auto lp_opt = cpm_model.RoadToLane(rp, ctx);
+    ASSERT_TRUE(lp_opt.has_value());
+    auto lp = *lp_opt;
+    EXPECT_EQ(lp.lane, lane2);
+    EXPECT_NEAR(lp.s, 10.0, 1e-9);
+    EXPECT_NEAR(lp.t, 0.0, 1e-9);
+    EXPECT_NEAR(lp.h, 0.0, 1e-9);
+    EXPECT_NEAR(lp.heading, 0.15, 1e-9);
+    EXPECT_NEAR(lp.pitch, -0.2, 1e-9);
+    EXPECT_NEAR(lp.roll, 0.3, 1e-9);
+    EXPECT_EQ(lp.road, strada::cpm::RoadId{0});
+  }
+
+  // Act & Assert 2: RoadToLane for right lane (lane0, original ID -1)
+  // At s = 10.0, right lane spans from -5.0 to 0.0 (relative to offset).
+  // With laneOffset = 876.5, the lane spans from 871.5 to 876.5.
+  // Target center of lane is at -2.5 (t = 874.0 in road frame).
+  // If we query t = 873.0, it is at relative offset -3.5. Since center is at -2.5, t_lane = -1.0.
+  {
+    strada::cpm::RoadPose rp;
+    rp.s = 10.0;
+    rp.t = 873.0;
+    rp.h = 0.0;
+    rp.heading = -0.1;
+    rp.pitch = 0.25;
+    rp.roll = -0.3;
+    rp.road = strada::cpm::RoadId{0};
+
+    auto lp_opt = cpm_model.RoadToLane(rp, ctx);
+    ASSERT_TRUE(lp_opt.has_value());
+    auto lp = *lp_opt;
+    EXPECT_EQ(lp.lane, lane0);
+    EXPECT_NEAR(lp.s, 10.0, 1e-9);
+    EXPECT_NEAR(lp.t, -1.0, 1e-9);
+    EXPECT_NEAR(lp.h, 0.0, 1e-9);
+    EXPECT_NEAR(lp.heading, -0.1, 1e-9);
+    EXPECT_NEAR(lp.pitch, 0.25, 1e-9);
+    EXPECT_NEAR(lp.roll, -0.3, 1e-9);
+  }
+
+  // Act & Assert 3: RoadToLane for center lane/marking (t_relative = 0.0, i.e. road t = 876.5)
+  // Since center lane has width 0, it shouldn't contain any point
+  {
+    strada::cpm::RoadPose rp;
+    rp.s = 10.0;
+    rp.t = 876.5;
+    rp.h = 0.0;
+    rp.road = strada::cpm::RoadId{0};
+
+    auto lp_opt = cpm_model.RoadToLane(rp, ctx);
+    EXPECT_FALSE(lp_opt.has_value());
+  }
+
+  // Act & Assert 4: RoadToLane for a point way outside the road lanes (e.g. t = 900.0)
+  {
+    strada::cpm::RoadPose rp;
+    rp.s = 10.0;
+    rp.t = 900.0;
+    rp.h = 0.0;
+    rp.road = strada::cpm::RoadId{0};
+
+    auto lp_opt = cpm_model.RoadToLane(rp, ctx);
+    EXPECT_FALSE(lp_opt.has_value());
+  }
+}
+
+TEST(CompiledPhysicsModelTest, RoundTripLaneInertialLane) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "lanes_flat.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+
+  auto lane2 = strada::cpm::LaneId{2};  // Original ID: 1
+
+  strada::cpm::QueryContext ctx;
+
+  // Act & Assert: LaneToInertial -> InertialToLane round-trip
+  {
+    strada::cpm::LanePose lp_orig;
+    lp_orig.s = 10.0;
+    lp_orig.t = 0.5;
+    lp_orig.h = 0.1;
+    lp_orig.heading = 0.1;
+    lp_orig.pitch = -0.1;
+    lp_orig.roll = 0.2;
+    lp_orig.road = strada::cpm::RoadId{0};
+    lp_orig.lane = lane2;
+
+    auto ip = cpm_model.LaneToInertial(lp_orig, ctx);
+    auto lp_snap_opt = cpm_model.InertialToLane(ip, ctx);
+
+    ASSERT_TRUE(lp_snap_opt.has_value());
+    auto lp_snap = *lp_snap_opt;
+    EXPECT_EQ(lp_snap.lane, lp_orig.lane);
+    EXPECT_NEAR(lp_snap.s, lp_orig.s, 1e-9);
+    EXPECT_NEAR(lp_snap.t, lp_orig.t, 1e-9);
+    EXPECT_NEAR(lp_snap.h, lp_orig.h, 1e-9);
+    EXPECT_NEAR(lp_snap.heading, lp_orig.heading, 1e-9);
+    EXPECT_NEAR(lp_snap.pitch, lp_orig.pitch, 1e-9);
+    EXPECT_NEAR(lp_snap.roll, lp_orig.roll, 1e-9);
+  }
+}

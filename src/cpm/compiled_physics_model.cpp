@@ -696,33 +696,46 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
       }
     }
 
+    double elev = 0.0, natural_pitch = 0.0, natural_roll = 0.0;
+    EvaluateNaturalOrientationAndElev(polynomials_, road_elevation_first_idx_, road_elevation_count_,
+                                      road_superelevation_first_idx_, road_superelevation_count_, road_css_, road_idx,
+                                      best_s, elev, natural_pitch, natural_roll);
+
+    Matrix3x3 r_road = EulerToMatrix(best_rhdg, natural_pitch, natural_roll);
+
+    uint32_t best_seg_idx = first_seg;
+    for (uint32_t i = 0; i < seg_count; ++i) {
+      uint32_t cur_seg = first_seg + i;
+      if (best_s >= ref_line_.s_offset[cur_seg]) {
+        best_seg_idx = cur_seg;
+      } else {
+        break;
+      }
+    }
+    double rx = 0.0, ry = 0.0, r_hdg = 0.0;
+    EvaluateReferenceLine(ref_line_, arc_curvature_, best_seg_idx, best_s, rx, ry, r_hdg);
+
+    double dx = pose.x - rx;
+    double dy = pose.y - ry;
+    double dz = pose.z - elev;
+    double road_t = r_road[0][1] * dx + r_road[1][1] * dy + r_road[2][1] * dz;
+
     double t_left = 0.0;
     double t_right = 0.0;
     GetRoadWidthLimits(road_idx, best_s, t_left, t_right);
     constexpr double kSnappingTolerance = 5.0;
-    if (best_t >= t_right - kSnappingTolerance && best_t <= t_left + kSnappingTolerance) {
+
+    if (road_t >= t_right - kSnappingTolerance && road_t <= t_left + kSnappingTolerance) {
       RoadPose road_pose;
       road_pose.road = static_cast<RoadId>(road_idx);
       road_pose.s = best_s;
-      road_pose.t = best_t;
+      road_pose.t = road_t;
 
-      double elev = 0.0, natural_pitch = 0.0, natural_roll = 0.0;
-      EvaluateNaturalOrientationAndElev(polynomials_, road_elevation_first_idx_, road_elevation_count_,
-                                        road_superelevation_first_idx_, road_superelevation_count_, road_css_, road_idx,
-                                        best_s, elev, natural_pitch, natural_roll);
       double h_surf = 0.0;
-      EvaluateCrossSectionSurfaceOffset(polynomials_, strips_, road_css_, road_idx, best_s, best_t, h_surf);
+      EvaluateCrossSectionSurfaceOffset(polynomials_, strips_, road_css_, road_idx, best_s, road_t, h_surf);
 
-      Matrix3x3 r_road = EulerToMatrix(best_rhdg, natural_pitch, natural_roll);
-      double r22 = r_road[2][2];
-      double r21 = r_road[2][1];
-      double h_val = 0.0;
-      if (std::abs(r22) > 1e-6) {
-        h_val = (pose.z - elev - r21 * best_t) / r22 - h_surf;
-      } else {
-        h_val = pose.z - elev - h_surf;
-      }
-      road_pose.h = h_val;
+      double local_h = r_road[0][2] * dx + r_road[1][2] * dy + r_road[2][2] * dz;
+      road_pose.h = local_h - h_surf;
 
       Matrix3x3 r_inertial = EulerToMatrix(pose.heading, pose.pitch, pose.roll);
       Matrix3x3 r_road_t = TransposeMatrix(r_road);
@@ -842,10 +855,154 @@ auto CompiledPhysicsModel::InertialToLane(InertialPose pose, QueryContext& ctx) 
   return RoadToLane(*road_pose_opt, ctx);
 }
 
-auto CompiledPhysicsModel::RoadToLane(RoadPose /*pose*/, QueryContext& /*ctx*/) const noexcept
-    -> std::optional<LanePose> {
-  (void)road_lengths_;
-  return std::nullopt;
+auto CompiledPhysicsModel::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept -> std::optional<LanePose> {
+  auto road_idx = static_cast<uint32_t>(pose.road);
+  if (road_idx >= road_string_ids_.size()) {
+    return std::nullopt;
+  }
+
+  auto road_sec_first = road_section_first_idx_[road_idx];
+  auto road_sec_count = road_section_count_[road_idx];
+  if (road_sec_count == 0) {
+    return std::nullopt;
+  }
+
+  // Find the active lane section at pose.s
+  auto sec_idx = road_sec_first;
+  for (uint32_t i = 0; i < road_sec_count; ++i) {
+    auto cur_sec = road_sec_first + i;
+    if (pose.s >= section_s_[cur_sec]) {
+      sec_idx = cur_sec;
+    } else {
+      break;
+    }
+  }
+
+  auto first_lane_in_sec = section_first_lane_idx_[sec_idx];
+  auto lane_cnt_in_sec = section_lane_count_[sec_idx];
+
+  // Calculate road-level lane offset
+  double lane_offset_val = 0.0;
+  auto lo_first = road_lane_offset_first_idx_[road_idx];
+  auto lo_count = road_lane_offset_count_[road_idx];
+  if (lo_count > 0) {
+    auto active_lo = lo_first;
+    for (uint32_t i = 0; i < lo_count; ++i) {
+      auto cur_lo = lo_first + i;
+      if (pose.s >= lane_offset_s_start_[cur_lo]) {
+        active_lo = cur_lo;
+      } else {
+        break;
+      }
+    }
+    double ds_lo = pose.s - lane_offset_s_start_[active_lo];
+    lane_offset_val =
+        lane_offset_a_[active_lo] +
+        ds_lo * (lane_offset_b_[active_lo] + ds_lo * (lane_offset_c_[active_lo] + ds_lo * lane_offset_d_[active_lo]));
+  }
+
+  double t_relative = pose.t - lane_offset_val;
+
+  uint32_t matched_lane_idx = 0;
+  bool found = false;
+  double t_center = 0.0;
+  double w_target = 0.0;
+  int target_id = 0;
+
+  if (t_relative > 0.0) {
+    // Left lanes: IDs > 0, sorted ascending (e.g. 1, 2, 3...)
+    double t_inner = 0.0;
+    for (uint32_t i = 0; i < lane_cnt_in_sec; ++i) {
+      uint32_t lane_idx = first_lane_in_sec + i;
+      int lane_id = lane_original_id_[lane_idx];
+      if (lane_id <= 0) {
+        continue;
+      }
+      double w = LaneWidth(static_cast<LaneId>(lane_idx), pose.s);
+      double t_outer = t_inner + w;
+      if (w > 0.0 && t_relative >= t_inner && t_relative <= t_outer) {
+        matched_lane_idx = lane_idx;
+        t_center = t_inner + 0.5 * w;
+        w_target = w;
+        target_id = lane_id;
+        found = true;
+        break;
+      }
+      t_inner = t_outer;
+    }
+  } else if (t_relative < 0.0) {
+    // Right lanes: IDs < 0, sorted ascending (e.g. -3, -2, -1)
+    // Walk them in reverse order (from -1 down to -3) to go from inside to outside.
+    double t_inner = 0.0;
+    for (int i = static_cast<int>(lane_cnt_in_sec) - 1; i >= 0; --i) {
+      uint32_t lane_idx = first_lane_in_sec + static_cast<uint32_t>(i);
+      int lane_id = lane_original_id_[lane_idx];
+      if (lane_id >= 0) {
+        continue;
+      }
+      double w = LaneWidth(static_cast<LaneId>(lane_idx), pose.s);
+      double t_outer = t_inner - w;
+      if (w > 0.0 && t_relative <= t_inner && t_relative >= t_outer) {
+        matched_lane_idx = lane_idx;
+        t_center = t_inner - 0.5 * w;
+        w_target = w;
+        target_id = lane_id;
+        found = true;
+        break;
+      }
+      t_inner = t_outer;
+    }
+  }
+
+  if (!found) {
+    return std::nullopt;
+  }
+
+  // Evaluate lane height offset
+  double h_inner = 0.0;
+  double h_outer = 0.0;
+  uint32_t h_first = lane_first_height_idx_[matched_lane_idx];
+  uint32_t h_count = lane_height_count_[matched_lane_idx];
+  if (h_count > 0) {
+    uint32_t active_h = h_first;
+    for (uint32_t i = 0; i < h_count; ++i) {
+      uint32_t cur_h = h_first + i;
+      if (pose.s >= lane_height_s_start_[cur_h]) {
+        active_h = cur_h;
+      } else {
+        break;
+      }
+    }
+    h_inner = lane_height_inner_[active_h];
+    h_outer = lane_height_outer_[active_h];
+  }
+
+  double t_lane = t_relative - t_center;
+  double f = 0.0;
+  if (w_target > 0.0) {
+    if (target_id > 0) {
+      f = 0.5 + (t_lane / w_target);
+    } else if (target_id < 0) {
+      f = 0.5 - (t_lane / w_target);
+    }
+  }
+  f = std::clamp(f, 0.0, 1.0);
+  double h_offset = h_inner + f * (h_outer - h_inner);
+
+  LanePose lane_pose;
+  lane_pose.s = pose.s;
+  lane_pose.t = t_lane;
+  lane_pose.h = pose.h - h_offset;
+  lane_pose.heading = pose.heading;
+  lane_pose.pitch = pose.pitch;
+  lane_pose.roll = pose.roll;
+  lane_pose.road = pose.road;
+  lane_pose.lane = static_cast<LaneId>(matched_lane_idx);
+
+  // Update query context road cache
+  ctx.last_road = pose.road;
+
+  return lane_pose;
 }
 
 void CompiledPhysicsModel::GetRoadWidthLimits(uint32_t road_idx, double s_coord, double& t_left,
