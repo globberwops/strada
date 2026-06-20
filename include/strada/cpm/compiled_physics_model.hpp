@@ -4,7 +4,7 @@
 #include <optional>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/aligned_allocator.hpp>
-#include <strada/cpm/bvh.hpp>
+#include <strada/cpm/bounding_volume_hierarchy.hpp>
 #include <strada/cpm/coordinate.hpp>
 #include <strada/cpm/ids.hpp>
 #include <strada/cpm/query_context.hpp>
@@ -90,12 +90,16 @@ class CompiledPhysicsModel {
 
   [[nodiscard]] auto LaneWidth(LaneId lane_id, double s_coord) const noexcept -> double;
 
-  // BVH inspection
-  [[nodiscard]] auto GetBvhNodes() const noexcept -> const std::vector<BvhNode>& { return bvh_.Nodes(); }
-  [[nodiscard]] auto GetBvhPrimitives() const noexcept -> const std::vector<BvhPrimitiveInfo>& {
-    return bvh_.Primitives();
+  // Bounding volume hierarchy inspection
+  [[nodiscard]] auto GetBoundingVolumeHierarchyNodes() const noexcept
+      -> const std::vector<BoundingVolumeHierarchyNode>& {
+    return bounding_volume_hierarchy_.Nodes();
   }
-  void ClearBvhNodes() noexcept { bvh_.Clear(); }
+  [[nodiscard]] auto GetBoundingVolumeHierarchyPrimitives() const noexcept
+      -> const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& {
+    return bounding_volume_hierarchy_.Primitives();
+  }
+  auto ClearBoundingVolumeHierarchyNodes() noexcept -> void { bounding_volume_hierarchy_.Clear(); }
 
  private:
   friend auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;
@@ -160,8 +164,8 @@ class CompiledPhysicsModel {
   std::vector<uint32_t> road_shape_first_idx_;
   std::vector<uint32_t> road_shape_count_;
 
-  // Global spatial index (Flat BVH)
-  Bvh bvh_;
+  // Global spatial index (Flat Bounding Volume Hierarchy)
+  BoundingVolumeHierarchy bounding_volume_hierarchy_;
 
   void GetRoadWidthLimits(uint32_t road_idx, double s_coord, double& t_left, double& t_right) const noexcept;
 };

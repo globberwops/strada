@@ -505,20 +505,22 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     }
   }
 
-  // 2. Traversal stack-based BVH search
+  // 2. Traversal stack-based bounding volume hierarchy search
   std::optional<RoadPose> best_overall_pose;
 
-  bvh_.Query(pose.x, pose.y, [&](const BvhPrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {
-    auto candidate = snap_to_road(prim.road_idx);
-    if (candidate.has_value()) {
-      double abs_t = std::abs(candidate->t);
-      if (abs_t < current_min_dist) {
-        best_overall_pose = candidate;
-        return abs_t;
-      }
-    }
-    return std::nullopt;
-  });
+  bounding_volume_hierarchy_.Query(
+      pose.x, pose.y,
+      [&](const BoundingVolumeHierarchyPrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {
+        auto candidate = snap_to_road(prim.road_idx);
+        if (candidate.has_value()) {
+          double abs_t = std::abs(candidate->t);
+          if (abs_t < current_min_dist) {
+            best_overall_pose = candidate;
+            return abs_t;
+          }
+        }
+        return std::nullopt;
+      });
 
   if (best_overall_pose.has_value()) {
     ref_line_.FindSegmentIndex(best_overall_pose->road, best_overall_pose->s, ctx);
@@ -1114,7 +1116,7 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
     }
   }
 
-  // Global BVH construction
+  // Global bounding volume hierarchy construction
   std::vector<double> road_max_t;
   road_max_t.reserve(map.roads.size());
 
@@ -1167,7 +1169,7 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
     road_max_t.push_back(max_road_t);
   }
 
-  std::vector<BvhPrimitiveInfo> temp_primitives;
+  std::vector<BoundingVolumeHierarchyPrimitiveInfo> temp_primitives;
   std::vector<Aabb> temp_aabbs;
 
   auto num_roads = static_cast<uint32_t>(model.road_lengths_.size());
@@ -1176,7 +1178,7 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
     double inflation = road_max_t[road_idx];
     for (uint32_t i = 0; i < seg_count; ++i) {
       uint32_t seg_idx = first_seg + i;
-      temp_primitives.push_back(BvhPrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
+      temp_primitives.push_back(BoundingVolumeHierarchyPrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
       auto aabb = model.ref_line_.ComputeSegmentAabb(seg_idx, inflation);
       temp_aabbs.push_back(aabb);
     }
@@ -1187,7 +1189,7 @@ auto BuildCompiledPhysicsModel(const ast::AbstractSyntaxTree& map) -> CompiledPh
     for (uint32_t i = 0; i < prim_indices.size(); ++i) {
       prim_indices[i] = i;
     }
-    model.bvh_ = Bvh::Build(prim_indices, temp_primitives, temp_aabbs);
+    model.bounding_volume_hierarchy_ = BoundingVolumeHierarchy::Build(prim_indices, temp_primitives, temp_aabbs);
   }
 
   return model;

@@ -624,7 +624,7 @@ TEST(CompiledPhysicsModelTest, LaneTransforms) {
   }
 }
 
-TEST(CompiledPhysicsModelTest, BvhConstructionAndLayout) {
+TEST(CompiledPhysicsModelTest, BoundingVolumeHierarchyConstructionAndLayout) {
   // Arrange
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "geometry.xodr";
@@ -632,11 +632,12 @@ TEST(CompiledPhysicsModelTest, BvhConstructionAndLayout) {
 
   // Act
   auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
-  const auto& nodes = cpm_model.GetBvhNodes();
-  const auto& primitives = cpm_model.GetBvhPrimitives();
+  const auto& nodes = cpm_model.GetBoundingVolumeHierarchyNodes();
+  const auto& primitives = cpm_model.GetBoundingVolumeHierarchyPrimitives();
 
   // Assert
-  // Since geometry.xodr has 1 road with multiple plan-view geometry segments, we expect at least 1 BVH node
+  // Since geometry.xodr has 1 road with multiple plan-view geometry segments, we expect at least 1 bounding volume
+  // hierarchy node
   ASSERT_FALSE(nodes.empty());
   ASSERT_FALSE(primitives.empty());
 
@@ -645,7 +646,7 @@ TEST(CompiledPhysicsModelTest, BvhConstructionAndLayout) {
   EXPECT_LT(root.min_x, root.max_x);
   EXPECT_LT(root.min_y, root.max_y);
 
-  // Traverse the BVH and assert properties
+  // Traverse the bounding volume hierarchy and assert properties
   for (const auto& node : nodes) {
     bool is_leaf = (node.right & 0x80000000) != 0;
     if (is_leaf) {
@@ -794,7 +795,7 @@ TEST(CompiledPhysicsModelTest, OrientationStripping) {
   }
 }
 
-TEST(CompiledPhysicsModelTest, BvhQueryContextFastPath) {
+TEST(CompiledPhysicsModelTest, BoundingVolumeHierarchyQueryContextFastPath) {
   // Arrange
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "geometry.xodr";
@@ -818,8 +819,8 @@ TEST(CompiledPhysicsModelTest, BvhQueryContextFastPath) {
   EXPECT_TRUE(ctx.last_road.has_value());
   EXPECT_EQ(*ctx.last_road, road_id);
 
-  // 2. Clear BVH nodes in the model
-  cpm_model.ClearBvhNodes();
+  // 2. Clear bounding volume hierarchy nodes in the model
+  cpm_model.ClearBoundingVolumeHierarchyNodes();
 
   // 3. Warm query on a different point -> should still succeed via fast path because the cached road is used
   strada::cpm::InertialPose ip_second;
@@ -834,7 +835,7 @@ TEST(CompiledPhysicsModelTest, BvhQueryContextFastPath) {
   ASSERT_TRUE(rp_warm.has_value());
   EXPECT_NEAR(rp_warm->s, 6.0, 1e-6);
 
-  // 4. Cold query (empty context) on the same second point -> should fail because BVH is cleared
+  // 4. Cold query (empty context) on the same second point -> should fail because bounding volume hierarchy is cleared
   strada::cpm::QueryContext ctx_cold;
   auto rp_cold = cpm_model.InertialToRoad(ip_second, ctx_cold);
   EXPECT_FALSE(rp_cold.has_value());

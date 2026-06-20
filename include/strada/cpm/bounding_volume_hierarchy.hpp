@@ -1,16 +1,16 @@
 #pragma once
 
-#include <cstdint>
-#include <vector>
 #include <array>
-#include <optional>
+#include <cstdint>
 #include <limits>
+#include <optional>
 #include <strada/cpm/coordinate.hpp>
 #include <strada/cpm/reference_line.hpp>
+#include <vector>
 
 namespace strada::cpm {
 
-struct BvhNode {
+struct BoundingVolumeHierarchyNode {
   double min_x{};
   double min_y{};
   double max_x{};
@@ -18,20 +18,20 @@ struct BvhNode {
   uint32_t left{};
   uint32_t right{};
 };
-static_assert(sizeof(BvhNode) == 40, "BvhNode must be exactly 40 bytes");
+static_assert(sizeof(BoundingVolumeHierarchyNode) == 40, "BoundingVolumeHierarchyNode must be exactly 40 bytes");
 
-struct BvhPrimitiveInfo {
+struct BoundingVolumeHierarchyPrimitiveInfo {
   uint32_t road_idx{};
   uint32_t segment_idx{};
 };
 
-class Bvh {
+class BoundingVolumeHierarchy {
  public:
-  Bvh() = default;
+  BoundingVolumeHierarchy() = default;
 
   static auto Build(std::vector<uint32_t>& prim_indices,
-                    const std::vector<BvhPrimitiveInfo>& temp_primitives,
-                    const std::vector<Aabb>& temp_aabbs) -> Bvh;
+                    const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& temp_primitives,
+                    const std::vector<Aabb>& temp_aabbs) -> BoundingVolumeHierarchy;
 
   template <typename F>
   void Query(double px, double py, F&& callback) const noexcept {
@@ -71,9 +71,8 @@ class Bvh {
 
         double dist_left = DistancePointToAabb(px, py, nodes_[left_child].min_x, nodes_[left_child].min_y,
                                                nodes_[left_child].max_x, nodes_[left_child].max_y);
-        double dist_right =
-            DistancePointToAabb(px, py, nodes_[right_child].min_x, nodes_[right_child].min_y,
-                                nodes_[right_child].max_x, nodes_[right_child].max_y);
+        double dist_right = DistancePointToAabb(px, py, nodes_[right_child].min_x, nodes_[right_child].min_y,
+                                                nodes_[right_child].max_x, nodes_[right_child].max_y);
 
         if (dist_left < dist_right) {
           stack[stack_ptr++] = right_child;
@@ -86,15 +85,18 @@ class Bvh {
     }
   }
 
-  [[nodiscard]] auto Nodes() const noexcept -> const std::vector<BvhNode>& { return nodes_; }
-  [[nodiscard]] auto Primitives() const noexcept -> const std::vector<BvhPrimitiveInfo>& { return primitives_; }
+  [[nodiscard]] auto Nodes() const noexcept -> const std::vector<BoundingVolumeHierarchyNode>& { return nodes_; }
+  [[nodiscard]] auto Primitives() const noexcept -> const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& {
+    return primitives_;
+  }
   void Clear() noexcept { nodes_.clear(); }
 
  private:
-  std::vector<BvhNode> nodes_;
-  std::vector<BvhPrimitiveInfo> primitives_;
+  std::vector<BoundingVolumeHierarchyNode> nodes_;
+  std::vector<BoundingVolumeHierarchyPrimitiveInfo> primitives_;
 
-  static auto DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x, double max_y) noexcept -> double;
+  static auto DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x, double max_y) noexcept
+      -> double;
 };
 
-} // namespace strada::cpm
+}  // namespace strada::cpm

@@ -1,20 +1,20 @@
-#include <strada/cpm/bvh.hpp>
-#include <cmath>
 #include <algorithm>
-#include <limits>
 #include <array>
+#include <cmath>
+#include <limits>
+#include <strada/cpm/bounding_volume_hierarchy.hpp>
 
 namespace strada::cpm {
 
 namespace {
 
-struct BvhAabb {
+struct BoundingVolumeHierarchyAabb {
   double min_x{std::numeric_limits<double>::max()};
   double min_y{std::numeric_limits<double>::max()};
   double max_x{-std::numeric_limits<double>::max()};
   double max_y{-std::numeric_limits<double>::max()};
 
-  void Grow(const BvhAabb& other) noexcept {
+  void Grow(const BoundingVolumeHierarchyAabb& other) noexcept {
     min_x = std::min(min_x, other.min_x);
     min_y = std::min(min_y, other.min_y);
     max_x = std::max(max_x, other.max_x);
@@ -42,10 +42,12 @@ struct BvhAabb {
   }
 };
 
-auto MakeLeafNode(std::vector<BvhNode>& nodes, uint32_t node_idx, const BvhAabb& bounds,
-                  std::vector<BvhPrimitiveInfo>& final_primitives, const std::vector<uint32_t>& prim_indices,
-                  const std::vector<BvhPrimitiveInfo>& temp_primitives, uint32_t start_idx, uint32_t count) noexcept
-    -> uint32_t {
+auto MakeLeafNode(std::vector<BoundingVolumeHierarchyNode>& nodes, uint32_t node_idx,
+                  const BoundingVolumeHierarchyAabb& bounds,
+                  std::vector<BoundingVolumeHierarchyPrimitiveInfo>& final_primitives,
+                  const std::vector<uint32_t>& prim_indices,
+                  const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& temp_primitives, uint32_t start_idx,
+                  uint32_t count) noexcept -> uint32_t {
   auto prim_start = static_cast<uint32_t>(final_primitives.size());
   for (uint32_t idx = 0; idx < count; ++idx) {
     final_primitives.push_back(temp_primitives[prim_indices[start_idx + idx]]);
@@ -61,15 +63,17 @@ auto MakeLeafNode(std::vector<BvhNode>& nodes, uint32_t node_idx, const BvhAabb&
   return node_idx;
 }
 
-auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo>& final_primitives,
-                       std::vector<uint32_t>& prim_indices, const std::vector<BvhPrimitiveInfo>& temp_primitives,
-                       const std::vector<Aabb>& temp_aabbs, uint32_t start_idx, uint32_t end_idx) noexcept
-    -> uint32_t {
+auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchyNode>& nodes,
+                                           std::vector<BoundingVolumeHierarchyPrimitiveInfo>& final_primitives,
+                                           std::vector<uint32_t>& prim_indices,
+                                           const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& temp_primitives,
+                                           const std::vector<Aabb>& temp_aabbs, uint32_t start_idx,
+                                           uint32_t end_idx) noexcept -> uint32_t {
   auto node_idx = static_cast<uint32_t>(nodes.size());
-  nodes.push_back(BvhNode{});
+  nodes.push_back(BoundingVolumeHierarchyNode{});
 
-  BvhAabb bounds;
-  BvhAabb centroid_bounds;
+  BoundingVolumeHierarchyAabb bounds;
+  BoundingVolumeHierarchyAabb centroid_bounds;
   for (uint32_t idx = start_idx; idx < end_idx; ++idx) {
     uint32_t prim_idx = prim_indices[idx];
     bounds.Grow(temp_aabbs[prim_idx]);
@@ -99,7 +103,7 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
   constexpr int kNumBins = 16;
   struct Bin {
     uint32_t count{0};
-    BvhAabb bounds;
+    BoundingVolumeHierarchyAabb bounds;
   };
   std::array<Bin, kNumBins> bins{};
 
@@ -117,9 +121,9 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
   double min_split_cost = std::numeric_limits<double>::max();
   int best_split_bin = -1;
 
-  std::array<BvhAabb, kNumBins - 1> left_bounds{};
+  std::array<BoundingVolumeHierarchyAabb, kNumBins - 1> left_bounds{};
   std::array<uint32_t, kNumBins - 1> left_counts{};
-  BvhAabb left_accum;
+  BoundingVolumeHierarchyAabb left_accum;
   uint32_t left_cnt = 0;
   for (int idx = 0; idx < kNumBins - 1; ++idx) {
     left_accum.Grow(bins[idx].bounds);
@@ -128,9 +132,9 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
     left_counts[idx] = left_cnt;
   }
 
-  std::array<BvhAabb, kNumBins - 1> right_bounds{};
+  std::array<BoundingVolumeHierarchyAabb, kNumBins - 1> right_bounds{};
   std::array<uint32_t, kNumBins - 1> right_counts{};
-  BvhAabb right_accum;
+  BoundingVolumeHierarchyAabb right_accum;
   uint32_t right_cnt = 0;
   for (int idx = kNumBins - 1; idx > 0; --idx) {
     right_accum.Grow(bins[idx].bounds);
@@ -178,10 +182,10 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
     mid_idx = start_idx + (count / 2);
   }
 
-  uint32_t left_child =
-      BuildBvhRecursive(nodes, final_primitives, prim_indices, temp_primitives, temp_aabbs, start_idx, mid_idx);
-  uint32_t right_child =
-      BuildBvhRecursive(nodes, final_primitives, prim_indices, temp_primitives, temp_aabbs, mid_idx, end_idx);
+  uint32_t left_child = BuildBoundingVolumeHierarchyRecursive(nodes, final_primitives, prim_indices, temp_primitives,
+                                                              temp_aabbs, start_idx, mid_idx);
+  uint32_t right_child = BuildBoundingVolumeHierarchyRecursive(nodes, final_primitives, prim_indices, temp_primitives,
+                                                               temp_aabbs, mid_idx, end_idx);
 
   nodes[node_idx].min_x = bounds.min_x;
   nodes[node_idx].min_y = bounds.min_y;
@@ -193,25 +197,26 @@ auto BuildBvhRecursive(std::vector<BvhNode>& nodes, std::vector<BvhPrimitiveInfo
   return node_idx;
 }
 
-} // namespace
+}  // namespace
 
-auto Bvh::Build(std::vector<uint32_t>& prim_indices,
-                const std::vector<BvhPrimitiveInfo>& temp_primitives,
-                const std::vector<Aabb>& temp_aabbs) -> Bvh {
-  Bvh bvh;
+auto BoundingVolumeHierarchy::Build(std::vector<uint32_t>& prim_indices,
+                                    const std::vector<BoundingVolumeHierarchyPrimitiveInfo>& temp_primitives,
+                                    const std::vector<Aabb>& temp_aabbs) -> BoundingVolumeHierarchy {
+  BoundingVolumeHierarchy bounding_volume_hierarchy;
   if (temp_primitives.empty()) {
-    return bvh;
+    return bounding_volume_hierarchy;
   }
-  BuildBvhRecursive(bvh.nodes_, bvh.primitives_, prim_indices, temp_primitives, temp_aabbs, 0,
-                    static_cast<uint32_t>(temp_primitives.size()));
-  return bvh;
+  BuildBoundingVolumeHierarchyRecursive(bounding_volume_hierarchy.nodes_, bounding_volume_hierarchy.primitives_,
+                                        prim_indices, temp_primitives, temp_aabbs, 0,
+                                        static_cast<uint32_t>(temp_primitives.size()));
+  return bounding_volume_hierarchy;
 }
 
-auto Bvh::DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x, double max_y) noexcept
-    -> double {
+auto BoundingVolumeHierarchy::DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x,
+                                                  double max_y) noexcept -> double {
   double dx = std::max({0.0, min_x - px, px - max_x});
   double dy = std::max({0.0, min_y - py, py - max_y});
   return std::sqrt((dx * dx) + (dy * dy));
 }
 
-} // namespace strada::cpm
+}  // namespace strada::cpm
