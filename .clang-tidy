@@ -48,3 +48,5 @@ CheckOptions:
   readability-identifier-naming.ConstexprVariablePrefix: k
   readability-identifier-naming.TypeTemplateParameterCase: CamelCase
   readability-identifier-naming.ConceptCase: CamelCase
+  readability-identifier-length.IgnoredVariableNames: "^(s|t|h|x|y|z|u|v|i|j|k|a|b|c|d|f|r|pt|px|py|dx|dy|dz)$"
+  readability-identifier-length.IgnoredParameterNames: "^(s|t|h|x|y|z|u|v|i|j|k|a|b|c|d|f|r|pt|px|py|dx|dy|dz)$"
