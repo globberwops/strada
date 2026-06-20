@@ -1,6 +1,7 @@
 add_library(
   strada parser/parser.cpp cpm/compiled_physics_model.cpp cpm/geometry_math.cpp
-         cpm/reference_line.cpp cpm/bounding_volume_hierarchy.cpp)
+         cpm/reference_line.cpp cpm/bounding_volume_hierarchy.cpp
+         cpm/elevation_profile.cpp cpm/lane_network.cpp)
 add_library(Strada::strada ALIAS strada)
 
 target_sources(
@@ -23,6 +24,8 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/ids.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/query_context.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/compiled_physics_model.hpp
-         ${PROJECT_SOURCE_DIR}/include/strada/cpm/reference_line.hpp)
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/reference_line.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/elevation_profile.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/lane_network.hpp)
 
 target_link_libraries(strada PRIVATE pugixml)

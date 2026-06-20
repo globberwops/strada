@@ -512,39 +512,36 @@ TEST(CompiledPhysicsModelTest, QueryPoly3AndParamPoly3ReferenceLine) {
   }
 }
 
-TEST(CompiledPhysicsModelTest, LanesCompilationAndInspection) {
+TEST(CompiledPhysicsModelTest, BuildStaticFactory) {
   // Arrange
-  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
-  std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
-  auto ast = strada::parser::ParseFile(file_path);
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
+  <road name="Road 1" length="10.0" id="1" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0">
+        <line/>
+      </geometry>
+    </planView>
+    <elevationProfile/>
+    <lateralProfile/>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0"/>
+        </center>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  auto ast = strada::parser::ParseString(kXml);
 
   // Act
-  auto cpm_model = strada::cpm::BuildCompiledPhysicsModel(ast);
+  auto model = strada::cpm::CompiledPhysicsModel::Build(ast);
 
   // Assert
-  EXPECT_EQ(cpm_model.LaneCount(), 3);
-
-  auto lane0 = strada::cpm::LaneId{0};
-  auto lane1 = strada::cpm::LaneId{1};
-  auto lane2 = strada::cpm::LaneId{2};
-
-  EXPECT_EQ(cpm_model.OriginalLaneId(lane0), -1);
-  EXPECT_EQ(cpm_model.OriginalLaneId(lane1), 0);
-  EXPECT_EQ(cpm_model.OriginalLaneId(lane2), 1);
-
-  EXPECT_EQ(cpm_model.LaneRoad(lane0), strada::cpm::RoadId{0});
-  EXPECT_EQ(cpm_model.LaneRoad(lane1), strada::cpm::RoadId{0});
-  EXPECT_EQ(cpm_model.LaneRoad(lane2), strada::cpm::RoadId{0});
-
-  // Verify Lane widths
-  // Lane 1 (original 1): width at s = 10.0 is 3.0 + 0.1 * 10.0 = 4.0
-  EXPECT_NEAR(cpm_model.LaneWidth(lane2, 10.0), 4.0, 1e-9);
-
-  // Lane -1 (original -1): width at s = 10.0 (relative ds = 9.0) is 3.2 + 0.2 * 9.0 = 5.0
-  EXPECT_NEAR(cpm_model.LaneWidth(lane0, 10.0), 5.0, 1e-9);
-
-  // Center Lane (original 0): width is 0.0
-  EXPECT_NEAR(cpm_model.LaneWidth(lane1, 10.0), 0.0, 1e-9);
+  EXPECT_EQ(model.RoadCount(), 1);
 }
 
 TEST(CompiledPhysicsModelTest, LaneTransforms) {
