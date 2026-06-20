@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gdb \
     graphviz \
     lcov \
+    libxml2-utils \
     lldb \
     ninja-build \
     pkg-config \
