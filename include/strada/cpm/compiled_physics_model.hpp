@@ -12,10 +12,10 @@
 
 namespace strada::cpm {
 
-constexpr std::size_t K_ALIGNMENT_BYTES = 64;
+constexpr std::size_t kAlignmentBytes = 64;
 
 template <typename T>
-using AlignedVector = std::vector<T, AlignedAllocator<T, K_ALIGNMENT_BYTES>>;
+using AlignedVector = std::vector<T, AlignedAllocator<T, kAlignmentBytes>>;
 
 enum class GeometryType : uint8_t { kLine, kArc, kSpiral, kPoly3, kParamPoly3 };
 

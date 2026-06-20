@@ -40,20 +40,20 @@ inline auto EulerToMatrix(double heading, double pitch, double roll) noexcept ->
 inline auto MatrixToEuler(const Matrix3x3& rot_matrix) noexcept -> EulerAngles {
   EulerAngles euler;
   double sin_pitch = -rot_matrix[2][0];
-  constexpr double k_pi_div2 = 1.5707963267948966;
-  constexpr double k_clip_limit = 1.0;
-  constexpr double k_gimbal_lock_threshold = 0.9999999;
+  constexpr double kPiDiv2 = 1.5707963267948966;
+  constexpr double kClipLimit = 1.0;
+  constexpr double kGimbalLockThreshold = 0.9999999;
 
-  if (sin_pitch <= -k_clip_limit) {
-    euler.pitch = -k_pi_div2;
-  } else if (sin_pitch >= k_clip_limit) {
-    euler.pitch = k_pi_div2;
+  if (sin_pitch <= -kClipLimit) {
+    euler.pitch = -kPiDiv2;
+  } else if (sin_pitch >= kClipLimit) {
+    euler.pitch = kPiDiv2;
   } else {
     euler.pitch = std::asin(sin_pitch);
   }
 
   // Gimbal lock check
-  if (std::abs(rot_matrix[2][0]) >= k_gimbal_lock_threshold) {
+  if (std::abs(rot_matrix[2][0]) >= kGimbalLockThreshold) {
     euler.roll = 0.0;
     if (rot_matrix[2][0] > 0.0) {
       euler.heading = std::atan2(-rot_matrix[0][1], -rot_matrix[0][2]);

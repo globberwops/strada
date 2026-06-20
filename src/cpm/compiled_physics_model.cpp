@@ -10,9 +10,9 @@ namespace strada::cpm {
 
 namespace {
 
-constexpr double K_CURVATURE_THRESHOLD = 1e-12;
-constexpr double K_POLY_COEFF2 = 2.0;
-constexpr double K_POLY_COEFF3 = 3.0;
+constexpr double kCurvatureThreshold = 1e-12;
+constexpr double kPolyCoeff2 = 2.0;
+constexpr double kPolyCoeff3 = 3.0;
 
 constexpr double kGaussPoints[] = {-0.9061798459386640, -0.5384693101056831, 0.0, 0.5384693101056831,
                                    0.9061798459386640};
@@ -93,48 +93,48 @@ auto ConvertPoly3ToParamPoly3(double length, double a, double b, double c, doubl
   return param;
 }
 
-constexpr double FN[] = {0.49999988085884732562,   1.3511177791210715095,   1.3175407836168659241,
-                         1.1861149300293854992,    0.7709627298888346769,   0.4173874338787963957,
-                         0.19044202705272903923,   0.06655998896627697537,  0.022789258616785717418,
-                         0.0040116689358507943804, 0.0012192036851249883877};
+constexpr double kFn[] = {0.49999988085884732562,   1.3511177791210715095,   1.3175407836168659241,
+                          1.1861149300293854992,    0.7709627298888346769,   0.4173874338787963957,
+                          0.19044202705272903923,   0.06655998896627697537,  0.022789258616785717418,
+                          0.0040116689358507943804, 0.0012192036851249883877};
 
-constexpr double FD[] = {1.0,
-                         2.7022305772400260215,
-                         4.2059268151438492767,
-                         4.5221882840107715516,
-                         3.7240352281630359588,
-                         2.4589286254678152943,
-                         1.3125491629443702962,
-                         0.5997685720120932908,
-                         0.20907680750378849485,
-                         0.07159621634657901433,
-                         0.012602969513793714191,
-                         0.0038302423512931250065};
+constexpr double kFd[] = {1.0,
+                          2.7022305772400260215,
+                          4.2059268151438492767,
+                          4.5221882840107715516,
+                          3.7240352281630359588,
+                          2.4589286254678152943,
+                          1.3125491629443702962,
+                          0.5997685720120932908,
+                          0.20907680750378849485,
+                          0.07159621634657901433,
+                          0.012602969513793714191,
+                          0.0038302423512931250065};
 
-constexpr double GN[] = {0.50000014392706344801,    0.032346434925349128728,   0.17619325157863254363,
-                         0.038606273170706486252,   0.023693692309257725361,   0.007092018516845033662,
-                         0.0012492123212412087428,  0.00044023040894778468486, -8.80266827476172521e-6,
-                         -1.4033554916580018648e-8, 2.3509221782155474353e-10};
+constexpr double kGn[] = {0.50000014392706344801,    0.032346434925349128728,   0.17619325157863254363,
+                          0.038606273170706486252,   0.023693692309257725361,   0.007092018516845033662,
+                          0.0012492123212412087428,  0.00044023040894778468486, -8.80266827476172521e-6,
+                          -1.4033554916580018648e-8, 2.3509221782155474353e-10};
 
-constexpr double GD[] = {1.0,
-                         2.0646987497019598937,
-                         2.9109311766948031235,
-                         2.6561936751333032911,
-                         2.0195563983177268073,
-                         1.1167891129189363902,
-                         0.57267874755973172715,
-                         0.19408481169593070798,
-                         0.07634808341431248904,
-                         0.011573247407207865977,
-                         0.0044099273693067311209,
-                         -0.00009070958410429993314};
+constexpr double kGd[] = {1.0,
+                          2.0646987497019598937,
+                          2.9109311766948031235,
+                          2.6561936751333032911,
+                          2.0195563983177268073,
+                          1.1167891129189363902,
+                          0.57267874755973172715,
+                          0.19408481169593070798,
+                          0.07634808341431248904,
+                          0.011573247407207865977,
+                          0.0044099273693067311209,
+                          -0.00009070958410429993314};
 
-constexpr double K_PI = 3.14159265358979323846;
-constexpr double K_PI_2 = 1.57079632679489661923;
-constexpr double K_1_SQRT_PI = 0.56418958354775628695;
+constexpr double kPi = 3.14159265358979323846;
+constexpr double kPi2 = 1.57079632679489661923;
+constexpr double k1SqrtPi = 0.56418958354775628695;
 
 inline void FresnelCS(double y, double& c, double& s) noexcept {
-  constexpr double K_EPS = 1e-15;
+  constexpr double kEps = 1e-15;
   double x = y > 0.0 ? y : -y;
 
   if (x < 1.0) {
@@ -145,7 +145,7 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
     double sum;
     double term;
 
-    double s_val = K_PI_2 * (x * x);
+    double s_val = kPi2 * (x * x);
     double t_val = -s_val * s_val;
 
     twofn = 0.0;
@@ -160,7 +160,7 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
       numterm *= t_val;
       term = numterm / (fact * denterm);
       sum += term;
-    } while (std::abs(term) > K_EPS * std::abs(sum));
+    } while (std::abs(term) > kEps * std::abs(sum));
 
     c = x * sum;
 
@@ -176,28 +176,28 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
       numterm *= t_val;
       term = numterm / (fact * denterm);
       sum += term;
-    } while (std::abs(term) > K_EPS * std::abs(sum));
+    } while (std::abs(term) > kEps * std::abs(sum));
 
-    s = K_PI_2 * sum * (x * x * x);
+    s = kPi2 * sum * (x * x * x);
 
   } else if (x < 6.0) {
     double sumn = 0.0;
-    double sumd = FD[11];
+    double sumd = kFd[11];
     for (int k = 10; k >= 0; --k) {
-      sumn = FN[k] + x * sumn;
-      sumd = FD[k] + x * sumd;
+      sumn = kFn[k] + x * sumn;
+      sumd = kFd[k] + x * sumd;
     }
     double f_val = sumn / sumd;
 
     sumn = 0.0;
-    sumd = GD[11];
+    sumd = kGd[11];
     for (int k = 10; k >= 0; --k) {
-      sumn = GN[k] + x * sumn;
-      sumd = GD[k] + x * sumd;
+      sumn = kGn[k] + x * sumn;
+      sumd = kGd[k] + x * sumd;
     }
     double g_val = sumn / sumd;
 
-    double u_val = K_PI_2 * (x * x);
+    double u_val = kPi2 * (x * x);
     double sin_u = std::sin(u_val);
     double cos_u = std::cos(u_val);
     c = 0.5 + f_val * sin_u - g_val * cos_u;
@@ -205,14 +205,14 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
 
   } else {
     double absterm;
-    double s_val = K_PI * x * x;
+    double s_val = kPi * x * x;
     double t_val = -1.0 / (s_val * s_val);
 
     double numterm = -1.0;
     double term = 1.0;
     double sum = 1.0;
     double oldterm = 1.0;
-    double eps10 = 0.1 * K_EPS;
+    double eps10 = 0.1 * kEps;
 
     do {
       numterm += 4.0;
@@ -225,7 +225,7 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
       oldterm = absterm;
     } while (absterm > eps10 * std::abs(sum));
 
-    double f_val = sum / (K_PI * x);
+    double f_val = sum / (kPi * x);
 
     numterm = -1.0;
     term = 1.0;
@@ -243,10 +243,10 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
       oldterm = absterm;
     } while (absterm > eps10 * std::abs(sum));
 
-    double g_val = K_PI * x;
+    double g_val = kPi * x;
     g_val = sum / (g_val * g_val * x);
 
-    double u_val = K_PI_2 * (x * x);
+    double u_val = kPi2 * (x * x);
     double sin_u = std::sin(u_val);
     double cos_u = std::cos(u_val);
     c = 0.5 + f_val * sin_u - g_val * cos_u;
@@ -259,11 +259,11 @@ inline void FresnelCS(double y, double& c, double& s) noexcept {
   }
 }
 
-inline void evalXYaLarge(double a, double b, double& x_val, double& y_val) noexcept {
+inline void EvalXYaLarge(double a, double b, double& x_val, double& y_val) noexcept {
   double s = a > 0.0 ? 1.0 : -1.0;
   double absa = std::abs(a);
-  double z = K_1_SQRT_PI * std::sqrt(absa);
-  double ell = s * b * K_1_SQRT_PI / std::sqrt(absa);
+  double z = k1SqrtPi * std::sqrt(absa);
+  double ell = s * b * k1SqrtPi / std::sqrt(absa);
   double g = -0.5 * s * (b * b) / absa;
   double cg = std::cos(g) / z;
   double sg = std::sin(g) / z;
@@ -311,7 +311,7 @@ inline void EvaluateClothoidIntegrals(double param_a, double param_b, double& x_
     x_val = x0 - (0.5 * (param_a * y2));
     y_val = y0 + (0.5 * (param_a * x2));
   } else {
-    evalXYaLarge(param_a, param_b, x_val, y_val);
+    EvalXYaLarge(param_a, param_b, x_val, y_val);
   }
 }
 
@@ -435,7 +435,7 @@ void EvaluateReferenceLine(const ReferenceLineSoA& ref_line, const AlignedVector
     ref_y += ds_val * std::sin(ref_hdg);
   } else if (type == GeometryType::kArc) {
     double curvature = arc_curvature[type_idx];
-    if (std::abs(curvature) > K_CURVATURE_THRESHOLD) {
+    if (std::abs(curvature) > kCurvatureThreshold) {
       tangent_hdg += curvature * ds_val;
       ref_x += (1.0 / curvature) * (std::sin(tangent_hdg) - std::sin(ref_hdg));
       ref_y -= (1.0 / curvature) * (std::cos(tangent_hdg) - std::cos(ref_hdg));
@@ -479,8 +479,8 @@ void EvaluateReferenceLine(const ReferenceLineSoA& ref_line, const AlignedVector
     double u_p = a_u + (p_val * (b_u + (p_val * (c_u + (d_u * p_val)))));
     double v_p = a_v + (p_val * (b_v + (p_val * (c_v + (d_v * p_val)))));
 
-    double du_dp = b_u + (p_val * ((K_POLY_COEFF2 * c_u) + (K_POLY_COEFF3 * d_u * p_val)));
-    double dv_dp = b_v + (p_val * ((K_POLY_COEFF2 * c_v) + (K_POLY_COEFF3 * d_v * p_val)));
+    double du_dp = b_u + (p_val * ((kPolyCoeff2 * c_u) + (kPolyCoeff3 * d_u * p_val)));
+    double dv_dp = b_v + (p_val * ((kPolyCoeff2 * c_v) + (kPolyCoeff3 * d_v * p_val)));
 
     double cos_hdg = std::cos(ref_hdg);
     double sin_hdg = std::sin(ref_hdg);
@@ -514,8 +514,8 @@ void EvaluateNaturalOrientationAndElev(const PolynomialsSoA& polynomials,
       }
     }
     double ds_poly = s_coord - polynomials.s_start[active_idx];
-    d_elev = polynomials.b[active_idx] + (K_POLY_COEFF2 * polynomials.c[active_idx] * ds_poly) +
-             (K_POLY_COEFF3 * polynomials.d[active_idx] * ds_poly * ds_poly);
+    d_elev = polynomials.b[active_idx] + (kPolyCoeff2 * polynomials.c[active_idx] * ds_poly) +
+             (kPolyCoeff3 * polynomials.d[active_idx] * ds_poly * ds_poly);
   }
   natural_pitch = std::atan(d_elev);
 
