@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <numbers>
 
 namespace strada::cpm {
@@ -48,6 +49,7 @@ constexpr auto kGd = std::array{1.0,
 constexpr double kPi = std::numbers::pi;
 constexpr double kPi2 = 1.57079632679489661923;
 constexpr double k1SqrtPi = std::numbers::inv_sqrtpi;
+constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 
 constexpr auto kGaussPoints =
     std::array{-0.9061798459386640, -0.5384693101056831, 0.0, 0.5384693101056831, 0.9061798459386640};
@@ -84,12 +86,12 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
   double s = 0.0;
 
   if (x < 1.0) {
-    double twofn = NAN;
-    double fact = NAN;
-    double denterm = NAN;
-    double numterm = NAN;
-    double sum = NAN;
-    double term = NAN;
+    double twofn = kNaN;
+    double fact = kNaN;
+    double denterm = kNaN;
+    double numterm = kNaN;
+    double sum = kNaN;
+    double term = kNaN;
 
     double s_val = kPi2 * (x * x);
     double t_val = -s_val * s_val;
@@ -150,7 +152,7 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
     s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
 
   } else {
-    double absterm = NAN;
+    double absterm = kNaN;
     double s_val = kPi * x * x;
     double t_val = -1.0 / (s_val * s_val);
 
