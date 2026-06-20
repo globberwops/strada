@@ -357,19 +357,6 @@ auto EvaluateAstLaneWidth(const ast::Lane& lane, double s_local_to_section) noex
   return active->a + (active->b * ds) + (active->c * ds * ds) + (active->d * ds * ds * ds);
 }
 
-inline auto TransposeMatrix(const Matrix3x3& mat) noexcept -> Matrix3x3 {
-  Matrix3x3 res;
-  res[0][0] = mat[0][0];
-  res[0][1] = mat[1][0];
-  res[0][2] = mat[2][0];
-  res[1][0] = mat[0][1];
-  res[1][1] = mat[1][1];
-  res[1][2] = mat[2][1];
-  res[2][0] = mat[0][2];
-  res[2][1] = mat[1][2];
-  res[2][2] = mat[2][2];
-  return res;
-}
 
 inline auto DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x, double max_y) noexcept
     -> double {
@@ -571,25 +558,23 @@ auto EvaluateShapeTGradient(const ShapesSoA& shapes, uint32_t first_idx, uint32_
 
   // 5. Position composition
   double roll_total = natural_roll + std::atan(shape_grad);
-  Matrix3x3 r_road = EulerToMatrix(pt.heading, natural_pitch, roll_total);
+  auto r_road = Rotation::FromEuler(pt.heading, natural_pitch, roll_total);
 
   double local_t = pose.t;
   double local_h = pose.h + h_surf + h_shape;
 
-  double offset_x = (r_road[0][1] * local_t) + (r_road[0][2] * local_h);
-  double offset_y = (r_road[1][1] * local_t) + (r_road[1][2] * local_h);
-  double offset_z = (r_road[2][1] * local_t) + (r_road[2][2] * local_h);
+  auto offset = r_road.Transform(0.0, local_t, local_h);
 
   InertialPose inertial_pose;
-  inertial_pose.x = pt.x + offset_x;
-  inertial_pose.y = pt.y + offset_y;
-  inertial_pose.z = elev + offset_z;
+  inertial_pose.x = pt.x + offset[0];
+  inertial_pose.y = pt.y + offset[1];
+  inertial_pose.z = elev + offset[2];
 
   // Composed orientation composition
-  Matrix3x3 r_offset = EulerToMatrix(pose.heading, pose.pitch, pose.roll);
-  Matrix3x3 r_inertial = ComposeRotations(r_road, r_offset);
+  auto r_offset = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
+  auto r_inertial = r_road.Compose(r_offset);
 
-  EulerAngles euler_angles = MatrixToEuler(r_inertial);
+  auto euler_angles = r_inertial.ToEuler();
   inertial_pose.heading = euler_angles.heading;
   inertial_pose.pitch = euler_angles.pitch;
   inertial_pose.roll = euler_angles.roll;
@@ -646,16 +631,16 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     double dz = pose.z - elev;
 
     // Base roll calculation
-    Matrix3x3 r_road_base = EulerToMatrix(best_rhdg, natural_pitch, natural_roll);
-    double road_t_base = (r_road_base[0][1] * dx) + (r_road_base[1][1] * dy) + (r_road_base[2][1] * dz);
+    auto r_road_base = Rotation::FromEuler(best_rhdg, natural_pitch, natural_roll);
+    double road_t_base = r_road_base.InverseTransform(dx, dy, dz)[1];
 
     // Shape evaluation and roll correction
     double shape_grad = EvaluateShapeTGradient(shapes_, road_shape_first_idx_[road_idx], road_shape_count_[road_idx],
                                                best_s, road_t_base);
     double roll_total = natural_roll + std::atan(shape_grad);
 
-    Matrix3x3 r_road = EulerToMatrix(best_rhdg, natural_pitch, roll_total);
-    double road_t = (r_road[0][1] * dx) + (r_road[1][1] * dy) + (r_road[2][1] * dz);
+    auto r_road = Rotation::FromEuler(best_rhdg, natural_pitch, roll_total);
+    double road_t = r_road.InverseTransform(dx, dy, dz)[1];
 
     double t_left = 0.0;
     double t_right = 0.0;
@@ -674,13 +659,12 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
       double h_shape =
           EvaluateShapeHeight(shapes_, road_shape_first_idx_[road_idx], road_shape_count_[road_idx], best_s, road_t);
 
-      double local_h = (r_road[0][2] * dx) + (r_road[1][2] * dy) + (r_road[2][2] * dz);
+      double local_h = r_road.InverseTransform(dx, dy, dz)[2];
       road_pose.h = local_h - h_surf - h_shape;
 
-      Matrix3x3 r_inertial = EulerToMatrix(pose.heading, pose.pitch, pose.roll);
-      Matrix3x3 r_road_t = TransposeMatrix(r_road);
-      Matrix3x3 r_offset = ComposeRotations(r_road_t, r_inertial);
-      EulerAngles offset_angles = MatrixToEuler(r_offset);
+      auto r_inertial = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
+      auto r_offset = r_road.Inverse().Compose(r_inertial);
+      auto offset_angles = r_offset.ToEuler();
       road_pose.heading = offset_angles.heading;
       road_pose.pitch = offset_angles.pitch;
       road_pose.roll = offset_angles.roll;
