@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 #pragma once
 
 #include <cstdint>
@@ -10,19 +13,24 @@
 
 namespace strada::ast {
 
-enum class TrafficRule : std::uint8_t { kRht, kLht };
+/// Traffic rule of the road (Right Hand Traffic or Left Hand Traffic).
+enum class TrafficRule : std::uint8_t {
+  kRht = 0,  ///< Right-hand traffic.
+  kLht       ///< Left-hand traffic.
+};
 
+/// Represents an individual road inside the map network.
 struct Road {
-  std::string id;
-  double length{};
-  std::string junction = "-1";
-  TrafficRule rule = TrafficRule::kRht;
-  std::string name;
-  std::vector<GeometryRecord> plan_view;
-  ElevationProfile elevation_profile;
-  LateralProfile lateral_profile;
-  Lanes lanes;
-  Extensions extensions;
+  std::string id;                         ///< Unique ID of the road.
+  double length{};                        ///< Total length of the road reference line.
+  std::string junction{"-1"};             ///< ID of the junction this road belongs to (-1 for none).
+  TrafficRule rule{TrafficRule::kRht};    ///< Traffic rule (RHT/LHT).
+  std::string name;                       ///< Optional human-readable name of the road.
+  std::vector<GeometryRecord> plan_view;  ///< The plan-view geometry segments of the reference line.
+  ElevationProfile elevation_profile;     ///< Vertical elevation profile.
+  LateralProfile lateral_profile;         ///< Superelevation and lateral shapes.
+  Lanes lanes;                            ///< Lanes structure (width, offset, section groups).
+  Extensions extensions;                  ///< Non-schema and custom user data extensions.
 };
 
 }  // namespace strada::ast
