@@ -3,8 +3,8 @@
 #include <limits>
 #include <strada/cpm/aligned_allocator.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
+#include <strada/cpm/geometry_math.hpp>
 
-#include "geometry_math.hpp"
 #include "rotation.hpp"
 
 namespace strada::cpm {

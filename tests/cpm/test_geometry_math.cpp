@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-
-#include "../../src/cpm/geometry_math.hpp"
+#include <strada/cpm/geometry_math.hpp>
 
 namespace strada::cpm {
 

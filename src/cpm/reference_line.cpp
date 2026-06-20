@@ -1,9 +1,9 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numbers>
+#include <strada/cpm/geometry_math.hpp>
 #include <strada/cpm/reference_line.hpp>
-
-#include "geometry_math.hpp"
 
 namespace strada::cpm {
 
@@ -195,7 +195,8 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
     double ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
     double s_local = std::clamp(ds, 0.0, seg_length);
     return s_start + s_local;
-  } else if (type == GeometryType::kArc) {
+  }
+  if (type == GeometryType::kArc) {
     double dx = px - x_[seg_idx];
     double dy = py - y_[seg_idx];
     double hdg = hdg_[seg_idx];
@@ -213,7 +214,7 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
       double angle_query = std::atan2(qdy, qdx);
       double angle_start = std::atan2(y_[seg_idx] - center_y, x_[seg_idx] - center_x);
       double delta_angle = angle_query - angle_start;
-      constexpr double kTwoPi = 2.0 * 3.14159265358979323846;
+      constexpr double kTwoPi = 2.0 * std::numbers::pi;
       if (curvature > 0.0) {
         while (delta_angle < 0.0) {
           delta_angle += kTwoPi;
@@ -267,7 +268,7 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
     }
   }
 
-  return s_start + 0.5 * (left_s + right_s);
+  return s_start + (0.5 * (left_s + right_s));
 }
 
 auto ReferenceLine::FindSegmentIndex(RoadId road, double s_coord, QueryContext& ctx) const noexcept -> uint32_t {

@@ -1,10 +1,9 @@
-#include "geometry_math.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <strada/cpm/geometry_math.hpp>
 
 namespace strada::cpm {
 

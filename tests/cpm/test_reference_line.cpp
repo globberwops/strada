@@ -48,8 +48,8 @@ TEST(ReferenceLineTest, CompileAndEvaluateSimpleLine) {
   EXPECT_NEAR(pt_start.heading, 0.5, 1e-9);
 
   auto pt_mid = ref_line.Evaluate(0, 25.0);
-  double expected_x = 10.0 + 25.0 * std::cos(0.5);
-  double expected_y = 20.0 + 25.0 * std::sin(0.5);
+  double expected_x = 10.0 + (25.0 * std::cos(0.5));
+  double expected_y = 20.0 + (25.0 * std::sin(0.5));
   EXPECT_NEAR(pt_mid.x, expected_x, 1e-9);
   EXPECT_NEAR(pt_mid.y, expected_y, 1e-9);
   EXPECT_NEAR(pt_mid.heading, 0.5, 1e-9);
@@ -105,11 +105,11 @@ TEST(ReferenceLineTest, CompileAndProjectLineAndArc) {
   // the closest point on the reference line must be exactly s = 25.0.
   double ds = 5.0;
   double theta = 0.1 * ds;
-  double rx = 20.0 + 10.0 * std::sin(theta);
-  double ry = 10.0 - 10.0 * std::cos(theta);
+  double rx = 20.0 + (10.0 * std::sin(theta));
+  double ry = 10.0 - (10.0 * std::cos(theta));
 
-  double qx = rx + 2.0 * std::sin(theta);
-  double qy = ry - 2.0 * std::cos(theta);
+  double qx = rx + (2.0 * std::sin(theta));
+  double qy = ry - (2.0 * std::cos(theta));
 
   double s_proj_arc_offset = ref_line.Project(1, qx, qy);
   EXPECT_NEAR(s_proj_arc_offset, 25.0, 1e-6);

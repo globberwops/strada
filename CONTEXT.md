@@ -75,6 +75,7 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
   * **Geometry Compilation**: Pre-converts deprecated `<poly3>` cubic curves into `<paramPoly3>` or piecewise arc-line segments during compilation to ensure O(1) constant-time evaluation.
   * **Fast Spiral Math**: Approximates Fresnel integrals using fast rational functions to keep spiral (clothoid) calculations branch-free and vectorized.
   * **Bivariate Shape Cache**: Optimizes road shape evaluation using contiguous shape-station lookup tables, bypassing it entirely for roads that only use standard superelevation.
+* **Geometry Math Utilities**: A collection of public mathematical primitives in `strada::cpm` (such as Fresnel integrals, clothoid offsets, and cubic-to-parametric polynomial parameterizations) exposed to support downstream modules and custom physics controllers.
 * **Routing Graph**: A directed topological graph mapping lane-to-lane connections (predecessor/successor links and junction paths) for navigation.
 * **Tessellator**: A geometry generator that samples mathematical curves to construct 3D polylines and meshes (vertex/index buffers) for visualization.
 * **Layer**: A downstream representation of the OpenDRIVE map (CPM, Routing Graph, Tessellator, …) built from the AST through a `Build*` factory. Each layer is independent and self-sufficient; it does **not** hold pointers or references into the AST.

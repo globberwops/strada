@@ -47,8 +47,8 @@ class ReferenceLine {
   ~ReferenceLine() = default;
 
   // Core math behaviors
-  auto Evaluate(uint32_t seg_idx, double global_s) const noexcept -> ReferenceLinePoint;
-  auto Project(uint32_t seg_idx, double px, double py) const noexcept -> double;  // Returns global_s
+  [[nodiscard]] auto Evaluate(uint32_t seg_idx, double global_s) const noexcept -> ReferenceLinePoint;
+  [[nodiscard]] auto Project(uint32_t seg_idx, double px, double py) const noexcept -> double;  // Returns global_s
   auto FindSegmentIndex(RoadId road, double s_coord, QueryContext& ctx) const noexcept -> uint32_t;
 
   // Structural/Index queries
