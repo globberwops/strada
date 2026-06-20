@@ -1,4 +1,4 @@
-add_library(strada parser/parser.cpp cpm/compiled_physics_model.cpp)
+add_library(strada parser/parser.cpp cpm/compiled_physics_model.cpp cpm/geometry_math.cpp)
 add_library(Strada::strada ALIAS strada)
 
 target_sources(
