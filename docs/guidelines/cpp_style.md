@@ -359,3 +359,33 @@ auto UrlFrobber::IsCached(std::string_view url) const -> bool {
 
 }  // namespace my_project::my_component
 ```
+
+---
+
+## 8. C++ Core Guidelines Integration
+
+Strada integrates the C++ Core Guidelines to promote safety, type correctness, and modern resource management. Where conflicts arise between the Core Guidelines and Strada overrides, the **Strada overrides always take precedence**.
+
+### 8.1 Resource Management & Memory Safety
+- **No Raw `new` or `delete` (CG R.11):** Avoid raw allocation operators. Use `std::make_unique` for allocating single objects on the heap.
+- **Raw Pointers are Non-Owning (CG R.3):** A raw pointer (`T*`) must always represent a non-owning, nullable view. Never call `delete` on a raw pointer.
+- **Smart Pointers for Ownership (CG R.20):** Use `std::unique_ptr` for exclusive ownership, and `std::shared_ptr` only when ownership is shared.
+- **No GSL Dependency:** Strada does not import the Guideline Support Library (`gsl`). Use standard library types (e.g. `std::span`, standard pointers, and references) instead of GSL vocabulary types like `gsl::owner`, `gsl::not_null`, or `gsl::string_span`.
+
+### 8.2 Const Correctness & State
+- **Const by Default (CG Con.1, Con.2, Con.3):** Declare all variables, parameters, and return types `const` or `constexpr` by default unless they must be mutable.
+- **Const Member Functions (CG M.2):** Mark member functions `const` if they do not modify the logical state of the object.
+- **No `const_cast` (CG ES.50):** Avoid `const_cast` to modify variables. If a variable must change state, it should not be `const`.
+
+### 8.3 Class Design & Invariants
+- **Use Class for Invariants (CG C.2):** Define a `class` if the object maintains state invariants (rules governing member combinations). Members must be private.
+- **Use Struct for Passive Data (CG C.2):** Define a `struct` if the object is a passive record of data with no invariants. Members must be public.
+- **Single-Argument Constructors (CG C.46):** Mark all single-argument constructors as `explicit` to prevent implicit type conversions.
+
+### 8.4 Strada Overrides vs. Core Guidelines Reference Table
+
+| Core Guideline | CG Recommendation | Strada Enforcement | Rationale |
+| :--- | :--- | :--- | :--- |
+| **Error Handling (CG E.2)** | Throw exceptions for all failures | Exceptions **only in non-hot paths**. Hot-paths return `std::optional` or boolean status | Performance optimization to avoid stack unwinding tables on CPU-intensive queries |
+| **Type Initialization (CG ES.23)** | Use `{}` for all unified initialization | Primitive types use `{}` initialization. STL/class types use default constructor (`std::string s;` without `{}`) | Prevents `readability-redundant-member-init` warnings from `clang-tidy` |
+| **Function Return Syntax (CG F.21)** | Traditional leading return types (`int f();`) | Trailing return types unconditionally for all non-void functions (`auto f() -> int;`) | Enhanced readability, uniformity, and simplified template signatures |
