@@ -24,6 +24,6 @@ add_executable(
   tess/test_tessellator.cpp)
 target_compile_definitions(
   test_tess PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
-target_link_libraries(test_tess PRIVATE Strada::strada Strada::tess GTest::gtest_main)
+target_link_libraries(test_tess PRIVATE Strada::strada GTest::gtest_main)
 gtest_discover_tests(test_tess)
 
