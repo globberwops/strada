@@ -432,7 +432,64 @@ Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error)
               Vertex{.x = static_cast<float>(ip.x), .y = static_cast<float>(ip.y), .z = static_cast<float>(ip.z)});
         }
       } else {
-        // Slice 2: Joint boundaries will be implemented in the next ticket.
+        double s = (segment.contact_point == ast::ContactPoint::kStart) ? 0.0 : road.length;
+
+        // Find active lane section at s
+        size_t s_idx = 0;
+        for (size_t idx = 0; idx < road.lanes.sections.size(); ++idx) {
+          if (s >= road.lanes.sections[idx].s) {
+            s_idx = idx;
+          } else {
+            break;
+          }
+        }
+        const auto& section = road.lanes.sections[s_idx];
+
+        int max_left_id = 0;
+        int min_right_id = 0;
+        for (const auto& l : section.left) {
+          max_left_id = std::max(max_left_id, l.id);
+        }
+        for (const auto& l : section.right) {
+          min_right_id = std::min(min_right_id, l.id);
+        }
+
+        int L_start = segment.joint_lane_start.value_or(min_right_id);
+        int L_end = segment.joint_lane_end.value_or(max_left_id);
+
+        auto get_outer_t = [&](int lane_id_val) -> double {
+          if (lane_id_val == 0) {
+            return 0.0;
+          }
+          auto l_id = get_lane_id(road_id, s_idx, lane_id_val);
+          double w = model.LaneWidth(l_id, s);
+          cpm::LanePose lp = {.s = s,
+                              .t = (lane_id_val > 0) ? (0.5 * w) : (-0.5 * w),
+                              .h = 0.0,
+                              .heading = 0.0,
+                              .pitch = 0.0,
+                              .roll = 0.0,
+                              .road = road_id,
+                              .lane = l_id};
+          cpm::RoadPose rp = model.LaneToRoad(lp, ctx);
+          return rp.t;
+        };
+
+        double t_start = get_outer_t(L_start);
+        double t_end = get_outer_t(L_end);
+
+        double t_diff = std::abs(t_end - t_start);
+        double dt = std::clamp(chord_error * 5.0, 0.5, 2.0);
+        size_t num_steps = static_cast<size_t>(std::ceil(t_diff / dt));
+        num_steps = std::max<size_t>(num_steps, 2);
+
+        for (size_t k = 0; k <= num_steps; ++k) {
+          double t = t_start + (static_cast<double>(k) * (t_end - t_start) / num_steps);
+          cpm::RoadPose rp = {.s = s, .t = t, .h = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0, .road = road_id};
+          cpm::InertialPose ip = model.RoadToInertial(rp, ctx);
+          loop_vertices.push_back(
+              Vertex{.x = static_cast<float>(ip.x), .y = static_cast<float>(ip.y), .z = static_cast<float>(ip.z)});
+        }
       }
     }
 

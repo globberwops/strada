@@ -297,6 +297,52 @@ TEST(ParserTest, ParseJunctionBoundary) {
   EXPECT_DOUBLE_EQ(seg1.s_end, 40.0);
 }
 
+TEST(ParserTest, ParseJunctionJointBoundary) {
+  // Arrange
+  const std::string xml = R"(<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Joint Boundary Test Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
+    <road id="1" length="10.0" junction="-1">
+        <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line /></geometry></planView>
+        <lanes><laneSection s="0.0"><center><lane id="0" type="border" level="false"/></center></laneSection></lanes>
+    </road>
+    <junction id="1" name="Main Junction" type="default">
+        <boundary>
+            <segment type="joint" roadId="1" contactPoint="end" jointLaneStart="-1" jointLaneEnd="-2" transitionLength="1.5"/>
+            <segment type="joint" roadId="1" contactPoint="start"/>
+        </boundary>
+    </junction>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(xml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.junctions.size(), 1);
+  const auto& junction = ast_tree.junctions[0];
+  ASSERT_TRUE(junction.boundary.has_value());
+  const auto& boundary = *junction.boundary;
+  ASSERT_EQ(boundary.segments.size(), 2);
+
+  const auto& seg0 = boundary.segments[0];
+  EXPECT_EQ(seg0.type, strada::ast::JunctionSegmentType::kJoint);
+  EXPECT_EQ(seg0.road_id, "1");
+  EXPECT_EQ(seg0.contact_point, strada::ast::ContactPoint::kEnd);
+  ASSERT_TRUE(seg0.joint_lane_start.has_value());
+  EXPECT_EQ(*seg0.joint_lane_start, -1);
+  ASSERT_TRUE(seg0.joint_lane_end.has_value());
+  EXPECT_EQ(*seg0.joint_lane_end, -2);
+  EXPECT_DOUBLE_EQ(seg0.transition_length, 1.5);
+
+  const auto& seg1 = boundary.segments[1];
+  EXPECT_EQ(seg1.type, strada::ast::JunctionSegmentType::kJoint);
+  EXPECT_EQ(seg1.road_id, "1");
+  EXPECT_EQ(seg1.contact_point, strada::ast::ContactPoint::kStart);
+  EXPECT_FALSE(seg1.joint_lane_start.has_value());
+  EXPECT_FALSE(seg1.joint_lane_end.has_value());
+  EXPECT_DOUBLE_EQ(seg1.transition_length, 0.0);
+}
+
 TEST(ParserTest, ParseExtensions) {
   // Arrange
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;

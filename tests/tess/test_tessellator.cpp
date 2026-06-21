@@ -260,4 +260,95 @@ TEST(TessellatorTest, JunctionBoundaryTessellation) {
   ASSERT_FALSE(b.indices.empty());
 }
 
+TEST(TessellatorTest, JunctionJointBoundaryTessellation) {
+  // Arrange: programmatically construct an AST with a road and a junction boundary containing joint segments
+  ast::AbstractSyntaxTree map;
+
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  ast::GeometryRecord geom;
+  geom.s = 0.0;
+  geom.length = 10.0;
+  geom.x = 0.0;
+  geom.y = 0.0;
+  geom.hdg = 0.0;
+  geom.shape = ast::Line{};
+  road.plan_view.push_back(geom);
+
+  ast::LaneSection section;
+  section.s = 0.0;
+
+  ast::Lane lane0;
+  lane0.id = 0;
+  lane0.type = "border";
+  section.center.push_back(lane0);
+
+  ast::Lane lane_r1;
+  lane_r1.id = -1;
+  lane_r1.type = "driving";
+  ast::LaneWidth w_r1;
+  w_r1.s_offset = 0.0;
+  w_r1.a = 3.0;
+  lane_r1.widths.push_back(w_r1);
+  section.right.push_back(lane_r1);
+
+  ast::Lane lane_r2;
+  lane_r2.id = -2;
+  lane_r2.type = "driving";
+  ast::LaneWidth w_r2;
+  w_r2.s_offset = 0.0;
+  w_r2.a = 4.0;
+  lane_r2.widths.push_back(w_r2);
+  section.right.push_back(lane_r2);
+
+  ast::Lane lane_l1;
+  lane_l1.id = 1;
+  lane_l1.type = "driving";
+  ast::LaneWidth w_l1;
+  w_l1.s_offset = 0.0;
+  w_l1.a = 3.0;
+  lane_l1.widths.push_back(w_l1);
+  section.left.push_back(lane_l1);
+
+  road.lanes.sections.push_back(section);
+  map.roads.push_back(road);
+
+  ast::Junction junction;
+  junction.id = "100";
+
+  ast::JunctionBoundary boundary;
+
+  // segment 0: type="joint" roadId="1" contactPoint="end" jointLaneStart="-1" jointLaneEnd="-2"
+  ast::JunctionBoundarySegment seg0;
+  seg0.type = ast::JunctionSegmentType::kJoint;
+  seg0.road_id = "1";
+  seg0.contact_point = ast::ContactPoint::kEnd;
+  seg0.joint_lane_start = -1;
+  seg0.joint_lane_end = -2;
+  boundary.segments.push_back(seg0);
+
+  // segment 1: type="joint" roadId="1" contactPoint="start" (fallback to entire road width)
+  ast::JunctionBoundarySegment seg1;
+  seg1.type = ast::JunctionSegmentType::kJoint;
+  seg1.road_id = "1";
+  seg1.contact_point = ast::ContactPoint::kStart;
+  boundary.segments.push_back(seg1);
+
+  junction.boundary = boundary;
+  map.junctions.push_back(junction);
+
+  // Act
+  Tessellator tess(map, 0.5);
+
+  // Assert
+  const auto& boundaries = tess.JunctionBoundaries();
+  ASSERT_EQ(boundaries.size(), 1);
+  const auto& b = boundaries[0];
+  EXPECT_EQ(b.junction_id, "100");
+  EXPECT_FALSE(b.vertices.empty());
+  EXPECT_FALSE(b.indices.empty());
+}
+
 }  // namespace strada::tess
