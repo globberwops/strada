@@ -1,5 +1,6 @@
 .cache/
 .devcontainer/devcontainer-lock.json
+.scratch
 build-*/
 build/
 docs/opendrive

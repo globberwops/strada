@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: BSL-1.0
 
-#include <strada/vis/viewport_widget.hpp>
-
 #include <QKeyEvent>
 #include <QMatrix4x4>
 #include <QMouseEvent>
@@ -10,6 +8,7 @@
 #include <QWheelEvent>
 #include <algorithm>
 #include <limits>
+#include <strada/vis/viewport_widget.hpp>
 
 namespace strada::vis {
 
@@ -275,15 +274,16 @@ void ViewportWidget::paintGL() {
       painter.restore();
     }
 
-    // 6. Draw Geographical Scale Bar in the bottom-left corner
+    // 6. Draw Geographical Scale Bar in the bottom-right corner
     {
       double scale_length = CalculateScaleLength(camera_.zoom);
       double S = scale_length * camera_.zoom;  // Width on screen
 
       int num_segments = 4;
       double seg_w = S / num_segments;
+      double x0 = width() - 20.0 - S;
       for (int i = 0; i < num_segments; ++i) {
-        QRectF seg_rect(20 + i * seg_w, height() - 35, seg_w, 8);
+        QRectF seg_rect(x0 + i * seg_w, height() - 35, seg_w, 8);
         if (i % 2 == 0) {
           painter.setBrush(QBrush(QColor(26, 29, 36)));  // Filled dark
         } else {
@@ -303,7 +303,7 @@ void ViewportWidget::paintGL() {
       } else {
         label = QString("%1 m").arg(scale_length);
       }
-      painter.drawText(QRectF(20, height() - 55, S, 15), Qt::AlignCenter, label);
+      painter.drawText(QRectF(x0, height() - 55, S, 15), Qt::AlignCenter, label);
     }
   }
 }
