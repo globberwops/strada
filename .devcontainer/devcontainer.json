@@ -45,6 +45,12 @@
   },
   "remoteUser": "ubuntu",
   "updateRemoteUserUID": true,
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}"
+  },
+  "mounts": [
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+  ],
   "runArgs": [
     "--cap-add=SYS_PTRACE",
     "--security-opt",
