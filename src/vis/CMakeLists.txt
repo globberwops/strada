@@ -1,11 +1,3 @@
-# vis target sources for core strada library
-target_sources(
-  strada
-  PRIVATE
-    geometry_batcher.cpp
-    camera.cpp
-)
-
 if(STRADA_BUILD_VISUALIZER)
   add_library(strada_visualizer)
   add_library(Strada::visualizer ALIAS strada_visualizer)
@@ -19,6 +11,8 @@ if(STRADA_BUILD_VISUALIZER)
   target_sources(
     strada_visualizer
     PRIVATE
+      geometry_batcher.cpp
+      camera.cpp
       viewport_widget.cpp
       visualizer_window.cpp
     PUBLIC FILE_SET
@@ -26,6 +20,8 @@ if(STRADA_BUILD_VISUALIZER)
       BASE_DIRS
         ${PROJECT_SOURCE_DIR}/include
       FILES
+        ${PROJECT_SOURCE_DIR}/include/strada/vis/geometry_batcher.hpp
+        ${PROJECT_SOURCE_DIR}/include/strada/vis/camera.hpp
         ${PROJECT_SOURCE_DIR}/include/strada/vis/viewport_widget.hpp
         ${PROJECT_SOURCE_DIR}/include/strada/vis/visualizer_window.hpp
   )

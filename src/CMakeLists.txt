@@ -32,13 +32,11 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/reference_line.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/elevation_profile.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/lane_network.hpp
-         ${PROJECT_SOURCE_DIR}/include/strada/tess/tessellator.hpp
-         ${PROJECT_SOURCE_DIR}/include/strada/vis/geometry_batcher.hpp
-         ${PROJECT_SOURCE_DIR}/include/strada/vis/camera.hpp)
+         ${PROJECT_SOURCE_DIR}/include/strada/tess/tessellator.hpp)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui)
+target_link_libraries(strada PRIVATE pugixml)
 
-target_link_libraries(strada PRIVATE pugixml PUBLIC Qt6::Core Qt6::Gui)
-
-add_subdirectory(vis)
+if(STRADA_BUILD_VISUALIZER)
+  add_subdirectory(vis)
+endif()
 

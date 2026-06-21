@@ -27,20 +27,22 @@ target_compile_definitions(
 target_link_libraries(test_tess PRIVATE Strada::strada GTest::gtest_main)
 gtest_discover_tests(test_tess)
 
-add_executable(
-  test_visualizer
-  visualizer/test_visualizer.cpp)
-target_compile_definitions(
-  test_visualizer PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
-target_link_libraries(test_visualizer PRIVATE Strada::strada GTest::gtest_main)
-gtest_discover_tests(test_visualizer)
+if(STRADA_BUILD_VISUALIZER)
+  add_executable(
+    test_visualizer
+    visualizer/test_visualizer.cpp)
+  target_compile_definitions(
+    test_visualizer PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+  target_link_libraries(test_visualizer PRIVATE Strada::visualizer GTest::gtest_main)
+  gtest_discover_tests(test_visualizer)
 
-add_executable(
-  test_camera
-  visualizer/test_camera.cpp)
-target_compile_definitions(
-  test_camera PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
-target_link_libraries(test_camera PRIVATE Strada::strada GTest::gtest_main)
-gtest_discover_tests(test_camera)
+  add_executable(
+    test_camera
+    visualizer/test_camera.cpp)
+  target_compile_definitions(
+    test_camera PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+  target_link_libraries(test_camera PRIVATE Strada::visualizer GTest::gtest_main)
+  gtest_discover_tests(test_camera)
+endif()
 
 
