@@ -6,7 +6,7 @@ This file provides instructions and configuration for agentic coding assistants 
 
 ### Issue tracker
 
-Issues and PRDs for this repo live as GitHub issues. See `docs/agents/issue-tracker.md`.
+Issues and PRDs for this repo live as GitHub issues. External PRs are not included in triage. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
