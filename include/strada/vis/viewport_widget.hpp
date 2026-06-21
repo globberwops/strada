@@ -47,6 +47,9 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   QOpenGLVertexArrayObject lines_vao_;
   QOpenGLBuffer lines_vbo_{QOpenGLBuffer::VertexBuffer};
 
+  QOpenGLVertexArrayObject grid_vao_;
+  QOpenGLBuffer grid_vbo_{QOpenGLBuffer::VertexBuffer};
+
   Camera camera_;
   QPoint last_mouse_pos_;
 
@@ -62,6 +65,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
   void SetupTriangles();
   void SetupLines();
+  void RenderGrid();
 };
 
 }  // namespace strada::vis

@@ -24,6 +24,8 @@ ViewportWidget::~ViewportWidget() {
   triangles_ibo_.destroy();
   lines_vao_.destroy();
   lines_vbo_.destroy();
+  grid_vao_.destroy();
+  grid_vbo_.destroy();
   doneCurrent();
 }
 
@@ -119,6 +121,9 @@ void ViewportWidget::initializeGL() {
 
   lines_vao_.create();
   lines_vbo_.create();
+
+  grid_vao_.create();
+  grid_vbo_.create();
 }
 
 void ViewportWidget::resizeGL(int w, int h) {
@@ -139,6 +144,13 @@ void ViewportWidget::paintGL() {
   shader_program_.setUniformValue("useOverrideColor", false);
   shader_program_.setUniformValue("projection", camera_.GetProjectionMatrix());
   shader_program_.setUniformValue("view", camera_.GetViewMatrix());
+
+  // Draw Grid first in the background (no depth test/write)
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+  RenderGrid();
+  glDepthMask(GL_TRUE);
+  glEnable(GL_DEPTH_TEST);
 
   // 1. Draw Road Surface Meshes in a Single batched call
   if (!geometry_.triangle_indices.empty()) {
@@ -436,6 +448,70 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     }
     update();
   }
+}
+
+void ViewportWidget::RenderGrid() {
+  double scale_length = CalculateScaleLength(camera_.zoom);
+  if (scale_length <= 0.0) {
+    return;
+  }
+
+  // Calculate maximum visible bounds in world coordinates
+  float W = static_cast<float>(width());
+  float H = static_cast<float>(height());
+  float R_screen = std::sqrt(W * W + H * H) / 2.0f;
+  float R_world = R_screen / camera_.zoom;
+
+  float min_x = camera_.camera_x - R_world;
+  float max_x = camera_.camera_x + R_world;
+  float min_y = camera_.camera_y - R_world;
+  float max_y = camera_.camera_y + R_world;
+
+  float G = static_cast<float>(scale_length);
+
+  std::vector<Vertex> grid_vertices;
+
+  // Grid line color: subtle dark grey-blue
+  float r = 0.16f;
+  float g = 0.18f;
+  float b = 0.22f;
+
+  // Vertical lines (constant x)
+  float start_x = std::floor(min_x / G) * G;
+  float end_x = std::ceil(max_x / G) * G;
+  for (float x = start_x; x <= end_x; x += G) {
+    grid_vertices.push_back(Vertex{.x = x, .y = min_y, .z = 0.0f, .r = r, .g = g, .b = b});
+    grid_vertices.push_back(Vertex{.x = x, .y = max_y, .z = 0.0f, .r = r, .g = g, .b = b});
+  }
+
+  // Horizontal lines (constant y)
+  float start_y = std::floor(min_y / G) * G;
+  float end_y = std::ceil(max_y / G) * G;
+  for (float y = start_y; y <= end_y; y += G) {
+    grid_vertices.push_back(Vertex{.x = min_x, .y = y, .z = 0.0f, .r = r, .g = g, .b = b});
+    grid_vertices.push_back(Vertex{.x = max_x, .y = y, .z = 0.0f, .r = r, .g = g, .b = b});
+  }
+
+  if (grid_vertices.empty()) {
+    return;
+  }
+
+  // Bind VAO and upload data
+  grid_vao_.bind();
+  grid_vbo_.bind();
+  grid_vbo_.allocate(grid_vertices.data(), static_cast<int>(grid_vertices.size() * sizeof(Vertex)));
+
+  // Setup attributes
+  shader_program_.enableAttributeArray(0);
+  shader_program_.setAttributeBuffer(0, GL_FLOAT, offsetof(Vertex, x), 3, sizeof(Vertex));
+  shader_program_.enableAttributeArray(1);
+  shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
+
+  // Draw lines
+  glLineWidth(1.0f);
+  glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(grid_vertices.size()));
+
+  grid_vao_.release();
 }
 
 }  // namespace strada::vis
