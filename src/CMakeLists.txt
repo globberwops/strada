@@ -11,6 +11,7 @@ target_sources(
           cpm/elevation_profile.cpp
           cpm/lane_network.cpp
           tess/tessellator.cpp
+          vis/geometry_batcher.cpp
   PUBLIC FILE_SET
          HEADERS
          BASE_DIRS
@@ -32,7 +33,8 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/reference_line.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/elevation_profile.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/lane_network.hpp
-         ${PROJECT_SOURCE_DIR}/include/strada/tess/tessellator.hpp)
+         ${PROJECT_SOURCE_DIR}/include/strada/tess/tessellator.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/vis/geometry_batcher.hpp)
 
 target_link_libraries(strada PRIVATE pugixml)
 

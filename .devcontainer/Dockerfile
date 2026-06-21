@@ -50,9 +50,10 @@ RUN mkdir -p /home/ubuntu/.local/bin \
 RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
 
 RUN curl -fsSL https://pi.dev/install.sh | sh \
+    && pi install npm:pi-intercom \
+    && pi install npm:pi-lens \
     && pi install npm:pi-subagents \
-    && pi install npm:pi-web-access \
-    && pi install npm:pi-intercom
+    && pi install npm:pi-web-access
 
 # Ensure user-local binaries (including agy and our fd symlink) are explicitly on the PATH
 ENV PATH="${HOME}/.local/bin:${PATH}"

@@ -11,6 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(external)
 add_subdirectory(src)
+add_subdirectory(examples)
 
 # Enable testing for the project
 enable_testing()

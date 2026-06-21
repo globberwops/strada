@@ -27,3 +27,12 @@ target_compile_definitions(
 target_link_libraries(test_tess PRIVATE Strada::strada GTest::gtest_main)
 gtest_discover_tests(test_tess)
 
+add_executable(
+  test_visualizer
+  visualizer/test_visualizer.cpp)
+target_compile_definitions(
+  test_visualizer PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+target_link_libraries(test_visualizer PRIVATE Strada::strada GTest::gtest_main)
+gtest_discover_tests(test_visualizer)
+
+
