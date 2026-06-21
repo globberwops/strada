@@ -1,15 +1,15 @@
-if(STRADA_BUILD_VISUALIZER)
-  add_library(strada_visualizer)
-  add_library(Strada::visualizer ALIAS strada_visualizer)
+if(STRADA_BUILD_VIS)
+  add_library(strada_vis)
+  add_library(Strada::vis ALIAS strada_vis)
 
-  set_target_properties(strada_visualizer PROPERTIES
+  set_target_properties(strada_vis PROPERTIES
     AUTOMOC ON
     AUTOUIC ON
     AUTORCC ON
   )
 
   target_sources(
-    strada_visualizer
+    strada_vis
     PRIVATE
       geometry_batcher.cpp
       camera.cpp
@@ -30,7 +30,7 @@ if(STRADA_BUILD_VISUALIZER)
   find_package(OpenGL REQUIRED)
 
   target_link_libraries(
-    strada_visualizer
+    strada_vis
     PUBLIC
       Strada::strada
       Qt6::Widgets

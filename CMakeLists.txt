@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(STRADA_BUILD_VISUALIZER "Build the Strada 2D Visualizer library and application" ${PROJECT_IS_TOP_LEVEL})
+option(STRADA_BUILD_VIS "Build the Strada 2D Vis library and application" ${PROJECT_IS_TOP_LEVEL})
 
 add_subdirectory(external)
 add_subdirectory(src)

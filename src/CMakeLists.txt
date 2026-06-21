@@ -36,7 +36,7 @@ target_sources(
 
 target_link_libraries(strada PRIVATE pugixml)
 
-if(STRADA_BUILD_VISUALIZER)
+if(STRADA_BUILD_VIS)
   add_subdirectory(vis)
 endif()
 

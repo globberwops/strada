@@ -6,7 +6,7 @@
 
 namespace strada::vis {
 
-TEST(VisualizerTest, LaneColorDistinctiveness) {
+TEST(VisTest, LaneColorDistinctiveness) {
   // Arrange
   auto driving_color = GetLaneColor("driving");
   auto sidewalk_color = GetLaneColor("sidewalk");
@@ -20,7 +20,7 @@ TEST(VisualizerTest, LaneColorDistinctiveness) {
   EXPECT_NE(driving_color.r, default_color.r);
 }
 
-TEST(VisualizerTest, BatchMapGeometryTriangulation) {
+TEST(VisTest, BatchMapGeometryTriangulation) {
   // Arrange: programmatically construct an AST with a road and a left lane
   ast::AbstractSyntaxTree map;
 
@@ -82,7 +82,7 @@ TEST(VisualizerTest, BatchMapGeometryTriangulation) {
   }
 }
 
-TEST(VisualizerTest, BatchMapGeometryLines) {
+TEST(VisTest, BatchMapGeometryLines) {
   // Arrange: programmatically construct an AST with a road and a left lane
   ast::AbstractSyntaxTree map;
 
@@ -162,7 +162,7 @@ TEST(VisualizerTest, BatchMapGeometryLines) {
   }
 }
 
-TEST(VisualizerTest, MeshRangeTracking) {
+TEST(VisTest, MeshRangeTracking) {
   // Arrange: programmatically construct an AST with a road and a left lane
   ast::AbstractSyntaxTree map;
 

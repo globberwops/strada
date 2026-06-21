@@ -4,4 +4,4 @@ add_executable(
 
 target_link_libraries(
   visualizer
-  PRIVATE Strada::visualizer)
+  PRIVATE Strada::vis)
