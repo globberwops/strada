@@ -22,6 +22,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gdb \
     graphviz \
     lcov \
+    libgmock-dev \
+    libgtest-dev \
+    libpugixml-dev \
     libxml2-utils \
     lldb \
     ninja-build \

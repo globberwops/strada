@@ -39,4 +39,3 @@ target_link_libraries(strada PRIVATE pugixml)
 if(STRADA_BUILD_VIS)
   add_subdirectory(vis)
 endif()
-
