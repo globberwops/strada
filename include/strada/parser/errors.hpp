@@ -33,4 +33,3 @@ class InvalidAttributeError : public ParseError {
 };
 
 }  // namespace strada::parser
-

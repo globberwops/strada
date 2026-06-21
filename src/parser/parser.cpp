@@ -51,8 +51,8 @@ auto ParseHeader(pugi::xml_node header_node) -> ast::Header {
   if (!geo_ref_node.empty()) {
     header.geo_reference = geo_ref_node.child_value();
   }
-  static const std::unordered_set<std::string> kNownHeaderAttrs = {
-      "revMajor", "revMinor", "name", "version", "date", "north", "south", "east", "west", "vendor"};
+  static const std::unordered_set<std::string> kNownHeaderAttrs = {"revMajor", "revMinor", "name", "version", "date",
+                                                                   "north",    "south",    "east", "west",    "vendor"};
   header.extensions = ParseExtensions(header_node, kNownHeaderAttrs);
   return header;
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 #include <gtest/gtest.h>
+
 #include <filesystem>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/parser/parser.hpp>
@@ -22,7 +23,7 @@ TEST(TessellatorTest, EmptyMap) {
   ast::AbstractSyntaxTree map;
 
   // Act: tessellate
-  auto tess = BuildTessellator(map, 0.5);
+  Tessellator tess(map, 0.5);
 
   // Assert: no meshes or polylines
   EXPECT_TRUE(tess.Meshes().empty());
@@ -35,7 +36,7 @@ TEST(TessellatorTest, StraightRoadReferenceLine) {
   auto map = parser::ParseFile(map_path);
 
   // Act: tessellate with 0.5m chord error
-  auto tess = BuildTessellator(map, 0.5);
+  Tessellator tess(map, 0.5);
 
   // Assert: we expect 2 reference lines (one per road)
   // Let's filter polylines representing reference lines
@@ -83,7 +84,7 @@ TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
   auto map = parser::ParseFile(map_path);
 
   // Act: tessellate
-  auto tess = BuildTessellator(map, 0.5);
+  Tessellator tess(map, 0.5);
 
   // Assert:
   std::vector<Polyline> boundaries;
@@ -102,7 +103,7 @@ TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
   EXPECT_EQ(left_boundary.marking_type, "solid");
   EXPECT_FALSE(left_boundary.is_reference_line);
   ASSERT_GE(left_boundary.vertices.size(), 2);
-  
+
   // At s=0, laneOffset=0.5. Left lane width = 3.0. Outer boundary is at 0.5 + 3.0 = 3.5.
   EXPECT_NEAR(left_boundary.vertices.front().x, 0.0f, 1e-2f);
   EXPECT_NEAR(left_boundary.vertices.front().y, 3.5f, 1e-2f);
@@ -114,8 +115,8 @@ TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
   EXPECT_FALSE(right_boundary.is_reference_line);
   ASSERT_GE(right_boundary.vertices.size(), 2);
 
-  // At s=0, laneOffset=0.5. Right lane width at sOffset=1.0 is 3.2 with linear slope 0.2, which evaluates to 3.0 at s=0.
-  // Thus, the outer boundary of the right lane (id -1) is at 0.5 - 3.0 = -2.5.
+  // At s=0, laneOffset=0.5. Right lane width at sOffset=1.0 is 3.2 with linear slope 0.2, which evaluates to 3.0 at
+  // s=0. Thus, the outer boundary of the right lane (id -1) is at 0.5 - 3.0 = -2.5.
   EXPECT_NEAR(right_boundary.vertices.front().x, 0.0f, 1e-2f);
   EXPECT_NEAR(right_boundary.vertices.front().y, -2.5f, 1e-2f);
 }
@@ -123,11 +124,11 @@ TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
 TEST(TessellatorTest, MultipleLanesMarkingTypes) {
   // Arrange: construct an AST programmatically with a road containing lanes 1 and 2
   ast::AbstractSyntaxTree map;
-  
+
   ast::Road road;
   road.id = "1";
   road.length = 10.0;
-  
+
   // Set up plan view
   ast::GeometryRecord geom;
   geom.s = 0.0;
@@ -137,11 +138,11 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
   geom.hdg = 0.0;
   geom.shape = ast::Line{};
   road.plan_view.push_back(geom);
-  
+
   // Set up lanes
   ast::LaneSection section;
   section.s = 0.0;
-  
+
   // Left lane 1
   ast::Lane lane1;
   lane1.id = 1;
@@ -151,7 +152,7 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
   w1.a = 3.0;
   lane1.widths.push_back(w1);
   section.left.push_back(lane1);
-  
+
   // Left lane 2
   ast::Lane lane2;
   lane2.id = 2;
@@ -161,19 +162,19 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
   w2.a = 3.5;
   lane2.widths.push_back(w2);
   section.left.push_back(lane2);
-  
+
   // Center lane 0
   ast::Lane lane0;
   lane0.id = 0;
   lane0.type = "border";
   section.center.push_back(lane0);
-  
+
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
-  
+
   // Act: tessellate
-  auto tess = BuildTessellator(map, 0.5);
-  
+  Tessellator tess(map, 0.5);
+
   // Assert: we expect two lane boundaries (for lane 1 and lane 2) + center reference line
   std::vector<Polyline> boundaries;
   for (const auto& poly : tess.Polylines()) {
@@ -181,15 +182,64 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
       boundaries.push_back(poly);
     }
   }
-  
+
   ASSERT_EQ(boundaries.size(), 2);
-  
+
   const auto& b1 = (boundaries[0].original_lane_id == 1) ? boundaries[0] : boundaries[1];
   const auto& b2 = (boundaries[0].original_lane_id == 2) ? boundaries[0] : boundaries[1];
-  
+
   EXPECT_EQ(b1.marking_type, "broken");
   EXPECT_EQ(b2.marking_type, "solid");
 }
 
-}  // namespace strada::tess
+TEST(TessellatorTest, LaneSurfaceTriangulation) {
+  // Arrange: parse lanes_flat.xodr
+  auto map_path = GetTestDataPath("lanes_flat.xodr");
+  auto map = parser::ParseFile(map_path);
 
+  // Act: tessellate
+  Tessellator tess(map, 0.5);
+
+  // Assert: we expect 2 meshes
+  const auto& meshes = tess.Meshes();
+  ASSERT_EQ(meshes.size(), 2);
+
+  for (const auto& mesh : meshes) {
+    // Validate metadata
+    EXPECT_EQ(mesh.road_id, static_cast<cpm::RoadId>(0));
+    EXPECT_EQ(mesh.lane_type, "driving");
+
+    // Vertex and Index size consistency
+    ASSERT_FALSE(mesh.vertices.empty());
+    ASSERT_FALSE(mesh.indices.empty());
+
+    size_t num_stations = mesh.vertices.size() / 2;
+    EXPECT_EQ(mesh.vertices.size(), num_stations * 2);
+    EXPECT_EQ(mesh.indices.size(), 6 * (num_stations - 1));
+
+    // Verify indices point within valid vertex range
+    for (uint32_t idx : mesh.indices) {
+      EXPECT_LT(idx, mesh.vertices.size());
+    }
+
+    // Verify winding order is strictly Counter-Clockwise (CCW) in the xy-plane
+    for (size_t i = 0; i < mesh.indices.size(); i += 3) {
+      uint32_t idx0 = mesh.indices[i];
+      uint32_t idx1 = mesh.indices[i + 1];
+      uint32_t idx2 = mesh.indices[i + 2];
+
+      const auto& v0 = mesh.vertices[idx0];
+      const auto& v1 = mesh.vertices[idx1];
+      const auto& v2 = mesh.vertices[idx2];
+
+      // 2D cross product in xy plane
+      float cp = (v1.x - v0.x) * (v2.y - v1.y) - (v1.y - v0.y) * (v2.x - v1.x);
+
+      // Since it's CCW, cross product should be positive
+      EXPECT_GT(cp, 0.0f) << "Triangle (" << idx0 << ", " << idx1 << ", " << idx2
+                          << ") winding not CCW. Cross product is " << cp;
+    }
+  }
+}
+
+}  // namespace strada::tess

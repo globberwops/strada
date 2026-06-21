@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: BSL-1.0
 
-#include <strada/tess/tessellator.hpp>
-#include <strada/cpm/compiled_physics_model.hpp>
-#include <strada/cpm/query_context.hpp>
 #include <algorithm>
 #include <cmath>
+#include <strada/cpm/compiled_physics_model.hpp>
+#include <strada/cpm/query_context.hpp>
+#include <strada/tess/tessellator.hpp>
 #include <variant>
 
 namespace strada::tess {
 
-auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) -> Tessellator {
-  Tessellator tess;
-
+Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error) {
   // 1. Build a temporary CompiledPhysicsModel to evaluate geometries
   auto model = cpm::CompiledPhysicsModel::Build(map);
   cpm::QueryContext ctx;
@@ -30,7 +28,7 @@ auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) ->
       double geom_length = geom.length;
 
       // Determine step count based on geometry type and chord error
-      size_t num_steps = 10; // Default fallback
+      size_t num_steps = 10;  // Default fallback
 
       if (std::holds_alternative<ast::Line>(geom.shape)) {
         num_steps = 1;
@@ -39,7 +37,7 @@ auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) ->
         if (curvature > 1e-6) {
           double radius = 1.0 / curvature;
           double ds = std::sqrt(8.0 * radius * chord_error);
-          ds = std::clamp(ds, 0.2, 5.0); // Clamp step size to reasonable bounds
+          ds = std::clamp(ds, 0.2, 5.0);  // Clamp step size to reasonable bounds
           num_steps = static_cast<size_t>(std::ceil(geom_length / ds));
         }
       } else {
@@ -61,9 +59,8 @@ auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) ->
 
     // Sort and remove duplicates from stations
     std::ranges::sort(stations);
-    auto [first, last] = std::ranges::unique(stations, [](double a, double b) noexcept -> bool {
-      return std::abs(a - b) < 1e-4;
-    });
+    auto [first, last] =
+        std::ranges::unique(stations, [](double a, double b) noexcept -> bool { return std::abs(a - b) < 1e-4; });
     stations.erase(first, last);
 
     // --- Part A: Tessellate Reference Line ---
@@ -77,15 +74,13 @@ auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) ->
       cpm::InertialPose ip = model.RoadToInertial(pose, ctx);
       ref_line.vertices.push_back(Vertex{static_cast<float>(ip.x), static_cast<float>(ip.y), static_cast<float>(ip.z)});
     }
-    tess.polylines_.push_back(ref_line);
+    polylines_.push_back(ref_line);
 
     // --- Part B: Tessellate Lane Sections ---
     for (size_t sec_idx = 0; sec_idx < road.lanes.sections.size(); ++sec_idx) {
       const auto& section = road.lanes.sections[sec_idx];
       double sec_s_start = section.s;
-      double sec_s_end = (sec_idx + 1 < road.lanes.sections.size())
-                         ? road.lanes.sections[sec_idx + 1].s
-                         : road_len;
+      double sec_s_end = (sec_idx + 1 < road.lanes.sections.size()) ? road.lanes.sections[sec_idx + 1].s : road_len;
 
       // Gather stations within this section
       std::vector<double> sec_stations;
@@ -125,9 +120,15 @@ auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) ->
           for (size_t s_i = 0; s_i < r.lanes.sections.size(); ++s_i) {
             const auto& sec = r.lanes.sections[s_i];
             std::vector<int> sorted_ids;
-            for (const auto& l : sec.right) sorted_ids.push_back(l.id);
-            for (const auto& l : sec.center) sorted_ids.push_back(l.id);
-            for (const auto& l : sec.left) sorted_ids.push_back(l.id);
+            for (const auto& l : sec.right) {
+              sorted_ids.push_back(l.id);
+            }
+            for (const auto& l : sec.center) {
+              sorted_ids.push_back(l.id);
+            }
+            for (const auto& l : sec.left) {
+              sorted_ids.push_back(l.id);
+            }
             std::ranges::sort(sorted_ids);
 
             for (int id : sorted_ids) {
@@ -139,9 +140,13 @@ auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) ->
                 absolute_lane_idx++;
               }
             }
-            if (found) break;
+            if (found) {
+              break;
+            }
           }
-          if (found) break;
+          if (found) {
+            break;
+          }
         }
         return static_cast<cpm::LaneId>(absolute_lane_idx);
       };
@@ -186,8 +191,10 @@ auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) ->
           cpm::RoadPose rp_outer = model.LaneToRoad(lp_outer, ctx);
           cpm::InertialPose ip_outer = model.RoadToInertial(rp_outer, ctx);
 
-          Vertex v_inner = {static_cast<float>(ip_inner.x), static_cast<float>(ip_inner.y), static_cast<float>(ip_inner.z)};
-          Vertex v_outer = {static_cast<float>(ip_outer.x), static_cast<float>(ip_outer.y), static_cast<float>(ip_outer.z)};
+          Vertex v_inner = {static_cast<float>(ip_inner.x), static_cast<float>(ip_inner.y),
+                            static_cast<float>(ip_inner.z)};
+          Vertex v_outer = {static_cast<float>(ip_outer.x), static_cast<float>(ip_outer.y),
+                            static_cast<float>(ip_outer.z)};
 
           mesh.vertices.push_back(v_inner);
           mesh.vertices.push_back(v_outer);
@@ -204,31 +211,29 @@ auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) ->
 
           if (lane.id > 0) {
             mesh.indices.push_back(idx_a);
-            mesh.indices.push_back(idx_b);
             mesh.indices.push_back(idx_d);
+            mesh.indices.push_back(idx_b);
 
             mesh.indices.push_back(idx_a);
-            mesh.indices.push_back(idx_d);
             mesh.indices.push_back(idx_c);
+            mesh.indices.push_back(idx_d);
           } else {
             // Reverse winding order for right lanes to maintain CCW orientation
             mesh.indices.push_back(idx_a);
-            mesh.indices.push_back(idx_d);
             mesh.indices.push_back(idx_b);
+            mesh.indices.push_back(idx_d);
 
             mesh.indices.push_back(idx_a);
-            mesh.indices.push_back(idx_c);
             mesh.indices.push_back(idx_d);
+            mesh.indices.push_back(idx_c);
           }
         }
 
-        tess.meshes_.push_back(mesh);
-        tess.polylines_.push_back(boundary);
+        meshes_.push_back(mesh);
+        polylines_.push_back(boundary);
       }
     }
   }
-
-  return tess;
 }
 
 }  // namespace strada::tess

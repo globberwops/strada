@@ -152,4 +152,3 @@ class ReferenceLine {
 };
 
 }  // namespace strada::cpm
-
