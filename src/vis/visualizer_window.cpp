@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: BSL-1.0
 
-#include <strada/vis/visualizer_window.hpp>
-
 #include <QFileInfo>
 #include <QStatusBar>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/parser/parser.hpp>
 #include <strada/tess/tessellator.hpp>
-
 #include <strada/vis/viewport_widget.hpp>
+#include <strada/vis/visualizer_window.hpp>
 
 namespace strada::vis {
 
@@ -32,7 +30,7 @@ VisualizerWindow::VisualizerWindow(QWidget* parent) : QMainWindow(parent) {
   )");
 
   // Setup viewport
-  viewport_ = new ViewportWidget(this);
+  viewport_ = new ViewportWidget(this);  // NOLINT
   setCentralWidget(viewport_);
 
   // Setup status bar
@@ -56,14 +54,14 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     viewport_->SetGeometry(batched, cpm::CompiledPhysicsModel::Build(map));
 
     // Update title and status bar
-    QFileInfo fileInfo(QString::fromStdString(file_path));
-    setWindowTitle(QString("Strada 2D Map Visualizer - %1").arg(fileInfo.fileName()));
+    QFileInfo file_info(QString::fromStdString(file_path));
+    setWindowTitle(QString("Strada 2D Map Visualizer - %1").arg(file_info.fileName()));
     statusBar()->showMessage(QString("Loaded %1 (%2 road meshes, %3 polylines)")
-                                 .arg(fileInfo.fileName())
+                                 .arg(file_info.fileName())
                                  .arg(tess.Meshes().size())
                                  .arg(tess.Polylines().size()));
-  } catch (const std::exception& e) {
-    statusBar()->showMessage(QString("Error loading map: %1").arg(e.what()));
+  } catch (const std::exception& ex) {
+    statusBar()->showMessage(QString("Error loading map: %1").arg(ex.what()));
   }
 }
 
