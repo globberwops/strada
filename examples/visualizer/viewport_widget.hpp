@@ -7,9 +7,11 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
-#include <strada/vis/geometry_batcher.hpp>
 #include <QPoint>
+#include <optional>
+#include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/vis/camera.hpp>
+#include <strada/vis/geometry_batcher.hpp>
 
 namespace strada::vis {
 
@@ -20,7 +22,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   explicit ViewportWidget(QWidget* parent = nullptr);
   ~ViewportWidget() override;
 
-  void SetGeometry(const BatchedGeometry& geometry);
+  void SetGeometry(const BatchedGeometry& geometry, cpm::CompiledPhysicsModel model);
 
  protected:
   void initializeGL() override;
@@ -47,6 +49,16 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
   Camera camera_;
   QPoint last_mouse_pos_;
+
+  // Compiled Physics Model for CPU-side picking
+  cpm::CompiledPhysicsModel cpm_model_;
+  bool has_model_{false};
+  mutable cpm::QueryContext query_ctx_;
+
+  // Hover tracking details
+  std::optional<cpm::LanePose> hovered_pose_;
+  std::string hovered_road_name_;
+  int hovered_lane_original_id_{0};
 
   void SetupTriangles();
   void SetupLines();

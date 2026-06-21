@@ -25,6 +25,9 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
   for (const auto& mesh : tess.Meshes()) {
     Color lane_color = GetLaneColor(mesh.lane_type);
 
+    std::uint32_t index_start = static_cast<std::uint32_t>(batched.triangle_indices.size());
+    std::uint32_t index_count = static_cast<std::uint32_t>(mesh.indices.size());
+
     for (const auto& v : mesh.vertices) {
       batched.triangle_vertices.push_back(
           Vertex{.x = v.x, .y = v.y, .z = v.z, .r = lane_color.r, .g = lane_color.g, .b = lane_color.b});
@@ -33,6 +36,9 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
     for (std::uint32_t idx : mesh.indices) {
       batched.triangle_indices.push_back(idx + vertex_offset);
     }
+
+    batched.mesh_ranges.push_back(MeshRange{
+        .road_id = mesh.road_id, .lane_id = mesh.lane_id, .index_start = index_start, .index_count = index_count});
 
     vertex_offset += static_cast<std::uint32_t>(mesh.vertices.size());
   }

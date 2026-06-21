@@ -162,4 +162,57 @@ TEST(VisualizerTest, BatchMapGeometryLines) {
   }
 }
 
+TEST(VisualizerTest, MeshRangeTracking) {
+  // Arrange: programmatically construct an AST with a road and a left lane
+  ast::AbstractSyntaxTree map;
+
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  ast::GeometryRecord geom;
+  geom.s = 0.0;
+  geom.length = 10.0;
+  geom.x = 0.0;
+  geom.y = 0.0;
+  geom.hdg = 0.0;
+  geom.shape = ast::Line{};
+  road.plan_view.push_back(geom);
+
+  ast::LaneSection section;
+  section.s = 0.0;
+
+  ast::Lane lane1;
+  lane1.id = 1;
+  lane1.type = "driving";
+  ast::LaneWidth w1;
+  w1.s_offset = 0.0;
+  w1.a = 3.0;
+  lane1.widths.push_back(w1);
+  section.left.push_back(lane1);
+
+  ast::Lane lane0;
+  lane0.id = 0;
+  lane0.type = "border";
+  section.center.push_back(lane0);
+
+  road.lanes.sections.push_back(section);
+  map.roads.push_back(road);
+
+  tess::Tessellator tess(map, 0.5);
+  ASSERT_EQ(tess.Meshes().size(), 1);
+
+  // Act: batch geometry
+  auto batched = BatchMapGeometry(tess);
+
+  // Assert: we expect exactly 1 range corresponding to the single mesh
+  ASSERT_EQ(batched.mesh_ranges.size(), 1);
+  const auto& range = batched.mesh_ranges[0];
+
+  EXPECT_EQ(range.road_id, tess.Meshes()[0].road_id);
+  EXPECT_EQ(range.lane_id, tess.Meshes()[0].lane_id);
+  EXPECT_EQ(range.index_start, 0);
+  EXPECT_EQ(range.index_count, tess.Meshes()[0].indices.size());
+}
+
 }  // namespace strada::vis

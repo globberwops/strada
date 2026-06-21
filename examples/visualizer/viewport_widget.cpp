@@ -5,13 +5,18 @@
 #include <QKeyEvent>
 #include <QMatrix4x4>
 #include <QMouseEvent>
+#include <QPainter>
+#include <QVector4D>
 #include <QWheelEvent>
 #include <algorithm>
 #include <limits>
 
 namespace strada::vis {
 
-ViewportWidget::ViewportWidget(QWidget* parent) : QOpenGLWidget(parent) { setFocusPolicy(Qt::StrongFocus); }
+ViewportWidget::ViewportWidget(QWidget* parent) : QOpenGLWidget(parent) {
+  setFocusPolicy(Qt::StrongFocus);
+  setMouseTracking(true);
+}
 
 ViewportWidget::~ViewportWidget() {
   makeCurrent();
@@ -23,8 +28,11 @@ ViewportWidget::~ViewportWidget() {
   doneCurrent();
 }
 
-void ViewportWidget::SetGeometry(const BatchedGeometry& geometry) {
+void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, cpm::CompiledPhysicsModel model) {
   geometry_ = geometry;
+  cpm_model_ = std::move(model);
+  has_model_ = true;
+  hovered_pose_ = std::nullopt;
   geometry_dirty_ = true;
 
   // Compute bounding box to center the camera automatically on load
@@ -90,8 +98,14 @@ void ViewportWidget::initializeGL() {
     #version 330 core
     out vec4 FragColor;
     in vec3 ourColor;
+    uniform vec4 overrideColor;
+    uniform bool useOverrideColor;
     void main() {
-        FragColor = vec4(ourColor, 1.0);
+        if (useOverrideColor) {
+            FragColor = overrideColor;
+        } else {
+            FragColor = vec4(ourColor, 1.0);
+        }
     }
   )";
 
@@ -123,7 +137,7 @@ void ViewportWidget::paintGL() {
   }
 
   shader_program_.bind();
-
+  shader_program_.setUniformValue("useOverrideColor", false);
   shader_program_.setUniformValue("projection", camera_.GetProjectionMatrix());
   shader_program_.setUniformValue("view", camera_.GetViewMatrix());
 
@@ -142,7 +156,84 @@ void ViewportWidget::paintGL() {
     lines_vao_.release();
   }
 
+  // 3. Draw Hover Highlight Overlay
+  if (has_model_ && hovered_pose_) {
+    for (const auto& range : geometry_.mesh_ranges) {
+      if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
+        if (range.index_count > 0) {
+          glEnable(GL_BLEND);
+          glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+          shader_program_.setUniformValue("useOverrideColor", true);
+          shader_program_.setUniformValue("overrideColor", QVector4D(1.0f, 0.75f, 0.0f, 0.4f));
+
+          triangles_vao_.bind();
+          const void* offset =
+              reinterpret_cast<const void*>(static_cast<uintptr_t>(range.index_start) * sizeof(std::uint32_t));
+          glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
+          triangles_vao_.release();
+
+          shader_program_.setUniformValue("useOverrideColor", false);
+          glDisable(GL_BLEND);
+        }
+        break;
+      }
+    }
+  }
+
   shader_program_.release();
+
+  // 4. Draw QPainter HUD overlay
+  if (has_model_ && hovered_pose_) {
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // Draw dark glassmorphic card container in the top-left corner
+    QRect rect(20, 20, 260, 110);
+    painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
+    painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+    painter.drawRoundedRect(rect, 8.0, 8.0);
+
+    // Setup font
+    QFont font("Segoe UI", 10);
+    painter.setFont(font);
+
+    // Draw details
+    int x_offset = 35;
+    int y_offset = 45;
+    int line_height = 22;
+
+    // Header / Title
+    font.setBold(true);
+    painter.setFont(font);
+    painter.setPen(QColor(255, 204, 0));  // Gold title color matching highlight
+    painter.drawText(x_offset, y_offset, "LANE INSPECTOR");
+
+    font.setBold(false);
+    painter.setFont(font);
+    y_offset += line_height;
+
+    // Road ID
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Road ID:");
+    painter.setPen(Qt::white);
+    painter.drawText(x_offset + 70, y_offset, QString::fromStdString(hovered_road_name_));
+    y_offset += line_height;
+
+    // Lane ID
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Lane ID:");
+    painter.setPen(Qt::white);
+    painter.drawText(x_offset + 70, y_offset, QString::number(hovered_lane_original_id_));
+    y_offset += line_height;
+
+    // Coordinates (s, t)
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Track (s, t):");
+    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    QString coords = QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
+    painter.drawText(x_offset + 85, y_offset, coords);
+  }
 }
 
 void ViewportWidget::SetupTriangles() {
@@ -197,11 +288,34 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
 
   if (event->buttons() & Qt::LeftButton) {
     camera_.Pan(static_cast<float>(delta.x()), static_cast<float>(delta.y()));
-    update();
   } else if (event->buttons() & Qt::RightButton) {
     camera_.Rotate(static_cast<float>(delta.x()) * 0.5f);
-    update();
   }
+
+  // Hover picking detection (CPU-side via CPM)
+  if (has_model_) {
+    QPointF world_pos =
+        camera_.ScreenToWorld(static_cast<float>(event->position().x()), static_cast<float>(event->position().y()));
+
+    cpm::InertialPose pose{};
+    pose.x = world_pos.x();
+    pose.y = world_pos.y();
+    pose.z = 0.0;
+    pose.heading = 0.0;
+    pose.pitch = 0.0;
+    pose.roll = 0.0;
+
+    auto lp_opt = cpm_model_.InertialToLane(pose, query_ctx_);
+    if (lp_opt.has_value()) {
+      hovered_pose_ = *lp_opt;
+      hovered_road_name_ = std::string(cpm_model_.OriginalRoadId(hovered_pose_->road));
+      hovered_lane_original_id_ = cpm_model_.OriginalLaneId(hovered_pose_->lane);
+    } else {
+      hovered_pose_ = std::nullopt;
+    }
+  }
+
+  update();
 }
 
 void ViewportWidget::wheelEvent(QWheelEvent* event) {
