@@ -76,18 +76,6 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
     for (std::uint32_t idx : boundary_geom.indices) {
       batched.boundary_triangle_indices.push_back(idx + current_offset);
     }
-
-    if (boundary_geom.outline_vertices.size() < 2) {
-      continue;
-    }
-    for (size_t i = 0; i < boundary_geom.outline_vertices.size() - 1; ++i) {
-      const auto& v0 = boundary_geom.outline_vertices[i];
-      const auto& v1 = boundary_geom.outline_vertices[i + 1];
-      batched.boundary_line_vertices.push_back(
-          Vertex{.x = v0.x, .y = v0.y, .z = v0.z, .r = 245.0f / 255.0f, .g = 197.0f / 255.0f, .b = 61.0f / 255.0f});
-      batched.boundary_line_vertices.push_back(
-          Vertex{.x = v1.x, .y = v1.y, .z = v1.z, .r = 245.0f / 255.0f, .g = 197.0f / 255.0f, .b = 61.0f / 255.0f});
-    }
   }
 
   return batched;

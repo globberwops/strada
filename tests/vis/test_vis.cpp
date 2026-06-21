@@ -230,7 +230,6 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
   // Assert
   EXPECT_FALSE(batched.boundary_triangle_vertices.empty());
   EXPECT_FALSE(batched.boundary_triangle_indices.empty());
-  EXPECT_FALSE(batched.boundary_line_vertices.empty());
 
   // Check color matches amber (245, 197, 61)
   for (const auto& v : batched.boundary_triangle_vertices) {
