@@ -1,11 +1,16 @@
-add_library(
-  strada parser/parser.cpp cpm/compiled_physics_model.cpp cpm/geometry_math.cpp
-         cpm/reference_line.cpp cpm/bounding_volume_hierarchy.cpp
-         cpm/elevation_profile.cpp cpm/lane_network.cpp tess/tessellator.cpp)
+add_library(strada)
 add_library(Strada::strada ALIAS strada)
 
 target_sources(
   strada
+  PRIVATE parser/parser.cpp
+          cpm/compiled_physics_model.cpp
+          cpm/geometry_math.cpp
+          cpm/reference_line.cpp
+          cpm/bounding_volume_hierarchy.cpp
+          cpm/elevation_profile.cpp
+          cpm/lane_network.cpp
+          tess/tessellator.cpp
   PUBLIC FILE_SET
          HEADERS
          BASE_DIRS
