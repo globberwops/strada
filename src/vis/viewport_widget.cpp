@@ -172,6 +172,7 @@ void ViewportWidget::paintGL() {
     for (const auto& range : geometry_.mesh_ranges) {
       if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
         if (range.index_count > 0) {
+          glDisable(GL_DEPTH_TEST);
           glEnable(GL_BLEND);
           glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -186,6 +187,7 @@ void ViewportWidget::paintGL() {
 
           shader_program_.setUniformValue("useOverrideColor", false);
           glDisable(GL_BLEND);
+          glEnable(GL_DEPTH_TEST);
         }
         break;
       }
@@ -384,7 +386,23 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
     cpm::InertialPose pose{};
     pose.x = world_pos.x();
     pose.y = world_pos.y();
-    pose.z = 0.0;
+
+    // Query closest vertex in rendering geometry to find road elevation at mouse cursor
+    float best_z = 0.0f;
+    if (!geometry_.triangle_vertices.empty()) {
+      float min_dist_sq = std::numeric_limits<float>::max();
+      for (const auto& v : geometry_.triangle_vertices) {
+        float dx = static_cast<float>(world_pos.x()) - v.x;
+        float dy = static_cast<float>(world_pos.y()) - v.y;
+        float dist_sq = (dx * dx) + (dy * dy);
+        if (dist_sq < min_dist_sq) {
+          min_dist_sq = dist_sq;
+          best_z = v.z;
+        }
+      }
+    }
+    pose.z = best_z;
+
     pose.heading = 0.0;
     pose.pitch = 0.0;
     pose.roll = 0.0;
