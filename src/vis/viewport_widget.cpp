@@ -366,6 +366,54 @@ void ViewportWidget::paintGL() {
       }
       painter.drawText(QRectF(x0, height() - 55, S, 15), Qt::AlignCenter, label);
     }
+
+    // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
+    {
+      QRect rect(20, height() - 170, 260, 150);
+      painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
+      painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+      painter.drawRoundedRect(rect, 8.0, 8.0);
+
+      // Setup font
+      QFont font("Segoe UI", 9);
+      painter.setFont(font);
+
+      int x_offset = 35;
+      int y_offset = height() - 145;
+      int line_height = 20;
+
+      // Header
+      font.setBold(true);
+      painter.setFont(font);
+      painter.setPen(QColor(245, 197, 61));  // Amber title color
+      painter.drawText(x_offset, y_offset, "CONTROLS & SHORTCUTS");
+      y_offset += 22;
+
+      font.setBold(false);
+      painter.setFont(font);
+
+      struct ShortcutItem {
+        QString key;
+        QString desc;
+      };
+      std::vector<ShortcutItem> items = {{"L-Click + Drag", "Pan Map"},
+                                         {"R-Click + Drag", "Rotate Map"},
+                                         {"Scroll Wheel", "Zoom Map"},
+                                         {"R", "Reset View / Auto-fit"},
+                                         {"J", "Toggle Junction Boundaries"}};
+
+      for (const auto& item : items) {
+        // Shortcut key
+        painter.setPen(QColor(100, 181, 246));  // Light blue/cyan for keys
+        painter.drawText(x_offset, y_offset, item.key);
+
+        // Description
+        painter.setPen(QColor(180, 188, 204));  // Slate white for description
+        painter.drawText(x_offset + 95, y_offset, item.desc);
+
+        y_offset += line_height;
+      }
+    }
   }
 }
 
@@ -552,6 +600,9 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
         camera_.zoom = 300.0f / max_dim;
       }
     }
+    update();
+  } else if (event->key() == Qt::Key_J) {
+    show_junction_boundaries_ = !show_junction_boundaries_;
     update();
   }
 }
