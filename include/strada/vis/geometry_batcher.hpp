@@ -33,6 +33,9 @@ struct BatchedGeometry {
   std::vector<std::uint32_t> triangle_indices;
   std::vector<Vertex> line_vertices;
   std::vector<MeshRange> mesh_ranges;
+  std::vector<Vertex> boundary_triangle_vertices;
+  std::vector<std::uint32_t> boundary_triangle_indices;
+  std::vector<Vertex> boundary_line_vertices;
 };
 
 /// Curated premium color palette matching dark-mode aesthetics.

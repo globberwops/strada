@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <strada/ast/extensions.hpp>
 #include <string>
 #include <vector>
@@ -30,13 +31,45 @@ struct Connection {
   std::vector<LaneLink> lane_links;                  ///< Direct lane connectivity maps.
 };
 
+/// The type of a junction boundary segment.
+enum class JunctionSegmentType : std::uint8_t {
+  kLane = 0,  ///< The segment runs along a lane boundary.
+  kJoint      ///< The segment crosses lanes perpendicular to the road.
+};
+
+/// Represents a segment of a junction boundary.
+struct JunctionBoundarySegment {
+  JunctionSegmentType type{JunctionSegmentType::kLane};  ///< Type of the segment (lane or joint).
+  std::string road_id;                                   ///< ID of the road used for the segment.
+
+  // Attributes for type="lane"
+  std::optional<int> boundary_lane;  ///< ID of the lane (required for type="lane").
+  double s_start{};                  ///< Start of the segment (required for type="lane").
+  double s_end{};                    ///< End of the segment (required for type="lane").
+
+  // Attributes for type="joint"
+  ContactPoint contact_point{ContactPoint::kStart};  ///< Contact point on the road (required for type="joint").
+  std::optional<int> joint_lane_start;               ///< Starting lane crossed by the joint segment (optional).
+  std::optional<int> joint_lane_end;                 ///< Ending lane crossed by the joint segment (optional).
+  double transition_length{};                        ///< Interpolation zone length (optional).
+
+  Extensions extensions;  ///< Non-schema and custom user data extensions.
+};
+
+/// Represents the boundary enclosing a junction's traffic area.
+struct JunctionBoundary {
+  std::vector<JunctionBoundarySegment> segments;  ///< Closed boundary segments in counter-clockwise order.
+  Extensions extensions;                          ///< Non-schema and custom user data extensions.
+};
+
 /// Represents an ASAM OpenDRIVE junction containing overlapping connections.
 struct Junction {
-  std::string id;                       ///< Unique ID of the junction.
-  std::string name;                     ///< Optional human-readable name of the junction.
-  std::string type;                     ///< Type of junction (e.g. "default", "direct").
-  std::vector<Connection> connections;  ///< Road-to-road connections within the junction.
-  Extensions extensions;                ///< Non-schema and custom user data extensions.
+  std::string id;                            ///< Unique ID of the junction.
+  std::string name;                          ///< Optional human-readable name of the junction.
+  std::string type;                          ///< Type of junction (e.g. "default", "direct").
+  std::vector<Connection> connections;       ///< Road-to-road connections within the junction.
+  std::optional<JunctionBoundary> boundary;  ///< Optional boundary enclosing the junction area.
+  Extensions extensions;                     ///< Non-schema and custom user data extensions.
 };
 
 }  // namespace strada::ast

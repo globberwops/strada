@@ -242,4 +242,22 @@ TEST(TessellatorTest, LaneSurfaceTriangulation) {
   }
 }
 
+TEST(TessellatorTest, JunctionBoundaryTessellation) {
+  // Arrange
+  auto map_path = GetTestDataPath("junction_boundary.xodr");
+  auto map = parser::ParseFile(map_path);
+
+  // Act
+  Tessellator tess(map, 0.5);
+
+  // Assert
+  const auto& boundaries = tess.JunctionBoundaries();
+  ASSERT_EQ(boundaries.size(), 1);
+  const auto& b = boundaries[0];
+  EXPECT_EQ(b.junction_id, "1");
+
+  ASSERT_FALSE(b.vertices.empty());
+  ASSERT_FALSE(b.indices.empty());
+}
+
 }  // namespace strada::tess

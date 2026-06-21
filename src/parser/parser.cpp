@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <limits>
 #include <map>
 #include <pugixml.hpp>
 #include <sstream>
@@ -316,6 +317,68 @@ auto ParseLanes(pugi::xml_node lanes_node) -> ast::Lanes {
   return lanes;
 }
 
+auto ParseBoundaryCoordinate(const std::string& str) -> double {
+  if (str == "begin" || str == "start") {
+    return 0.0;
+  }
+  if (str == "end") {
+    return std::numeric_limits<double>::infinity();
+  }
+  try {
+    return std::stod(str);
+  } catch (...) {
+    return 0.0;
+  }
+}
+
+auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
+  ast::JunctionBoundary boundary;
+
+  pugi::xml_node seg_node = boundary_node.child("segment");
+  while (!seg_node.empty()) {
+    ast::JunctionBoundarySegment segment;
+    std::string type_str = seg_node.attribute("type").as_string("");
+    if (type_str == "joint") {
+      segment.type = ast::JunctionSegmentType::kJoint;
+    } else {
+      segment.type = ast::JunctionSegmentType::kLane;
+    }
+
+    segment.road_id = seg_node.attribute("roadId").as_string("");
+
+    if (segment.type == ast::JunctionSegmentType::kLane) {
+      if (seg_node.attribute("boundaryLane")) {
+        segment.boundary_lane = seg_node.attribute("boundaryLane").as_int();
+      }
+      segment.s_start = ParseBoundaryCoordinate(seg_node.attribute("sStart").as_string("begin"));
+      segment.s_end = ParseBoundaryCoordinate(seg_node.attribute("sEnd").as_string("end"));
+    } else {
+      std::string cp_str = seg_node.attribute("contactPoint").as_string("start");
+      segment.contact_point = (cp_str == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
+      if (seg_node.attribute("jointLaneStart")) {
+        segment.joint_lane_start = seg_node.attribute("jointLaneStart").as_int();
+      }
+      if (seg_node.attribute("jointLaneEnd")) {
+        segment.joint_lane_end = seg_node.attribute("jointLaneEnd").as_int();
+      }
+      segment.transition_length = seg_node.attribute("transitionLength").as_double(0.0);
+    }
+
+    static const std::unordered_set<std::string> kKnownSegmentAttrs = {
+        "type",         "roadId",         "boundaryLane", "sStart",          "sEnd",
+        "contactPoint", "jointLaneStart", "jointLaneEnd", "transitionLength"};
+    segment.extensions = ParseExtensions(seg_node, kKnownSegmentAttrs);
+
+    boundary.segments.push_back(segment);
+    seg_node = seg_node.next_sibling("segment");
+  }
+
+  static const std::unordered_set<std::string> kKnownBoundaryAttrs;
+  boundary.extensions = ParseExtensions(boundary_node, kKnownBoundaryAttrs);
+
+  return boundary;
+}
+
 auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
   ast::Junction junction;
   junction.id = junction_node.attribute("id").as_string("");
@@ -343,6 +406,12 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
     junction.connections.push_back(conn);
     conn_node = conn_node.next_sibling("connection");
   }
+
+  pugi::xml_node boundary_node = junction_node.child("boundary");
+  if (!boundary_node.empty()) {
+    junction.boundary = ParseBoundary(boundary_node);
+  }
+
   static const std::unordered_set<std::string> kNownJunctionAttrs = {"id", "name", "type"};
   junction.extensions = ParseExtensions(junction_node, kNownJunctionAttrs);
   return junction;

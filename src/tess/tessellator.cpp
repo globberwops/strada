@@ -9,10 +9,158 @@
 
 namespace strada::tess {
 
+namespace {
+
+auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<uint32_t> {
+  std::vector<uint32_t> indices;
+  if (vertices.size() < 3) {
+    return indices;
+  }
+
+  size_t n = vertices.size();
+  std::vector<uint32_t> v(n);
+
+  // Compute signed area to determine winding order
+  double area = 0.0;
+  for (size_t i = 0; i < n; ++i) {
+    const auto& p1 = vertices[i];
+    const auto& p2 = vertices[(i + 1) % n];
+    area += (static_cast<double>(p1.x) * p2.y) - (static_cast<double>(p2.x) * p1.y);
+  }
+
+  // Winding order: if area is negative, we want CW, if positive CCW.
+  if (area < 0.0) {
+    for (size_t i = 0; i < n; ++i) {
+      v[i] = static_cast<uint32_t>(n - 1 - i);
+    }
+  } else {
+    for (size_t i = 0; i < n; ++i) {
+      v[i] = static_cast<uint32_t>(i);
+    }
+  }
+
+  // Helper functions inside TriangulatePolygon
+  auto inside_triangle = [](float ax, float ay, float bx, float by, float cx, float cy, float px, float py) -> bool {
+    float ax_px = ax - px;
+    float ay_py = ay - py;
+    float bx_px = bx - px;
+    float by_py = by - py;
+    float cx_px = cx - px;
+    float cy_py = cy - py;
+
+    float ccw_ab = ax_px * by_py - ay_py * bx_px;
+    float ccw_bc = bx_px * cy_py - by_py * cx_px;
+    float ccw_ca = cx_px * ay_py - cy_py * ax_px;
+
+    return (ccw_ab >= 0.0f && ccw_bc >= 0.0f && ccw_ca >= 0.0f) || (ccw_ab <= 0.0f && ccw_bc <= 0.0f && ccw_ca <= 0.0f);
+  };
+
+  auto is_ear = [&](size_t u, size_t w, size_t cv, const std::vector<uint32_t>& v_indices) -> bool {
+    const auto& a = vertices[v_indices[u]];
+    const auto& b = vertices[v_indices[w]];
+    const auto& c = vertices[v_indices[cv]];
+
+    // Check if triangle is convex (CCW)
+    float cross_product = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+    if (cross_product <= 0.0f) {
+      return false;
+    }
+
+    // Check if any other vertex is inside the triangle
+    for (size_t p = 0; p < v_indices.size(); ++p) {
+      if (p == u || p == w || p == cv) {
+        continue;
+      }
+      const auto& pt = vertices[v_indices[p]];
+      if (inside_triangle(a.x, a.y, b.x, b.y, c.x, c.y, pt.x, pt.y)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  size_t count = 2 * n;  // Prevent infinite loop on degenerate polygons
+  size_t nv = n;
+  while (nv > 2) {
+    if (count == 0) {
+      // Degenerate fallback to triangle fan to avoid hanging
+      for (size_t i = 1; i < nv - 1; ++i) {
+        indices.push_back(v[0]);
+        indices.push_back(v[i]);
+        indices.push_back(v[i + 1]);
+      }
+      return indices;
+    }
+    count--;
+
+    for (size_t i = 0; i < nv; ++i) {
+      size_t u = (i == 0) ? (nv - 1) : (i - 1);
+      size_t w = i;
+      size_t cv = (i + 1 == nv) ? 0 : (i + 1);
+
+      if (is_ear(u, w, cv, v)) {
+        indices.push_back(v[u]);
+        indices.push_back(v[w]);
+        indices.push_back(v[cv]);
+
+        v.erase(v.begin() + static_cast<std::vector<uint32_t>::difference_type>(w));
+        nv--;
+        count = 2 * nv;
+        break;
+      }
+    }
+  }
+
+  return indices;
+}
+
+}  // namespace
+
 Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error) {
   // 1. Build a temporary CompiledPhysicsModel to evaluate geometries
   auto model = cpm::CompiledPhysicsModel::Build(map);
   cpm::QueryContext ctx;
+
+  // Map AST lanes to absolute CPM LaneIds by replicating construction loop logic
+  auto get_lane_id = [&](cpm::RoadId r_id, size_t s_idx, int original_id) -> cpm::LaneId {
+    size_t absolute_lane_idx = 0;
+    bool found = false;
+    for (size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
+      const auto& r = map.roads[r_i];
+      for (size_t s_i = 0; s_i < r.lanes.sections.size(); ++s_i) {
+        const auto& sec = r.lanes.sections[s_i];
+        std::vector<int> sorted_ids;
+        sorted_ids.reserve(sec.right.size());
+        for (const auto& l : sec.right) {
+          sorted_ids.push_back(l.id);
+        }
+        for (const auto& l : sec.center) {
+          sorted_ids.push_back(l.id);
+        }
+        for (const auto& l : sec.left) {
+          sorted_ids.push_back(l.id);
+        }
+        std::ranges::sort(sorted_ids);
+
+        for (int id : sorted_ids) {
+          if (static_cast<cpm::RoadId>(r_i) == r_id && s_i == s_idx && id == original_id) {
+            found = true;
+            break;
+          }
+          if (!found) {
+            absolute_lane_idx++;
+          }
+        }
+        if (found) {
+          break;
+        }
+      }
+      if (found) {
+        break;
+      }
+    }
+    return static_cast<cpm::LaneId>(absolute_lane_idx);
+  };
 
   // 2. Loop over each road in the AST
   for (size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {
@@ -109,47 +257,6 @@ Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error)
         section_lanes.push_back(&lane);
         min_right_id = std::min(min_right_id, lane.id);
       }
-
-      // Map AST lanes to absolute CPM LaneIds by replicating construction loop logic
-      auto get_lane_id = [&](cpm::RoadId r_id, size_t s_idx, int original_id) -> cpm::LaneId {
-        size_t absolute_lane_idx = 0;
-        bool found = false;
-        for (size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
-          const auto& r = map.roads[r_i];
-          for (size_t s_i = 0; s_i < r.lanes.sections.size(); ++s_i) {
-            const auto& sec = r.lanes.sections[s_i];
-            std::vector<int> sorted_ids;
-            sorted_ids.reserve(sec.right.size());
-            for (const auto& l : sec.right) {
-              sorted_ids.push_back(l.id);
-            }
-            for (const auto& l : sec.center) {
-              sorted_ids.push_back(l.id);
-            }
-            for (const auto& l : sec.left) {
-              sorted_ids.push_back(l.id);
-            }
-            std::ranges::sort(sorted_ids);
-
-            for (int id : sorted_ids) {
-              if (static_cast<cpm::RoadId>(r_i) == r_id && s_i == s_idx && id == original_id) {
-                found = true;
-                break;
-              }
-              if (!found) {
-                absolute_lane_idx++;
-              }
-            }
-            if (found) {
-              break;
-            }
-          }
-          if (found) {
-            break;
-          }
-        }
-        return static_cast<cpm::LaneId>(absolute_lane_idx);
-      };
 
       // Generate mesh surfaces and outer boundary polylines for each lane
       for (const auto* lane_ptr : section_lanes) {
@@ -248,6 +355,115 @@ Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error)
         meshes_.push_back(mesh);
         polylines_.push_back(boundary);
       }
+    }
+  }
+
+  // --- Part C: Tessellate Junction Boundaries ---
+  for (const auto& junction : map.junctions) {
+    if (!junction.boundary.has_value()) {
+      continue;
+    }
+
+    std::vector<Vertex> loop_vertices;
+
+    for (const auto& segment : junction.boundary->segments) {
+      // Find road index
+      size_t road_idx = 0;
+      bool found_road = false;
+      for (size_t i = 0; i < map.roads.size(); ++i) {
+        if (map.roads[i].id == segment.road_id) {
+          road_idx = i;
+          found_road = true;
+          break;
+        }
+      }
+
+      if (!found_road) {
+        continue;
+      }
+
+      const auto& road = map.roads[road_idx];
+      auto road_id = static_cast<cpm::RoadId>(road_idx);
+
+      if (segment.type == ast::JunctionSegmentType::kLane) {
+        if (!segment.boundary_lane.has_value()) {
+          continue;
+        }
+        int bl = *segment.boundary_lane;
+        double start_s = segment.s_start;
+        double end_s = segment.s_end;
+        if (std::isinf(end_s)) {
+          end_s = road.length;
+        }
+
+        double seg_len = std::abs(end_s - start_s);
+        double ds = std::clamp(chord_error * 5.0, 0.5, 2.0);
+        size_t num_steps = static_cast<size_t>(std::ceil(seg_len / ds));
+        num_steps = std::max<size_t>(num_steps, 2);
+
+        for (size_t k = 0; k <= num_steps; ++k) {
+          double s = start_s + (static_cast<double>(k) * (end_s - start_s) / num_steps);
+
+          // Find active lane section at s
+          size_t s_idx = 0;
+          for (size_t idx = 0; idx < road.lanes.sections.size(); ++idx) {
+            if (s >= road.lanes.sections[idx].s) {
+              s_idx = idx;
+            } else {
+              break;
+            }
+          }
+
+          auto lane_id = get_lane_id(road_id, s_idx, bl);
+          double w = model.LaneWidth(lane_id, s);
+
+          cpm::LanePose lp = {.s = s,
+                              .t = (bl > 0) ? (0.5 * w) : (-0.5 * w),
+                              .h = 0.0,
+                              .heading = 0.0,
+                              .pitch = 0.0,
+                              .roll = 0.0,
+                              .road = road_id,
+                              .lane = lane_id};
+          cpm::RoadPose rp = model.LaneToRoad(lp, ctx);
+          cpm::InertialPose ip = model.RoadToInertial(rp, ctx);
+
+          loop_vertices.push_back(
+              Vertex{.x = static_cast<float>(ip.x), .y = static_cast<float>(ip.y), .z = static_cast<float>(ip.z)});
+        }
+      } else {
+        // Slice 2: Joint boundaries will be implemented in the next ticket.
+      }
+    }
+
+    // Deduplicate adjacent identical vertices
+    if (loop_vertices.size() > 1) {
+      auto it = std::unique(loop_vertices.begin(), loop_vertices.end(), [](const Vertex& a, const Vertex& b) noexcept {
+        return std::abs(a.x - b.x) < 1e-4f && std::abs(a.y - b.y) < 1e-4f && std::abs(a.z - b.z) < 1e-4f;
+      });
+      loop_vertices.erase(it, loop_vertices.end());
+
+      // If the last vertex is identical to the first, remove it to make the loop strictly open-ended
+      if (loop_vertices.size() > 2) {
+        const auto& first = loop_vertices.front();
+        const auto& last = loop_vertices.back();
+        if (std::abs(first.x - last.x) < 1e-4f && std::abs(first.y - last.y) < 1e-4f &&
+            std::abs(first.z - last.z) < 1e-4f) {
+          loop_vertices.pop_back();
+        }
+      }
+    }
+
+    if (loop_vertices.size() >= 3) {
+      JunctionBoundaryGeometry geom;
+      geom.junction_id = junction.id;
+      geom.outline_vertices = loop_vertices;
+      geom.outline_vertices.push_back(loop_vertices.front());
+
+      geom.vertices = loop_vertices;
+      geom.indices = TriangulatePolygon(loop_vertices);
+
+      junction_boundaries_.push_back(geom);
     }
   }
 }

@@ -34,6 +34,14 @@ struct Polyline {
   std::string marking_type;       ///< Styling description of the marking (e.g., "solid", "broken", "none").
 };
 
+/// Represents the compiled 3D triangulation and outline of a junction boundary.
+struct JunctionBoundaryGeometry {
+  std::vector<Vertex> vertices;          ///< Triangulated surface vertices of the boundary area.
+  std::vector<std::uint32_t> indices;    ///< Triangulation indices.
+  std::vector<Vertex> outline_vertices;  ///< Winding outline vertices (closed loop).
+  std::string junction_id;               ///< ID of the parent junction.
+};
+
 /// Holds the output layers of tessellated road network geometries.
 class Tessellator {
  public:
@@ -58,9 +66,15 @@ class Tessellator {
   /// Returns the flat list of generated boundary polylines.
   [[nodiscard]] auto Polylines() const noexcept -> const std::vector<Polyline>& { return polylines_; }
 
+  /// Returns the flat list of generated junction boundary geometries.
+  [[nodiscard]] auto JunctionBoundaries() const noexcept -> const std::vector<JunctionBoundaryGeometry>& {
+    return junction_boundaries_;
+  }
+
  private:
   std::vector<Mesh> meshes_;
   std::vector<Polyline> polylines_;
+  std::vector<JunctionBoundaryGeometry> junction_boundaries_;
 };
 
 }  // namespace strada::tess

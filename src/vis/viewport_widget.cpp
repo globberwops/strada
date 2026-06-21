@@ -26,6 +26,11 @@ ViewportWidget::~ViewportWidget() {
   lines_vbo_.destroy();
   grid_vao_.destroy();
   grid_vbo_.destroy();
+  boundaries_vao_.destroy();
+  boundaries_vbo_.destroy();
+  boundaries_ibo_.destroy();
+  boundary_lines_vao_.destroy();
+  boundary_lines_vbo_.destroy();
   doneCurrent();
 }
 
@@ -124,6 +129,13 @@ void ViewportWidget::initializeGL() {
 
   grid_vao_.create();
   grid_vbo_.create();
+
+  boundaries_vao_.create();
+  boundaries_vbo_.create();
+  boundaries_ibo_.create();
+
+  boundary_lines_vao_.create();
+  boundary_lines_vbo_.create();
 }
 
 void ViewportWidget::resizeGL(int w, int h) {
@@ -137,6 +149,8 @@ void ViewportWidget::paintGL() {
   if (geometry_dirty_) {
     SetupTriangles();
     SetupLines();
+    SetupBoundaries();
+    SetupBoundaryLines();
     geometry_dirty_ = false;
   }
 
@@ -152,6 +166,21 @@ void ViewportWidget::paintGL() {
   glDepthMask(GL_TRUE);
   glEnable(GL_DEPTH_TEST);
 
+  // Draw Filled Junction Boundaries in the background (below lane meshes)
+  if (show_junction_boundaries_ && !geometry_.boundary_triangle_indices.empty()) {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    shader_program_.setUniformValue("useOverrideColor", true);
+    shader_program_.setUniformValue("overrideColor",
+                                    QVector4D(245.0f / 255.0f, 197.0f / 255.0f, 61.0f / 255.0f, 0.12f));
+    boundaries_vao_.bind();
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(geometry_.boundary_triangle_indices.size()), GL_UNSIGNED_INT,
+                   nullptr);
+    boundaries_vao_.release();
+    shader_program_.setUniformValue("useOverrideColor", false);
+    glDisable(GL_BLEND);
+  }
+
   // 1. Draw Road Surface Meshes in a Single batched call
   if (!geometry_.triangle_indices.empty()) {
     triangles_vao_.bind();
@@ -166,6 +195,22 @@ void ViewportWidget::paintGL() {
     glLineWidth(2.0f);
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.line_vertices.size()));
     lines_vao_.release();
+    glEnable(GL_DEPTH_TEST);
+  }
+
+  // Draw Junction Boundary Outline Borders
+  if (show_junction_boundaries_ && !geometry_.boundary_line_vertices.empty()) {
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    shader_program_.setUniformValue("useOverrideColor", true);
+    shader_program_.setUniformValue("overrideColor", QVector4D(245.0f / 255.0f, 197.0f / 255.0f, 61.0f / 255.0f, 0.7f));
+    boundary_lines_vao_.bind();
+    glLineWidth(1.5f);
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.boundary_line_vertices.size()));
+    boundary_lines_vao_.release();
+    shader_program_.setUniformValue("useOverrideColor", false);
+    glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
   }
 
@@ -363,6 +408,47 @@ void ViewportWidget::SetupLines() {
   shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
 
   lines_vao_.release();
+}
+
+void ViewportWidget::SetupBoundaries() {
+  boundaries_vao_.bind();
+
+  // Load vertices
+  boundaries_vbo_.bind();
+  boundaries_vbo_.allocate(geometry_.boundary_triangle_vertices.data(),
+                           static_cast<int>(geometry_.boundary_triangle_vertices.size() * sizeof(Vertex)));
+
+  // Load indices
+  boundaries_ibo_.bind();
+  boundaries_ibo_.allocate(geometry_.boundary_triangle_indices.data(),
+                           static_cast<int>(geometry_.boundary_triangle_indices.size() * sizeof(std::uint32_t)));
+
+  // Set attribute locations
+  shader_program_.enableAttributeArray(0);
+  shader_program_.setAttributeBuffer(0, GL_FLOAT, offsetof(Vertex, x), 3, sizeof(Vertex));
+
+  shader_program_.enableAttributeArray(1);
+  shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
+
+  boundaries_vao_.release();
+}
+
+void ViewportWidget::SetupBoundaryLines() {
+  boundary_lines_vao_.bind();
+
+  // Load line vertices
+  boundary_lines_vbo_.bind();
+  boundary_lines_vbo_.allocate(geometry_.boundary_line_vertices.data(),
+                               static_cast<int>(geometry_.boundary_line_vertices.size() * sizeof(Vertex)));
+
+  // Set attribute locations
+  shader_program_.enableAttributeArray(0);
+  shader_program_.setAttributeBuffer(0, GL_FLOAT, offsetof(Vertex, x), 3, sizeof(Vertex));
+
+  shader_program_.enableAttributeArray(1);
+  shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
+
+  boundary_lines_vao_.release();
 }
 
 void ViewportWidget::mousePressEvent(QMouseEvent* event) {

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <strada/parser/parser.hpp>
@@ -258,6 +259,42 @@ TEST(ParserTest, ParseJunctions) {
   ASSERT_EQ(conn1.lane_links.size(), 1);
   EXPECT_EQ(conn1.lane_links[0].from, 1);
   EXPECT_EQ(conn1.lane_links[0].to, 1);
+}
+
+TEST(ParserTest, ParseJunctionBoundary) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "junction_boundary.xodr");
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(xml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.junctions.size(), 1);
+  const auto& junction = ast_tree.junctions[0];
+  EXPECT_EQ(junction.id, "1");
+
+  ASSERT_TRUE(junction.boundary.has_value());
+  const auto& boundary = *junction.boundary;
+  ASSERT_EQ(boundary.segments.size(), 2);
+
+  // segment type="lane" roadId="8" boundaryLane="-2" sStart="begin" sEnd="end"
+  const auto& seg0 = boundary.segments[0];
+  EXPECT_EQ(seg0.type, strada::ast::JunctionSegmentType::kLane);
+  EXPECT_EQ(seg0.road_id, "8");
+  ASSERT_TRUE(seg0.boundary_lane.has_value());
+  EXPECT_EQ(*seg0.boundary_lane, -2);
+  EXPECT_DOUBLE_EQ(seg0.s_start, 0.0);
+  EXPECT_TRUE(std::isinf(seg0.s_end));
+
+  // segment type="lane" roadId="32" boundaryLane="-2" sStart="begin" sEnd="40.0"
+  const auto& seg1 = boundary.segments[1];
+  EXPECT_EQ(seg1.type, strada::ast::JunctionSegmentType::kLane);
+  EXPECT_EQ(seg1.road_id, "32");
+  ASSERT_TRUE(seg1.boundary_lane.has_value());
+  EXPECT_EQ(*seg1.boundary_lane, -2);
+  EXPECT_DOUBLE_EQ(seg1.s_start, 0.0);
+  EXPECT_DOUBLE_EQ(seg1.s_end, 40.0);
 }
 
 TEST(ParserTest, ParseExtensions) {

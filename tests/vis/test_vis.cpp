@@ -2,7 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#include <filesystem>
+#include <strada/parser/parser.hpp>
 #include <strada/vis/geometry_batcher.hpp>
+
+#ifndef STRADA_TEST_DATA_DIR
+#define STRADA_TEST_DATA_DIR "tests/data"
+#endif
 
 namespace strada::vis {
 
@@ -210,6 +216,28 @@ TEST(VisTest, MeshRangeTracking) {
   EXPECT_EQ(range.lane_id, tess.Meshes()[0].lane_id);
   EXPECT_EQ(range.index_start, 0);
   EXPECT_EQ(range.index_count, tess.Meshes()[0].indices.size());
+}
+
+TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
+  // Arrange
+  auto map_path = std::filesystem::path(STRADA_TEST_DATA_DIR) / "junction_boundary.xodr";
+  auto map = parser::ParseFile(map_path);
+
+  // Act
+  tess::Tessellator tess(map, 0.5);
+  auto batched = BatchMapGeometry(tess);
+
+  // Assert
+  EXPECT_FALSE(batched.boundary_triangle_vertices.empty());
+  EXPECT_FALSE(batched.boundary_triangle_indices.empty());
+  EXPECT_FALSE(batched.boundary_line_vertices.empty());
+
+  // Check color matches amber (245, 197, 61)
+  for (const auto& v : batched.boundary_triangle_vertices) {
+    EXPECT_NEAR(v.r, 245.0f / 255.0f, 1e-4f);
+    EXPECT_NEAR(v.g, 197.0f / 255.0f, 1e-4f);
+    EXPECT_NEAR(v.b, 61.0f / 255.0f, 1e-4f);
+  }
 }
 
 }  // namespace strada::vis

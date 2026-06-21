@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Junction Boundary Test Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor">
+        <geoReference><![CDATA[+proj=utm +zone=32 +datum=WGS84]]></geoReference>
+    </header>
+    <road id="8" length="100.0" junction="-1">
+        <planView>
+            <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line /></geometry>
+        </planView>
+        <lanes>
+            <laneSection s="0.0">
+                <center>
+                    <lane id="0" type="border" level="false"/>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <width sOffset="0.0" a="3.0" b="0.0" c="0.0" d="0.0"/>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <width sOffset="0.0" a="4.0" b="0.0" c="0.0" d="0.0"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+    </road>
+    <road id="32" length="50.0" junction="-1">
+        <planView>
+            <geometry s="0.0" x="0.0" y="100.0" hdg="1.57079632679" length="50.0"><line /></geometry>
+        </planView>
+        <lanes>
+            <laneSection s="0.0">
+                <center>
+                    <lane id="0" type="border" level="false"/>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <width sOffset="0.0" a="3.0" b="0.0" c="0.0" d="0.0"/>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <width sOffset="0.0" a="4.0" b="0.0" c="0.0" d="0.0"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+    </road>
+    <junction id="1" name="Main Junction" type="default">
+        <connection id="0" incomingRoad="8" connectingRoad="32" contactPoint="start">
+            <laneLink from="-1" to="-1" />
+        </connection>
+        <boundary>
+            <segment type="lane" roadId="8" boundaryLane="-2" sStart="begin" sEnd="end"/>
+            <segment type="lane" roadId="32" boundaryLane="-2" sStart="begin" sEnd="40.0"/>
+        </boundary>
+    </junction>
+</OpenDRIVE>
