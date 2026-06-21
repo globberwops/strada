@@ -12,6 +12,7 @@ target_sources(
           cpm/lane_network.cpp
           tess/tessellator.cpp
           vis/geometry_batcher.cpp
+          vis/camera.cpp
   PUBLIC FILE_SET
          HEADERS
          BASE_DIRS
@@ -34,7 +35,10 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/elevation_profile.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/lane_network.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/tess/tessellator.hpp
-         ${PROJECT_SOURCE_DIR}/include/strada/vis/geometry_batcher.hpp)
+         ${PROJECT_SOURCE_DIR}/include/strada/vis/geometry_batcher.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/vis/camera.hpp)
 
-target_link_libraries(strada PRIVATE pugixml)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui)
+
+target_link_libraries(strada PRIVATE pugixml PUBLIC Qt6::Core Qt6::Gui)
 

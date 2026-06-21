@@ -2,13 +2,16 @@
 
 #include "viewport_widget.hpp"
 
+#include <QKeyEvent>
 #include <QMatrix4x4>
+#include <QMouseEvent>
+#include <QWheelEvent>
 #include <algorithm>
 #include <limits>
 
 namespace strada::vis {
 
-ViewportWidget::ViewportWidget(QWidget* parent) : QOpenGLWidget(parent) {}
+ViewportWidget::ViewportWidget(QWidget* parent) : QOpenGLWidget(parent) { setFocusPolicy(Qt::StrongFocus); }
 
 ViewportWidget::~ViewportWidget() {
   makeCurrent();
@@ -45,16 +48,16 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry) {
   }
 
   if (max_x >= min_x && max_y >= min_y) {
-    camera_x_ = 0.5f * (min_x + max_x);
-    camera_y_ = 0.5f * (min_y + max_y);
+    camera_.camera_x = 0.5f * (min_x + max_x);
+    camera_.camera_y = 0.5f * (min_y + max_y);
 
     float dx = max_x - min_x;
     float dy = max_y - min_y;
     float max_dim = std::max(dx, dy);
     if (max_dim > 0.0f) {
-      zoom_ = 300.0f / max_dim;
+      camera_.zoom = 300.0f / max_dim;
     } else {
-      zoom_ = 10.0f;
+      camera_.zoom = 10.0f;
     }
   }
 
@@ -105,7 +108,10 @@ void ViewportWidget::initializeGL() {
   lines_vbo_.create();
 }
 
-void ViewportWidget::resizeGL(int w, int h) { glViewport(0, 0, w, h); }
+void ViewportWidget::resizeGL(int w, int h) {
+  glViewport(0, 0, w, h);
+  camera_.SetViewport(w, h);
+}
 
 void ViewportWidget::paintGL() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -118,18 +124,8 @@ void ViewportWidget::paintGL() {
 
   shader_program_.bind();
 
-  // Calculate Matrices
-  QMatrix4x4 projection;
-  projection.ortho(-static_cast<float>(width()) / 2.0f, static_cast<float>(width()) / 2.0f,
-                   -static_cast<float>(height()) / 2.0f, static_cast<float>(height()) / 2.0f, -100.0f, 100.0f);
-
-  QMatrix4x4 view;
-  view.scale(zoom_);
-  view.rotate(rotation_, 0.0f, 0.0f, 1.0f);
-  view.translate(-camera_x_, -camera_y_, 0.0f);
-
-  shader_program_.setUniformValue("projection", projection);
-  shader_program_.setUniformValue("view", view);
+  shader_program_.setUniformValue("projection", camera_.GetProjectionMatrix());
+  shader_program_.setUniformValue("view", camera_.GetViewMatrix());
 
   // 1. Draw Road Surface Meshes in a Single batched call
   if (!geometry_.triangle_indices.empty()) {
@@ -188,6 +184,72 @@ void ViewportWidget::SetupLines() {
   shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
 
   lines_vao_.release();
+}
+
+void ViewportWidget::mousePressEvent(QMouseEvent* event) {
+  last_mouse_pos_ = event->pos();
+  setFocus();
+}
+
+void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
+  QPoint delta = event->pos() - last_mouse_pos_;
+  last_mouse_pos_ = event->pos();
+
+  if (event->buttons() & Qt::LeftButton) {
+    camera_.Pan(static_cast<float>(delta.x()), static_cast<float>(delta.y()));
+    update();
+  } else if (event->buttons() & Qt::RightButton) {
+    camera_.Rotate(static_cast<float>(delta.x()) * 0.5f);
+    update();
+  }
+}
+
+void ViewportWidget::wheelEvent(QWheelEvent* event) {
+  QPoint num_pixels = event->pixelDelta();
+  QPoint num_degrees = event->angleDelta() / 8;
+
+  float factor = 1.0f;
+  if (!num_pixels.isNull()) {
+    factor = 1.0f + (static_cast<float>(num_pixels.y()) * 0.005f);
+  } else if (!num_degrees.isNull()) {
+    factor = 1.0f + (static_cast<float>(num_degrees.y()) / 120.0f * 0.1f);
+  }
+
+  camera_.ZoomAt(static_cast<float>(event->position().x()), static_cast<float>(event->position().y()), factor);
+  update();
+}
+
+void ViewportWidget::keyPressEvent(QKeyEvent* event) {
+  if (event->key() == Qt::Key_R) {
+    camera_.Reset();
+    float min_x = std::numeric_limits<float>::max();
+    float max_x = std::numeric_limits<float>::lowest();
+    float min_y = std::numeric_limits<float>::max();
+    float max_y = std::numeric_limits<float>::lowest();
+    for (const auto& v : geometry_.triangle_vertices) {
+      min_x = std::min(min_x, v.x);
+      max_x = std::max(max_x, v.x);
+      min_y = std::min(min_y, v.y);
+      max_y = std::max(max_y, v.y);
+    }
+    for (const auto& v : geometry_.line_vertices) {
+      min_x = std::min(min_x, v.x);
+      max_x = std::max(max_x, v.x);
+      min_y = std::min(min_y, v.y);
+      max_y = std::max(max_y, v.y);
+    }
+    if (max_x >= min_x && max_y >= min_y) {
+      camera_.camera_x = 0.5f * (min_x + max_x);
+      camera_.camera_y = 0.5f * (min_y + max_y);
+      float dx = max_x - min_x;
+      float dy = max_y - min_y;
+      float max_dim = std::max(dx, dy);
+      if (max_dim > 0.0f) {
+        camera_.zoom = 300.0f / max_dim;
+      }
+    }
+    update();
+  }
 }
 
 }  // namespace strada::vis
