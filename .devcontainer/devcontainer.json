@@ -12,7 +12,7 @@
       "configureZshAsDefaultShell": true,
       "username": "ubuntu"
     },
-    "ghcr.io/devcontainers/features/node:2": {
+    "ghcr.io/devcontainers/features/node:2.1.0": {
       "version": "lts"
     }
   },
