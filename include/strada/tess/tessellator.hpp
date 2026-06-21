@@ -7,6 +7,11 @@
 #include <string>
 #include <vector>
 
+namespace strada::cpm {
+class CompiledPhysicsModel;
+struct QueryContext;
+}  // namespace strada::cpm
+
 namespace strada::tess {
 
 /// Represents a 3D vertex position using 32-bit floats for GPU rendering efficiency.
@@ -72,6 +77,21 @@ class Tessellator {
   }
 
  private:
+  [[nodiscard]] auto ResolveLaneId(const ast::AbstractSyntaxTree& map, cpm::RoadId road_idx, std::size_t section_idx,
+                                   int original_lane_id) const -> cpm::LaneId;
+
+  [[nodiscard]] auto ComputeSamplingStations(const ast::Road& road, double chord_error) const -> std::vector<double>;
+
+  void TessellateReferenceLine(cpm::RoadId road_id, const std::vector<double>& stations,
+                               const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx);
+
+  void TessellateLaneSections(const ast::Road& road, cpm::RoadId road_id, const std::vector<double>& stations,
+                              const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx,
+                              const ast::AbstractSyntaxTree& map);
+
+  void TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& map, const cpm::CompiledPhysicsModel& model,
+                                    cpm::QueryContext& ctx, double chord_error);
+
   std::vector<Mesh> meshes_;
   std::vector<Polyline> polylines_;
   std::vector<JunctionBoundaryGeometry> junction_boundaries_;

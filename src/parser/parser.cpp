@@ -347,7 +347,7 @@ auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
     segment.road_id = seg_node.attribute("roadId").as_string("");
 
     if (segment.type == ast::JunctionSegmentType::kLane) {
-      if (seg_node.attribute("boundaryLane")) {
+      if (seg_node.attribute("boundaryLane") != nullptr) {
         segment.boundary_lane = seg_node.attribute("boundaryLane").as_int();
       }
       segment.s_start = ParseBoundaryCoordinate(seg_node.attribute("sStart").as_string("begin"));
@@ -355,10 +355,10 @@ auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
     } else {
       std::string cp_str = seg_node.attribute("contactPoint").as_string("start");
       segment.contact_point = (cp_str == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
-      if (seg_node.attribute("jointLaneStart")) {
+      if (seg_node.attribute("jointLaneStart") != nullptr) {
         segment.joint_lane_start = seg_node.attribute("jointLaneStart").as_int();
       }
-      if (seg_node.attribute("jointLaneEnd")) {
+      if (seg_node.attribute("jointLaneEnd") != nullptr) {
         segment.joint_lane_end = seg_node.attribute("jointLaneEnd").as_int();
       }
       segment.transition_length = seg_node.attribute("transitionLength").as_double(0.0);

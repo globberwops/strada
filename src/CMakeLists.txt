@@ -11,6 +11,7 @@ target_sources(
           cpm/elevation_profile.cpp
           cpm/lane_network.cpp
           tess/tessellator.cpp
+          tess/triangulation.cpp
   PUBLIC FILE_SET
          HEADERS
          BASE_DIRS
