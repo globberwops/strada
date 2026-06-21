@@ -273,7 +273,7 @@ class UrlFrobber {
 
 ### Implementation File: `frobber.cc`
 ```cpp
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: BSL-1.0
 
 #include "my_project/my_component/frobber.h"
 
