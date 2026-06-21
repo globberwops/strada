@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSL-1.0
 
-#include "visualizer_window.hpp"
+#include <strada/vis/visualizer_window.hpp>
 
 #include <QFileInfo>
 #include <QStatusBar>
@@ -8,7 +8,7 @@
 #include <strada/parser/parser.hpp>
 #include <strada/tess/tessellator.hpp>
 
-#include "viewport_widget.hpp"
+#include <strada/vis/viewport_widget.hpp>
 
 namespace strada::vis {
 

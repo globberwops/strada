@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSL-1.0
 
-#include "viewport_widget.hpp"
+#include <strada/vis/viewport_widget.hpp>
 
 #include <QKeyEvent>
 #include <QMatrix4x4>

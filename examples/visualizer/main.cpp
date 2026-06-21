@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <iostream>
 
-#include "visualizer_window.hpp"
+#include <strada/vis/visualizer_window.hpp>
 
 int main(int argc, char* argv[]) {
   QApplication app(argc, argv);
