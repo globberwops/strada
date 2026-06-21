@@ -130,15 +130,19 @@ TEST(VisTest, BatchMapGeometryLines) {
   // For each polyline of M vertices, we generate 2*(M-1) vertices for GL_LINES
   size_t expected_line_verts = 0;
   for (const auto& poly : tess.Polylines()) {
-    expected_line_verts += 2 * (poly.vertices.size() - 1);
+    if (poly.is_reference_line) {
+      expected_line_verts += 2 * (poly.vertices.size() - 1);
+    }
   }
   EXPECT_EQ(batched.line_vertices.size(), expected_line_verts);
 
   // Check line segment pairings and colors
-  // Reference line color (solid) is yellow, boundary marking is white
+  // Only the reference line should be present (yellow)
   size_t idx = 0;
   for (const auto& poly : tess.Polylines()) {
-    bool is_ref = poly.is_reference_line;
+    if (!poly.is_reference_line) {
+      continue;
+    }
     for (size_t i = 0; i < poly.vertices.size() - 1; ++i) {
       const auto& v_start = batched.line_vertices[idx++];
       const auto& v_end = batched.line_vertices[idx++];
@@ -147,17 +151,10 @@ TEST(VisTest, BatchMapGeometryLines) {
       EXPECT_NEAR(v_start.x, poly.vertices[i].x, 1e-4f);
       EXPECT_NEAR(v_end.x, poly.vertices[i + 1].x, 1e-4f);
 
-      if (is_ref) {
-        // Yellow color
-        EXPECT_NEAR(v_start.r, 245.0f / 255.0f, 1e-2f);
-        EXPECT_NEAR(v_start.g, 197.0f / 255.0f, 1e-2f);
-        EXPECT_NEAR(v_start.b, 61.0f / 255.0f, 1e-2f);
-      } else {
-        // White color
-        EXPECT_NEAR(v_start.r, 230.0f / 255.0f, 1e-2f);
-        EXPECT_NEAR(v_start.g, 230.0f / 255.0f, 1e-2f);
-        EXPECT_NEAR(v_start.b, 230.0f / 255.0f, 1e-2f);
-      }
+      // Yellow color
+      EXPECT_NEAR(v_start.r, 245.0f / 255.0f, 1e-2f);
+      EXPECT_NEAR(v_start.g, 197.0f / 255.0f, 1e-2f);
+      EXPECT_NEAR(v_start.b, 61.0f / 255.0f, 1e-2f);
     }
   }
 }

@@ -45,8 +45,11 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
 
   // 2. Batch polylines for GL_LINES
   for (const auto& poly : tess.Polylines()) {
-    Color line_color = poly.is_reference_line ? Color{245.0f / 255.0f, 197.0f / 255.0f, 61.0f / 255.0f}
-                                              : Color{230.0f / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f};
+    if (!poly.is_reference_line) {
+      continue;
+    }
+
+    Color line_color = Color{245.0f / 255.0f, 197.0f / 255.0f, 61.0f / 255.0f};
 
     if (poly.vertices.size() < 2) {
       continue;
