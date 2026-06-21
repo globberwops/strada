@@ -161,10 +161,12 @@ void ViewportWidget::paintGL() {
 
   // 2. Draw Boundaries/Markings in a Single batched call
   if (!geometry_.line_vertices.empty()) {
+    glDisable(GL_DEPTH_TEST);
     lines_vao_.bind();
     glLineWidth(2.0f);
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.line_vertices.size()));
     lines_vao_.release();
+    glEnable(GL_DEPTH_TEST);
   }
 
   // 3. Draw Hover Highlight Overlay
