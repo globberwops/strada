@@ -183,56 +183,128 @@ void ViewportWidget::paintGL() {
 
   shader_program_.release();
 
-  // 4. Draw QPainter HUD overlay
-  if (has_model_ && hovered_pose_) {
+  // 4. Draw QPainter overlays (HUD, Compass, Scale Bar)
+  {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // Draw dark glassmorphic card container in the top-left corner
-    QRect rect(20, 20, 260, 110);
-    painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
-    painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
-    painter.drawRoundedRect(rect, 8.0, 8.0);
+    // Draw Lane Inspector HUD card if hovered
+    if (has_model_ && hovered_pose_) {
+      // Draw dark glassmorphic card container in the top-left corner
+      QRect rect(20, 20, 260, 110);
+      painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
+      painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+      painter.drawRoundedRect(rect, 8.0, 8.0);
 
-    // Setup font
-    QFont font("Segoe UI", 10);
-    painter.setFont(font);
+      // Setup font
+      QFont font("Segoe UI", 10);
+      painter.setFont(font);
 
-    // Draw details
-    int x_offset = 35;
-    int y_offset = 45;
-    int line_height = 22;
+      // Draw details
+      int x_offset = 35;
+      int y_offset = 45;
+      int line_height = 22;
 
-    // Header / Title
-    font.setBold(true);
-    painter.setFont(font);
-    painter.setPen(QColor(255, 204, 0));  // Gold title color matching highlight
-    painter.drawText(x_offset, y_offset, "LANE INSPECTOR");
+      // Header / Title
+      font.setBold(true);
+      painter.setFont(font);
+      painter.setPen(QColor(255, 204, 0));  // Gold title color matching highlight
+      painter.drawText(x_offset, y_offset, "LANE INSPECTOR");
 
-    font.setBold(false);
-    painter.setFont(font);
-    y_offset += line_height;
+      font.setBold(false);
+      painter.setFont(font);
+      y_offset += line_height;
 
-    // Road ID
-    painter.setPen(QColor(160, 170, 184));
-    painter.drawText(x_offset, y_offset, "Road ID:");
-    painter.setPen(Qt::white);
-    painter.drawText(x_offset + 70, y_offset, QString::fromStdString(hovered_road_name_));
-    y_offset += line_height;
+      // Road ID
+      painter.setPen(QColor(160, 170, 184));
+      painter.drawText(x_offset, y_offset, "Road ID:");
+      painter.setPen(Qt::white);
+      painter.drawText(x_offset + 70, y_offset, QString::fromStdString(hovered_road_name_));
+      y_offset += line_height;
 
-    // Lane ID
-    painter.setPen(QColor(160, 170, 184));
-    painter.drawText(x_offset, y_offset, "Lane ID:");
-    painter.setPen(Qt::white);
-    painter.drawText(x_offset + 70, y_offset, QString::number(hovered_lane_original_id_));
-    y_offset += line_height;
+      // Lane ID
+      painter.setPen(QColor(160, 170, 184));
+      painter.drawText(x_offset, y_offset, "Lane ID:");
+      painter.setPen(Qt::white);
+      painter.drawText(x_offset + 70, y_offset, QString::number(hovered_lane_original_id_));
+      y_offset += line_height;
 
-    // Coordinates (s, t)
-    painter.setPen(QColor(160, 170, 184));
-    painter.drawText(x_offset, y_offset, "Track (s, t):");
-    painter.setPen(QColor(100, 181, 246));  // Light blue for values
-    QString coords = QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
-    painter.drawText(x_offset + 85, y_offset, coords);
+      // Coordinates (s, t)
+      painter.setPen(QColor(160, 170, 184));
+      painter.drawText(x_offset, y_offset, "Track (s, t):");
+      painter.setPen(QColor(100, 181, 246));  // Light blue for values
+      QString coords = QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
+      painter.drawText(x_offset + 85, y_offset, coords);
+    }
+
+    // 5. Draw Compass Gizmo in the top-right corner
+    {
+      int cx = width() - 50;
+      int cy = 50;
+
+      // Draw dark glassmorphic circular background
+      painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
+      painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+      painter.drawEllipse(QPoint(cx, cy), 28, 28);
+
+      // Save painter state to apply rotation
+      painter.save();
+      painter.translate(cx, cy);
+      painter.rotate(-camera_.rotation);
+
+      // Draw East axis (positive X) - Slate Blue / Premium Cyan
+      painter.setPen(QPen(QColor(100, 181, 246, 255), 2));
+      painter.drawLine(0, 0, 20, 0);
+
+      // Draw North axis (positive Y, which is up, so -20 in QPainter screen Y) - Red / Premium Coral
+      painter.setPen(QPen(QColor(255, 110, 110, 255), 2));
+      painter.drawLine(0, 0, 0, -20);
+
+      // Draw Labels E and N
+      QFont font("Segoe UI", 9, QFont::Bold);
+      painter.setFont(font);
+
+      // E Label
+      painter.setPen(QColor(100, 181, 246));
+      painter.drawText(QRect(22, -8, 16, 16), Qt::AlignCenter, "E");
+
+      // N Label
+      painter.setPen(QColor(255, 110, 110));
+      painter.drawText(QRect(-8, -36, 16, 16), Qt::AlignCenter, "N");
+
+      painter.restore();
+    }
+
+    // 6. Draw Geographical Scale Bar in the bottom-left corner
+    {
+      double scale_length = CalculateScaleLength(camera_.zoom);
+      double S = scale_length * camera_.zoom;  // Width on screen
+
+      int num_segments = 4;
+      double seg_w = S / num_segments;
+      for (int i = 0; i < num_segments; ++i) {
+        QRectF seg_rect(20 + i * seg_w, height() - 35, seg_w, 8);
+        if (i % 2 == 0) {
+          painter.setBrush(QBrush(QColor(26, 29, 36)));  // Filled dark
+        } else {
+          painter.setBrush(QBrush(QColor(240, 240, 240)));  // Light segment
+        }
+        painter.setPen(QPen(QColor(240, 240, 240), 1));  // White border for contrast
+        painter.drawRect(seg_rect);
+      }
+
+      // Draw text label centered above the scale bar
+      painter.setPen(QColor(240, 240, 240));
+      QFont font("Segoe UI", 9, QFont::Bold);
+      painter.setFont(font);
+      QString label;
+      if (scale_length >= 1000.0) {
+        label = QString("%1 km").arg(scale_length / 1000.0);
+      } else {
+        label = QString("%1 m").arg(scale_length);
+      }
+      painter.drawText(QRectF(20, height() - 55, S, 15), Qt::AlignCenter, label);
+    }
   }
 }
 

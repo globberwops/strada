@@ -2,6 +2,9 @@
 
 #include <strada/vis/camera.hpp>
 
+#include <cmath>
+#include <limits>
+
 namespace strada::vis {
 
 void Camera::Reset() noexcept {
@@ -108,6 +111,61 @@ auto Camera::GetViewMatrix() const noexcept -> QMatrix4x4 {
   view.rotate(rotation, 0.0f, 0.0f, 1.0f);
   view.translate(-camera_x, -camera_y, 0.0f);
   return view;
+}
+
+auto CalculateScaleLength(double zoom) noexcept -> double {
+  if (zoom <= 0.0) {
+    return 1.0;
+  }
+  // Candidates in one decade
+  const double factors[] = {1.0, 1.5, 2.0, 3.0, 5.0, 7.5};
+
+  // Find a starting decade
+  double l_ideal = 115.0 / zoom;
+  double exponent = std::floor(std::log10(l_ideal));
+  double base = std::pow(10.0, exponent);
+
+  // Search across three decades around the ideal to find the one
+  // that results in a screen width strictly within [80, 150].
+  // If multiple do, pick the one closest to 115 pixels.
+  double best_val = 0.0;
+  double best_dist_to_ideal = std::numeric_limits<double>::max();
+  bool found_in_range = false;
+
+  for (int decade = -1; decade <= 1; ++decade) {
+    double scale_mult = base * std::pow(10.0, decade);
+    for (double f : factors) {
+      double candidate = f * scale_mult;
+      double width = candidate * zoom;
+      if (width >= 80.0 && width <= 150.0) {
+        found_in_range = true;
+        double dist = std::abs(width - 115.0);
+        if (dist < best_dist_to_ideal) {
+          best_dist_to_ideal = dist;
+          best_val = candidate;
+        }
+      }
+    }
+  }
+
+  // Fallback if none is strictly in range (mathematically shouldn't happen with these factors)
+  if (!found_in_range) {
+    double min_diff = std::numeric_limits<double>::max();
+    for (int decade = -2; decade <= 2; ++decade) {
+      double scale_mult = base * std::pow(10.0, decade);
+      for (double f : factors) {
+        double candidate = f * scale_mult;
+        double width = candidate * zoom;
+        double diff = std::abs(width - 115.0);
+        if (diff < min_diff) {
+          min_diff = diff;
+          best_val = candidate;
+        }
+      }
+    }
+  }
+
+  return best_val;
 }
 
 }  // namespace strada::vis

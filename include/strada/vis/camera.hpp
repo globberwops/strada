@@ -49,4 +49,8 @@ class Camera {
   int viewport_height{1};  ///< Viewport height in pixels.
 };
 
+/// Computes a nice rounded physical scale length (in meters) for a given zoom level
+/// such that its screen width (scale_length * zoom) is within [80, 150] pixels.
+[[nodiscard]] auto CalculateScaleLength(double zoom) noexcept -> double;
+
 }  // namespace strada::vis

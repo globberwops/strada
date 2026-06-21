@@ -94,4 +94,22 @@ TEST(CameraTest, CameraRotation) {
   EXPECT_FLOAT_EQ(camera.rotation, 60.0f);
 }
 
+TEST(CameraTest, ScaleSnapping) {
+  // Test various zoom levels
+  const double zoom_levels[] = {0.001, 0.005, 0.01, 0.05, 0.1,   0.5,   1.0,   1.55,
+                                2.0,   5.0,   10.0, 50.0, 100.0, 500.0, 1000.0};
+
+  for (double zoom : zoom_levels) {
+    double scale_length = CalculateScaleLength(zoom);
+    double width_pixels = scale_length * zoom;
+
+    // Check that it's strictly within the 80 to 150 pixel limit
+    EXPECT_GE(width_pixels, 80.0) << "Failed for zoom: " << zoom << " (width: " << width_pixels << ")";
+    EXPECT_LE(width_pixels, 150.0) << "Failed for zoom: " << zoom << " (width: " << width_pixels << ")";
+
+    // Verify scale length is positive
+    EXPECT_GT(scale_length, 0.0);
+  }
+}
+
 }  // namespace strada::vis
