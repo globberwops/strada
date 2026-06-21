@@ -112,4 +112,21 @@ TEST(CameraTest, ScaleSnapping) {
   }
 }
 
+TEST(CameraTest, ViewMatrixZScaleInvariant) {
+  Camera camera;
+  camera.camera_x = 10.0f;
+  camera.camera_y = 20.0f;
+  camera.zoom = 50.0f;
+  camera.rotation = 30.0f;
+
+  QMatrix4x4 view = camera.GetViewMatrix();
+
+  // A point with non-zero Z elevation in world space
+  QVector3D p_world(0.0f, 0.0f, 5.0f);
+  QVector3D p_view = view.map(p_world);
+
+  // The Z-coordinate should not be scaled by zoom and should remain 5.0f
+  EXPECT_FLOAT_EQ(p_view.z(), 5.0f);
+}
+
 }  // namespace strada::vis

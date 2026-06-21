@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BSL-1.0
 
-#include <strada/vis/camera.hpp>
-
 #include <cmath>
 #include <limits>
+#include <strada/vis/camera.hpp>
 
 namespace strada::vis {
 
@@ -107,7 +106,7 @@ auto Camera::GetProjectionMatrix() const noexcept -> QMatrix4x4 {
 
 auto Camera::GetViewMatrix() const noexcept -> QMatrix4x4 {
   QMatrix4x4 view;
-  view.scale(zoom);
+  view.scale(zoom, zoom, 1.0f);
   view.rotate(rotation, 0.0f, 0.0f, 1.0f);
   view.translate(-camera_x, -camera_y, 0.0f);
   return view;
