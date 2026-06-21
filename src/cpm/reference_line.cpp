@@ -205,34 +205,33 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
       double ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
       double s_local = std::clamp(ds, 0.0, seg_length);
       return s_start + s_local;
-    } else {
-      double radius = 1.0 / curvature;
-      double center_x = x_[seg_idx] - (radius * std::sin(hdg));
-      double center_y = y_[seg_idx] + (radius * std::cos(hdg));
-      double qdx = px - center_x;
-      double qdy = py - center_y;
-      double angle_query = std::atan2(qdy, qdx);
-      double angle_start = std::atan2(y_[seg_idx] - center_y, x_[seg_idx] - center_x);
-      double delta_angle = angle_query - angle_start;
-      constexpr double kTwoPi = 2.0 * std::numbers::pi;
-      if (curvature > 0.0) {
-        while (delta_angle < 0.0) {
-          delta_angle += kTwoPi;
-        }
-        while (delta_angle >= kTwoPi) {
-          delta_angle -= kTwoPi;
-        }
-      } else {
-        while (delta_angle > 0.0) {
-          delta_angle -= kTwoPi;
-        }
-        while (delta_angle <= -kTwoPi) {
-          delta_angle += kTwoPi;
-        }
-      }
-      double s_local = std::clamp(delta_angle / curvature, 0.0, seg_length);
-      return s_start + s_local;
     }
+    double radius = 1.0 / curvature;
+    double center_x = x_[seg_idx] - (radius * std::sin(hdg));
+    double center_y = y_[seg_idx] + (radius * std::cos(hdg));
+    double qdx = px - center_x;
+    double qdy = py - center_y;
+    double angle_query = std::atan2(qdy, qdx);
+    double angle_start = std::atan2(y_[seg_idx] - center_y, x_[seg_idx] - center_x);
+    double delta_angle = angle_query - angle_start;
+    constexpr double kTwoPi = 2.0 * std::numbers::pi;
+    if (curvature > 0.0) {
+      while (delta_angle < 0.0) {
+        delta_angle += kTwoPi;
+      }
+      while (delta_angle >= kTwoPi) {
+        delta_angle -= kTwoPi;
+      }
+    } else {
+      while (delta_angle > 0.0) {
+        delta_angle -= kTwoPi;
+      }
+      while (delta_angle <= -kTwoPi) {
+        delta_angle += kTwoPi;
+      }
+    }
+    double s_local = std::clamp(delta_angle / curvature, 0.0, seg_length);
+    return s_start + s_local;
   }
 
   // Fallback to numerical solver for spirals and ParamPoly3

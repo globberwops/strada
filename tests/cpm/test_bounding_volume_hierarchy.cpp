@@ -81,8 +81,8 @@ TEST(BoundingVolumeHierarchyTest, TraversalAndPruning) {
       });
 
   // Assert
-  EXPECT_TRUE(std::find(visited_roads.begin(), visited_roads.end(), 0) != visited_roads.end());
-  EXPECT_TRUE(std::find(visited_roads.begin(), visited_roads.end(), 4) == visited_roads.end());
+  EXPECT_TRUE(std::ranges::find(visited_roads, 0) != visited_roads.end());
+  EXPECT_TRUE(std::ranges::find(visited_roads, 4) == visited_roads.end());
 }
 
 }  // namespace strada::cpm

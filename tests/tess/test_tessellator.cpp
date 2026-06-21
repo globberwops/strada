@@ -56,26 +56,26 @@ TEST(TessellatorTest, StraightRoadReferenceLine) {
   ASSERT_GE(road1_ref.vertices.size(), 2);
 
   // First point should be at (0, 0, 0)
-  EXPECT_NEAR(road1_ref.vertices.front().x, 0.0f, 1e-3f);
-  EXPECT_NEAR(road1_ref.vertices.front().y, 0.0f, 1e-3f);
-  EXPECT_NEAR(road1_ref.vertices.front().z, 0.0f, 1e-3f);
+  EXPECT_NEAR(road1_ref.vertices.front().x, 0.0F, 1e-3F);
+  EXPECT_NEAR(road1_ref.vertices.front().y, 0.0F, 1e-3F);
+  EXPECT_NEAR(road1_ref.vertices.front().z, 0.0F, 1e-3F);
 
   // Last point should be at (10, 0, 0)
-  EXPECT_NEAR(road1_ref.vertices.back().x, 10.0f, 1e-3f);
-  EXPECT_NEAR(road1_ref.vertices.back().y, 0.0f, 1e-3f);
-  EXPECT_NEAR(road1_ref.vertices.back().z, 0.0f, 1e-3f);
+  EXPECT_NEAR(road1_ref.vertices.back().x, 10.0F, 1e-3F);
+  EXPECT_NEAR(road1_ref.vertices.back().y, 0.0F, 1e-3F);
+  EXPECT_NEAR(road1_ref.vertices.back().z, 0.0F, 1e-3F);
 
   // Road 2 (length 25.5) reference line properties
   const auto& road2_ref = ref_lines[1];
   EXPECT_EQ(road2_ref.road_id, static_cast<cpm::RoadId>(1));
   ASSERT_GE(road2_ref.vertices.size(), 2);
 
-  EXPECT_NEAR(road2_ref.vertices.front().x, 0.0f, 1e-3f);
-  EXPECT_NEAR(road2_ref.vertices.front().y, 0.0f, 1e-3f);
+  EXPECT_NEAR(road2_ref.vertices.front().x, 0.0F, 1e-3F);
+  EXPECT_NEAR(road2_ref.vertices.front().y, 0.0F, 1e-3F);
 
   // Last point should be at (25.5, 0, 0)
-  EXPECT_NEAR(road2_ref.vertices.back().x, 25.5f, 1e-3f);
-  EXPECT_NEAR(road2_ref.vertices.back().y, 0.0f, 1e-3f);
+  EXPECT_NEAR(road2_ref.vertices.back().x, 25.5F, 1e-3F);
+  EXPECT_NEAR(road2_ref.vertices.back().y, 0.0F, 1e-3F);
 }
 
 TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
@@ -105,8 +105,8 @@ TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
   ASSERT_GE(left_boundary.vertices.size(), 2);
 
   // At s=0, laneOffset=0.5. Left lane width = 3.0. Outer boundary is at 0.5 + 3.0 = 3.5.
-  EXPECT_NEAR(left_boundary.vertices.front().x, 0.0f, 1e-2f);
-  EXPECT_NEAR(left_boundary.vertices.front().y, 3.5f, 1e-2f);
+  EXPECT_NEAR(left_boundary.vertices.front().x, 0.0F, 1e-2F);
+  EXPECT_NEAR(left_boundary.vertices.front().y, 3.5F, 1e-2F);
 
   // Right lane (id -1)
   const auto& right_boundary = (boundaries[0].original_lane_id == -1) ? boundaries[0] : boundaries[1];
@@ -117,8 +117,8 @@ TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
 
   // At s=0, laneOffset=0.5. Right lane width at sOffset=1.0 is 3.2 with linear slope 0.2, which evaluates to 3.0 at
   // s=0. Thus, the outer boundary of the right lane (id -1) is at 0.5 - 3.0 = -2.5.
-  EXPECT_NEAR(right_boundary.vertices.front().x, 0.0f, 1e-2f);
-  EXPECT_NEAR(right_boundary.vertices.front().y, -2.5f, 1e-2f);
+  EXPECT_NEAR(right_boundary.vertices.front().x, 0.0F, 1e-2F);
+  EXPECT_NEAR(right_boundary.vertices.front().y, -2.5F, 1e-2F);
 }
 
 TEST(TessellatorTest, MultipleLanesMarkingTypes) {
@@ -233,10 +233,10 @@ TEST(TessellatorTest, LaneSurfaceTriangulation) {
       const auto& v2 = mesh.vertices[idx2];
 
       // 2D cross product in xy plane
-      float cp = (v1.x - v0.x) * (v2.y - v1.y) - (v1.y - v0.y) * (v2.x - v1.x);
+      float cp = ((v1.x - v0.x) * (v2.y - v1.y)) - ((v1.y - v0.y) * (v2.x - v1.x));
 
       // Since it's CCW, cross product should be positive
-      EXPECT_GT(cp, 0.0f) << "Triangle (" << idx0 << ", " << idx1 << ", " << idx2
+      EXPECT_GT(cp, 0.0F) << "Triangle (" << idx0 << ", " << idx1 << ", " << idx2
                           << ") winding not CCW. Cross product is " << cp;
     }
   }
