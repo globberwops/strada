@@ -59,7 +59,7 @@ auto MakeLeafNode(std::vector<BoundingVolumeHierarchy::Node>& nodes, uint32_t no
   nodes[node_idx].max_x = bounds.max_x;
   nodes[node_idx].max_y = bounds.max_y;
   nodes[node_idx].left = prim_start;
-  nodes[node_idx].right = count | 0x80000000;
+  nodes[node_idx].right = count | BoundingVolumeHierarchy::kLeafBitMask;
 
   return node_idx;
 }

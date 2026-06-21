@@ -645,16 +645,16 @@ TEST(CompiledPhysicsModelTest, BoundingVolumeHierarchyConstructionAndLayout) {
 
   // Traverse the bounding volume hierarchy and assert properties
   for (const auto& node : nodes) {
-    bool is_leaf = (node.right & 0x80000000) != 0;
+    bool is_leaf = (node.right & strada::cpm::BoundingVolumeHierarchy::kLeafBitMask) != 0;
     if (is_leaf) {
       uint32_t start = node.left;
-      uint32_t count = node.right & 0x7FFFFFFF;
+      uint32_t count = node.right & strada::cpm::BoundingVolumeHierarchy::kIndexBitMask;
       EXPECT_LT(start, primitives.size());
       EXPECT_LE(start + count, primitives.size());
       EXPECT_GT(count, 0U);
     } else {
       uint32_t left_child = node.left;
-      uint32_t right_child = node.right & 0x7FFFFFFF;
+      uint32_t right_child = node.right & strada::cpm::BoundingVolumeHierarchy::kIndexBitMask;
       EXPECT_LT(left_child, nodes.size());
       EXPECT_LT(right_child, nodes.size());
       EXPECT_NE(left_child, 0U);

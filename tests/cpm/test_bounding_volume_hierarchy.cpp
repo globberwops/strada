@@ -46,7 +46,7 @@ TEST(BoundingVolumeHierarchyTest, RecursiveSplitting) {
   // Assert
   ASSERT_GT(bounding_volume_hierarchy.Nodes().size(), 1);
   const auto& root = bounding_volume_hierarchy.Nodes()[0];
-  EXPECT_FALSE((root.right & 0x80000000) != 0);  // Root is internal
+  EXPECT_FALSE((root.right & BoundingVolumeHierarchy::kLeafBitMask) != 0);  // Root is internal
   EXPECT_DOUBLE_EQ(root.min_x, 0.0);
   EXPECT_DOUBLE_EQ(root.max_x, 41.0);
 }

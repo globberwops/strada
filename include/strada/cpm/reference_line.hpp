@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #pragma once
 
 #include <cstddef>
@@ -12,31 +14,53 @@
 
 namespace strada::cpm {
 
+/// Default memory boundary alignment bytes (64 bytes).
 constexpr std::size_t kAlignmentBytes = 64;
 
+/// STL vector allocator aligned to `kAlignmentBytes`.
 template <typename T>
 using AlignedVector = std::vector<T, AlignedAllocator<T, kAlignmentBytes>>;
 
-enum class GeometryType : uint8_t { kLine, kArc, kSpiral, kPoly3, kParamPoly3 };
+/// Represents the plan-view geometry types parsed from the XODR.
+enum class GeometryType : uint8_t {
+  kLine,       ///< Straight line geometry.
+  kArc,        ///< Constant curvature circular arc geometry.
+  kSpiral,     ///< Clothoid (Euler spiral) geometry.
+  kPoly3,      ///< Standard cubic polynomial geometry.
+  kParamPoly3  ///< Parametric cubic polynomial geometry.
+};
 
+/// Represents an evaluated point on a reference line.
 struct ReferenceLinePoint {
-  double x{};
-  double y{};
-  double heading{};
+  double x{};        ///< The x coordinate (meters).
+  double y{};        ///< The y coordinate (meters).
+  double heading{};  ///< The heading angle (radians).
 };
 
+/// Axis-Aligned Bounding Box (AABB) in 2D.
 struct Aabb {
-  double min_x{};
-  double min_y{};
-  double max_x{};
-  double max_y{};
+  double min_x{};  ///< Minimum x coordinate.
+  double min_y{};  ///< Minimum y coordinate.
+  double max_x{};  ///< Maximum x coordinate.
+  double max_y{};  ///< Maximum y coordinate.
 };
 
+/// Compiled reference line geometries of the road network map.
+///
+/// Holds flat SoA representation of plan-view geometries (lines, arcs, spirals, polynomials)
+/// for all roads in the network, supporting evaluation, projection, and segment lookup.
 class ReferenceLine {
  public:
+  /// Default constructor.
   ReferenceLine() = default;
 
-  // Static factory function to construct ReferenceLine from the AST
+  /// Destructor.
+  ~ReferenceLine() = default;
+
+  /// Static factory function to construct ReferenceLine from the AST.
+  ///
+  /// \param map The parsed AST of the road network map.
+  /// \return The compiled ReferenceLine database.
   static auto Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine;
 
   // Move-only semantics
@@ -44,18 +68,58 @@ class ReferenceLine {
   auto operator=(const ReferenceLine&) -> ReferenceLine& = delete;
   ReferenceLine(ReferenceLine&&) noexcept = default;
   auto operator=(ReferenceLine&&) noexcept -> ReferenceLine& = default;
-  ~ReferenceLine() = default;
 
-  // Core math behaviors
+  /// Evaluates reference line coordinates (x, y, heading) at a global road s-coordinate.
+  ///
+  /// \param seg_idx The segment index to evaluate.
+  /// \param global_s The global s-coordinate along the reference line.
+  /// \return ReferenceLinePoint containing the evaluated coordinates.
   [[nodiscard]] auto Evaluate(uint32_t seg_idx, double global_s) const noexcept -> ReferenceLinePoint;
-  [[nodiscard]] auto Project(uint32_t seg_idx, double px, double py) const noexcept -> double;  // Returns global_s
+
+  /// Projects a point onto the reference line segment, finding the matching s-coordinate.
+  ///
+  /// \param seg_idx The segment index to project onto.
+  /// \param px The target point's x coordinate.
+  /// \param py The target point's y coordinate.
+  /// \return The projected global s-coordinate along the reference line.
+  [[nodiscard]] auto Project(uint32_t seg_idx, double px, double py) const noexcept -> double;
+
+  /// Finds the segment index matching a given road and s-coordinate, leveraging context for coherence.
+  ///
+  /// \param road The compiled RoadId.
+  /// \param s_coord The s-coordinate.
+  /// \param ctx The query context for spatial coherence.
+  /// \return The matched segment index.
   auto FindSegmentIndex(RoadId road, double s_coord, QueryContext& ctx) const noexcept -> uint32_t;
 
-  // Structural/Index queries
+  /// Retrieves the segment index range (first segment index and count) for a given road.
+  ///
+  /// \param road The compiled RoadId.
+  /// \return Pair of (first segment index, count).
   [[nodiscard]] auto GetRoadSegments(RoadId road) const noexcept -> std::pair<uint32_t, uint32_t>;
+
+  /// Returns the start s-coordinate of the specified segment.
+  ///
+  /// \param seg_idx The segment index.
+  /// \return The start s-coordinate.
   [[nodiscard]] auto GetSegmentSStart(uint32_t seg_idx) const noexcept -> double;
+
+  /// Returns the length of the specified segment.
+  ///
+  /// \param seg_idx The segment index.
+  /// \return The segment length.
   [[nodiscard]] auto GetSegmentLength(uint32_t seg_idx) const noexcept -> double;
+
+  /// Computes the 2D Axis-Aligned Bounding Box (AABB) for a reference line segment.
+  ///
+  /// \param seg_idx The segment index.
+  /// \param inflation The inflation distance to expand the bounding box.
+  /// \return The computed AABB.
   [[nodiscard]] auto ComputeSegmentAabb(uint32_t seg_idx, double inflation) const noexcept -> Aabb;
+
+  /// Returns the total number of segments compiled in the database.
+  ///
+  /// \return The count of segments.
   [[nodiscard]] auto TotalSegmentsCount() const noexcept -> std::size_t;
 
  private:
@@ -88,3 +152,4 @@ class ReferenceLine {
 };
 
 }  // namespace strada::cpm
+

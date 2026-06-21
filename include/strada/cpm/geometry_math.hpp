@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #pragma once
 
 #include <strada/ast/abstract_syntax_tree.hpp>

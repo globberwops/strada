@@ -19,6 +19,11 @@ namespace strada::cpm {
 /// axis-aligned bounding boxes (AABBs) for fast road/segment lookup.
 class BoundingVolumeHierarchy {
  public:
+  static constexpr uint32_t kLeafBitMask = 0x80000000;
+  static constexpr uint32_t kIndexBitMask = 0x7FFFFFFF;
+  static constexpr std::size_t kMaxStackDepth = 64;
+  static constexpr std::size_t kExpectedNodeSize = 40;
+
   /// Represents a flat node in the bounding volume hierarchy.
   struct Node {
     double min_x{};    ///< Minimum x coordinate of the node's bounding box.
@@ -70,14 +75,14 @@ class BoundingVolumeHierarchy {
       return;
     }
 
-    std::array<uint32_t, 64> stack{};
-    int stack_ptr = 0;
-    stack[stack_ptr++] = 0;
+    std::array<uint32_t, kMaxStackDepth> stack{};
+    int stack_ptr{0};
+    stack[stack_ptr++] = 0;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
-    double min_distance = std::numeric_limits<double>::max();
+    double min_distance{std::numeric_limits<double>::max()};
 
     while (stack_ptr > 0) {
-      auto curr_idx = stack[--stack_ptr];
+      auto curr_idx = stack[--stack_ptr];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
       const auto& node = nodes_[curr_idx];
 
       double dist_to_box = DistancePointToAabb(px, py, node.min_x, node.min_y, node.max_x, node.max_y);
@@ -85,10 +90,10 @@ class BoundingVolumeHierarchy {
         continue;
       }
 
-      bool is_leaf = (node.right & 0x80000000) != 0;
+      bool is_leaf = (node.right & kLeafBitMask) != 0;
       if (is_leaf) {
         auto prim_start = node.left;
-        auto prim_count = node.right & 0x7FFFFFFF;
+        auto prim_count = node.right & kIndexBitMask;
 
         for (uint32_t i = 0; i < prim_count; ++i) {
           const auto& prim = primitives_[prim_start + i];
@@ -98,7 +103,7 @@ class BoundingVolumeHierarchy {
         }
       } else {
         auto left_child = node.left;
-        auto right_child = node.right & 0x7FFFFFFF;
+        auto right_child = node.right & kIndexBitMask;
 
         double dist_left = DistancePointToAabb(px, py, nodes_[left_child].min_x, nodes_[left_child].min_y,
                                                nodes_[left_child].max_x, nodes_[left_child].max_y);
@@ -106,11 +111,11 @@ class BoundingVolumeHierarchy {
                                                 nodes_[right_child].max_x, nodes_[right_child].max_y);
 
         if (dist_left < dist_right) {
-          stack[stack_ptr++] = right_child;
-          stack[stack_ptr++] = left_child;
+          stack[stack_ptr++] = right_child;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+          stack[stack_ptr++] = left_child;   // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         } else {
-          stack[stack_ptr++] = left_child;
-          stack[stack_ptr++] = right_child;
+          stack[stack_ptr++] = left_child;   // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+          stack[stack_ptr++] = right_child;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         }
       }
     }
@@ -137,6 +142,8 @@ class BoundingVolumeHierarchy {
       -> double;
 };
 
-static_assert(sizeof(BoundingVolumeHierarchy::Node) == 40, "BoundingVolumeHierarchy::Node must be exactly 40 bytes");
+static_assert(sizeof(BoundingVolumeHierarchy::Node) == BoundingVolumeHierarchy::kExpectedNodeSize,
+              "BoundingVolumeHierarchy::Node must be exactly 40 bytes");
+
 
 }  // namespace strada::cpm
