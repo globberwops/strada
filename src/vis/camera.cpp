@@ -99,8 +99,8 @@ auto Camera::WorldToScreen(float world_x, float world_y) const noexcept -> QPoin
 auto Camera::GetProjectionMatrix() const noexcept -> QMatrix4x4 {
   QMatrix4x4 projection;
   projection.ortho(-static_cast<float>(viewport_width) / 2.0f, static_cast<float>(viewport_width) / 2.0f,
-                   -static_cast<float>(viewport_height) / 2.0f, static_cast<float>(viewport_height) / 2.0f, -100.0f,
-                   100.0f);
+                   -static_cast<float>(viewport_height) / 2.0f, static_cast<float>(viewport_height) / 2.0f,
+                   -10000000.0f, 10000000.0f);
   return projection;
 }
 
