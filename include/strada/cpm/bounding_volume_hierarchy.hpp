@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #pragma once
 
 #include <array>
@@ -19,10 +21,10 @@ class BoundingVolumeHierarchy {
  public:
   /// Represents a flat node in the bounding volume hierarchy.
   struct Node {
-    double min_x{};
-    double min_y{};
-    double max_x{};
-    double max_y{};
+    double min_x{};    ///< Minimum x coordinate of the node's bounding box.
+    double min_y{};    ///< Minimum y coordinate of the node's bounding box.
+    double max_x{};    ///< Maximum x coordinate of the node's bounding box.
+    double max_y{};    ///< Maximum y coordinate of the node's bounding box.
     uint32_t left{};   ///< For leaf nodes: primitive start index. For internal nodes: left child index.
     uint32_t right{};  ///< For leaf nodes: primitive count with MSB set. For internal nodes: right child index.
   };
@@ -35,6 +37,15 @@ class BoundingVolumeHierarchy {
 
   /// Default-constructs an empty BoundingVolumeHierarchy.
   BoundingVolumeHierarchy() = default;
+
+  /// Destructor.
+  ~BoundingVolumeHierarchy() = default;
+
+  // Move-only semantics
+  BoundingVolumeHierarchy(const BoundingVolumeHierarchy&) = delete;
+  auto operator=(const BoundingVolumeHierarchy&) -> BoundingVolumeHierarchy& = delete;
+  BoundingVolumeHierarchy(BoundingVolumeHierarchy&&) noexcept = default;
+  auto operator=(BoundingVolumeHierarchy&&) noexcept -> BoundingVolumeHierarchy& = default;
 
   /// Builds a BoundingVolumeHierarchy from a set of primitives and their AABBs.
   ///

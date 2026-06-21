@@ -10,6 +10,7 @@ The Strada codebase overrides the standard Google C++ Style Guide in several key
 
 - **Column Limit:** **120 characters** (instead of 80).
 - **Header Guards:** Always use `#pragma once` (instead of `#ifndef` define guards).
+- **Header Comments & Copyright:** Do not include a copyright line (e.g., `// Copyright ...`) in header comments. Only the SPDX license identifier must be present.
 - **Curly Braces:** Curly braces `{}` are **strictly required** for all controlled statements (`if`, `else`, `for`, `while`), even single-line bodies.
 - **Trailing Return Types:**
   - Functions returning a non-`void` type must use trailing return type syntax (`auto FunctionName(params) -> ReturnType;`) unconditionally.
@@ -167,8 +168,7 @@ The following is a comprehensive, compile-ready C++ example showcasing all forma
 
 ### Header File: `frobber.h`
 ```cpp
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: BSL-1.0
 //
 // This file declares the Frobber utility class and its support structs.
 // It provides functionality to process system URLs and track active state.
@@ -273,7 +273,6 @@ class UrlFrobber {
 
 ### Implementation File: `frobber.cc`
 ```cpp
-// Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
 
 #include "my_project/my_component/frobber.h"

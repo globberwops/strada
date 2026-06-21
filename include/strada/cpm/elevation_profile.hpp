@@ -1,11 +1,8 @@
-// Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/aligned_allocator.hpp>
 #include <strada/cpm/reference_line.hpp>
