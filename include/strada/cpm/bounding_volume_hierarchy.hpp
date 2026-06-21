@@ -5,7 +5,6 @@
 #include <array>
 #include <cstdint>
 #include <limits>
-#include <optional>
 #include <span>
 #include <strada/cpm/coordinate.hpp>
 #include <strada/cpm/reference_line.hpp>
@@ -144,6 +143,5 @@ class BoundingVolumeHierarchy {
 
 static_assert(sizeof(BoundingVolumeHierarchy::Node) == BoundingVolumeHierarchy::kExpectedNodeSize,
               "BoundingVolumeHierarchy::Node must be exactly 40 bytes");
-
 
 }  // namespace strada::cpm

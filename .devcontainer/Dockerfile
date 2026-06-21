@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lldb \
     ninja-build \
     pkg-config \
+    qt6-base-dev \
     python3-full \
     python3-pip \
     ripgrep \

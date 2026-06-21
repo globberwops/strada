@@ -18,3 +18,12 @@ target_compile_definitions(
   test_cpm PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
 target_link_libraries(test_cpm PRIVATE Strada::strada GTest::gtest_main)
 gtest_discover_tests(test_cpm)
+
+add_executable(
+  test_tess
+  tess/test_tessellator.cpp)
+target_compile_definitions(
+  test_tess PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+target_link_libraries(test_tess PRIVATE Strada::strada Strada::tess GTest::gtest_main)
+gtest_discover_tests(test_tess)
+

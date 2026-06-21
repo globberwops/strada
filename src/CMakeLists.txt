@@ -29,3 +29,19 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/lane_network.hpp)
 
 target_link_libraries(strada PRIVATE pugixml)
+
+add_library(
+  strada_tess tess/tessellator.cpp)
+add_library(Strada::tess ALIAS strada_tess)
+
+target_sources(
+  strada_tess
+  PUBLIC FILE_SET
+         HEADERS
+         BASE_DIRS
+         ${PROJECT_SOURCE_DIR}/include
+         FILES
+         ${PROJECT_SOURCE_DIR}/include/strada/tess/tessellator.hpp)
+
+target_link_libraries(strada_tess PUBLIC strada)
+
