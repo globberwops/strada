@@ -347,7 +347,7 @@ void ViewportWidget::paintGL() {
 
     // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
     {
-      QRect rect(20, height() - 170, 260, 150);
+      QRect rect(20, height() - 170, 310, 150);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(rect, 8.0, 8.0);
