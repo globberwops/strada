@@ -187,15 +187,15 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
     for (uint32_t i = 0; i < seg_count; ++i) {
       uint32_t seg_idx = first_seg + i;
-      double global_s = ref_line_.Project(seg_idx, pose.x, pose.y);
-      auto pt = ref_line_.Evaluate(seg_idx, global_s);
+      double road_s = ref_line_.Project(seg_idx, pose.x, pose.y);
+      auto pt = ref_line_.Evaluate(seg_idx, road_s);
 
       double dx = pose.x - pt.x;
       double dy = pose.y - pt.y;
       double dist_sq = (dx * dx) + (dy * dy);
       if (dist_sq < min_dist_sq) {
         min_dist_sq = dist_sq;
-        best_s = global_s;
+        best_s = road_s;
         best_t = (-dx * std::sin(pt.heading)) + (dy * std::cos(pt.heading));
         best_rhdg = pt.heading;
       }

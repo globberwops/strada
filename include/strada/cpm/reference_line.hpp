@@ -69,19 +69,19 @@ class ReferenceLine {
   ReferenceLine(ReferenceLine&&) noexcept = default;
   auto operator=(ReferenceLine&&) noexcept -> ReferenceLine& = default;
 
-  /// Evaluates reference line coordinates (x, y, heading) at a global road s-coordinate.
+  /// Evaluates reference line coordinates (x, y, heading) at a road-local s-coordinate.
   ///
   /// \param seg_idx The segment index to evaluate.
-  /// \param global_s The global s-coordinate along the reference line.
+  /// \param road_s The road-local s-coordinate along the reference line.
   /// \return ReferenceLinePoint containing the evaluated coordinates.
-  [[nodiscard]] auto Evaluate(uint32_t seg_idx, double global_s) const noexcept -> ReferenceLinePoint;
+  [[nodiscard]] auto Evaluate(uint32_t seg_idx, double road_s) const noexcept -> ReferenceLinePoint;
 
   /// Projects a point onto the reference line segment, finding the matching s-coordinate.
   ///
   /// \param seg_idx The segment index to project onto.
   /// \param px The target point's x coordinate.
   /// \param py The target point's y coordinate.
-  /// \return The projected global s-coordinate along the reference line.
+  /// \return The projected road-local s-coordinate along the reference line.
   [[nodiscard]] auto Project(uint32_t seg_idx, double px, double py) const noexcept -> double;
 
   /// Finds the segment index matching a given road and s-coordinate, leveraging context for coherence.

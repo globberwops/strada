@@ -111,8 +111,8 @@ auto ReferenceLine::Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine {
   return rl;
 }
 
-auto ReferenceLine::Evaluate(uint32_t seg_idx, double global_s) const noexcept -> ReferenceLinePoint {
-  double ds_val = global_s - s_offset_[seg_idx];
+auto ReferenceLine::Evaluate(uint32_t seg_idx, double road_s) const noexcept -> ReferenceLinePoint {
+  double ds_val = road_s - s_offset_[seg_idx];
   double ref_x = x_[seg_idx];
   double ref_y = y_[seg_idx];
   double ref_hdg = hdg_[seg_idx];
