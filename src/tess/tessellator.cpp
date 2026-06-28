@@ -273,6 +273,35 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
                                                double chord_error) {
   for (const auto& junction : map.junctions) {
     if (!junction.boundary.has_value()) {
+      std::vector<Vertex> fallback_vertices;
+      std::vector<uint32_t> fallback_indices;
+
+      std::vector<cpm::RoadId> connecting_roads;
+      for (size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
+        if (map.roads[r_i].junction == junction.id) {
+          connecting_roads.push_back(static_cast<cpm::RoadId>(r_i));
+        }
+      }
+
+      for (const auto& mesh : meshes_) {
+        if (std::find(connecting_roads.begin(), connecting_roads.end(), mesh.road_id) != connecting_roads.end()) {
+          uint32_t vertex_offset = static_cast<uint32_t>(fallback_vertices.size());
+          for (const auto& v : mesh.vertices) {
+            fallback_vertices.push_back(v);
+          }
+          for (uint32_t idx : mesh.indices) {
+            fallback_indices.push_back(idx + vertex_offset);
+          }
+        }
+      }
+
+      if (!fallback_vertices.empty()) {
+        JunctionBoundaryGeometry geom;
+        geom.junction_id = junction.id;
+        geom.vertices = fallback_vertices;
+        geom.indices = fallback_indices;
+        junction_boundaries_.push_back(geom);
+      }
       continue;
     }
 
