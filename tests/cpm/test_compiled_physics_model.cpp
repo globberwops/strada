@@ -732,6 +732,22 @@ TEST(CompiledPhysicsModelTest, InertialToRoadSnapping) {
     EXPECT_NEAR(rp.t, 0.0, 1e-3);
     EXPECT_NEAR(rp.h, 0.0, 1e-3);
   }
+
+  // Act & Assert 4: Reject snapping if longitudinal distance exceeds threshold
+  {
+    // Road 1 starts at (10, 20) with heading 0.5. Total length is 85.0.
+    // Query a point 10 meters before the start of the road, along its axis.
+    strada::cpm::InertialPose ip;
+    ip.x = 10.0 - (10.0 * std::cos(0.5));
+    ip.y = 20.0 - (10.0 * std::sin(0.5));
+    ip.z = 0.0;
+    ip.heading = 0.5;
+    ip.pitch = 0.0;
+    ip.roll = 0.0;
+
+    auto rp_opt = cpm_model.InertialToRoad(ip, ctx);
+    EXPECT_FALSE(rp_opt.has_value());
+  }
 }
 
 TEST(CompiledPhysicsModelTest, OrientationStripping) {
