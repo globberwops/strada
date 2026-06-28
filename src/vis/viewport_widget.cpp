@@ -7,6 +7,7 @@
 #include <QVector4D>
 #include <QWheelEvent>
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <strada/vis/viewport_widget.hpp>
 
@@ -522,9 +523,9 @@ void ViewportWidget::wheelEvent(QWheelEvent* event) {
 
   float factor = 1.0f;
   if (!num_pixels.isNull()) {
-    factor = 1.0f + (static_cast<float>(num_pixels.y()) * 0.005f);
+    factor = std::pow(1.15f, static_cast<float>(num_pixels.y()) * 0.05f);
   } else if (!num_degrees.isNull()) {
-    factor = 1.0f + (static_cast<float>(num_degrees.y()) / 120.0f * 0.1f);
+    factor = std::pow(1.15f, static_cast<float>(num_degrees.y()) / 15.0f);
   }
 
   camera_.ZoomAt(static_cast<float>(event->position().x()), static_cast<float>(event->position().y()), factor);
