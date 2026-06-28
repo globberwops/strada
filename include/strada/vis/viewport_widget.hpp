@@ -33,6 +33,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   void mouseMoveEvent(QMouseEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
+  bool event(QEvent* event) override;
 
  private:
   BatchedGeometry geometry_;

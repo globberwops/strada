@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: BSL-1.0
 
+#include <QGestureEvent>
+#include <QInputDevice>
 #include <QKeyEvent>
 #include <QMatrix4x4>
 #include <QMouseEvent>
+#include <QNativeGestureEvent>
 #include <QPainter>
+#include <QPinchGesture>
 #include <QVector4D>
 #include <QWheelEvent>
 #include <algorithm>
@@ -518,6 +522,16 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void ViewportWidget::wheelEvent(QWheelEvent* event) {
+  // If the Ctrl modifier is NOT pressed and pixelDelta is populated,
+  // we interpret this as a high-resolution touchpad two-finger scroll panning gesture.
+  if (!(event->modifiers() & Qt::ControlModifier) && !event->pixelDelta().isNull()) {
+    QPoint delta = event->pixelDelta();
+    camera_.Pan(static_cast<float>(delta.x()), static_cast<float>(delta.y()));
+    update();
+    return;
+  }
+
+  // Otherwise, it is a zoom event (mouse wheel or touchpad pinch Ctrl+scroll)
   QPoint num_pixels = event->pixelDelta();
   QPoint num_degrees = event->angleDelta() / 8;
 
@@ -566,6 +580,25 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     show_junction_boundaries_ = !show_junction_boundaries_;
     update();
   }
+}
+
+bool ViewportWidget::event(QEvent* event) {
+  if (event->type() == QEvent::NativeGesture) {
+    auto* gesture_event = static_cast<QNativeGestureEvent*>(event);
+    if (gesture_event->gestureType() == Qt::ZoomNativeGesture) {
+      qreal val = gesture_event->value();
+      QPointF pos = gesture_event->position();
+      camera_.ZoomAt(static_cast<float>(pos.x()), static_cast<float>(pos.y()), static_cast<float>(1.0 + val));
+      update();
+      return true;
+    } else if (gesture_event->gestureType() == Qt::RotateNativeGesture) {
+      qreal val = gesture_event->value();
+      camera_.Rotate(-static_cast<float>(val));
+      update();
+      return true;
+    }
+  }
+  return QOpenGLWidget::event(event);
 }
 
 void ViewportWidget::RenderGrid() {
