@@ -40,3 +40,4 @@ Common types:
 * **Commit Strategy**: Create exactly **one commit per issue** following the Conventional Commits specification.
 * **CMake & Dependencies**: `FetchContent` must try to find the respective system package first using `FIND_PACKAGE_ARGS` (e.g., `FIND_PACKAGE_ARGS NAMES GTest`).
 * **Devcontainer**: All library dependencies must be pre-installed in the devcontainer `Dockerfile`.
+* **Pre-commit Hooks**: The repository uses `pre-commit` hooks for automatic style enforcement, formatting, and linting (including `clang-format`, `clang-tidy`, `cppcheck`, `cpplint`, `include-what-you-use`, and `gitleaks`). To ensure commit hooks pass successfully, run formatting and linting tools locally (e.g., `pre-commit run --files <files>`) before staging and committing changes.
