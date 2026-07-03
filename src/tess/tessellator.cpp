@@ -98,7 +98,7 @@ auto Tessellator::ComputeSamplingStations(const ast::Road& road, double chord_er
     num_steps = std::max<size_t>(num_steps, 1);
 
     for (size_t i = 0; i < num_steps; ++i) {
-      double s = geom_s_start + (static_cast<double>(i) * geom_length / num_steps);
+      double s = geom_s_start + (static_cast<double>(i) * geom_length / static_cast<double>(num_steps));
       stations.push_back(s);
     }
   }
@@ -343,7 +343,7 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
         num_steps = std::max<size_t>(num_steps, 2);
 
         for (size_t k = 0; k <= num_steps; ++k) {
-          double s = start_s + (static_cast<double>(k) * (end_s - start_s) / num_steps);
+          double s = start_s + (static_cast<double>(k) * (end_s - start_s) / static_cast<double>(num_steps));
 
           // Find active lane section at s
           size_t s_idx = 0;
@@ -425,7 +425,7 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
         num_steps = std::max<size_t>(num_steps, 2);
 
         for (size_t k = 0; k <= num_steps; ++k) {
-          double t = t_start + (static_cast<double>(k) * (t_end - t_start) / num_steps);
+          double t = t_start + (static_cast<double>(k) * (t_end - t_start) / static_cast<double>(num_steps));
           cpm::RoadPose rp = {.s = s, .t = t, .h = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0, .road = road_id};
           cpm::InertialPose ip = model.RoadToInertial(rp, ctx);
           loop_vertices.push_back(
@@ -436,10 +436,11 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
 
     // Deduplicate adjacent identical vertices
     if (loop_vertices.size() > 1) {
-      auto [first, last] = std::ranges::unique(loop_vertices, [](const Vertex& a, const Vertex& b) noexcept -> bool {
-        return std::abs(a.x - b.x) < 1e-4F && std::abs(a.y - b.y) < 1e-4F && std::abs(a.z - b.z) < 1e-4F;
-      });
-      loop_vertices.erase(first, last);
+      auto [uniq_first, uniq_last] =
+          std::ranges::unique(loop_vertices, [](const Vertex& a, const Vertex& b) noexcept -> bool {
+            return std::abs(a.x - b.x) < 1e-4F && std::abs(a.y - b.y) < 1e-4F && std::abs(a.z - b.z) < 1e-4F;
+          });
+      loop_vertices.erase(uniq_first, uniq_last);
 
       // If the last vertex is identical to the first, remove it to make the loop strictly open-ended
       if (loop_vertices.size() > 2) {

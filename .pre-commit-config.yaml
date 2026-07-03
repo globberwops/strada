@@ -19,6 +19,13 @@ repos:
       - id: clang-format
         args: [-i, --style=file]
       - id: clang-tidy
-        args: [-p, build/dev]
+        args: [-p=build/dev]
       - id: cppcheck
+        args: [-Iinclude, --suppress=unusedFunction, --suppress=unmatchedSuppression, --suppress=noExplicitConstructor, --suppress=useStlAlgorithm, --suppress=missingIncludeSystem, --suppress=normalCheckLevelMaxBranches]
+  - repo: local
+    hooks:
       - id: include-what-you-use
+        name: include-what-you-use
+        entry: bash -c 'iwyu_tool -p build/dev "$@" -- -Xiwyu --cxx17ns' --
+        language: system
+        files: \.(h|hpp|c|cc|cpp)$
