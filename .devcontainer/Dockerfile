@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     gdb \
     graphviz \
+    iwyu \
     lcov \
     libgmock-dev \
     libgtest-dev \
@@ -34,11 +35,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     qt6-base-dev \
     qt6-wayland \
     ripgrep \
+    uncrustify \
     valgrind \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install python-based linting/formatting tools
-RUN pip3 install --break-system-packages --no-cache-dir cmakelang gcovr
+RUN pip3 install --break-system-packages --no-cache-dir cmakelang cpplint gcovr pre-commit
 
 # Switch to the default ubuntu user to handle user-space configurations and CLI installations
 USER ubuntu
