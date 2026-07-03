@@ -21,7 +21,7 @@ repos:
       - id: clang-tidy
         args: [-p=build/dev]
       - id: cppcheck
-        args: [--project=build/dev/compile_commands.json, --suppress=unusedFunction, --suppress=unmatchedSuppression, --suppress=noExplicitConstructor, --suppress=useStlAlgorithm, --suppress=missingIncludeSystem, --suppress=normalCheckLevelMaxBranches]
+        args: [--project=build/dev/compile_commands.json, --cppcheck-build-dir=build/dev/cppcheck_cache, --suppress=unusedFunction, --suppress=unmatchedSuppression, --suppress=noExplicitConstructor, --suppress=useStlAlgorithm, --suppress=missingIncludeSystem, --suppress=normalCheckLevelMaxBranches]
         pass_filenames: false
   - repo: local
     hooks:
