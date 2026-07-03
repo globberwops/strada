@@ -59,12 +59,6 @@ class Tessellator {
   /// \param chord_error The maximum chord error tolerance in meters (e.g., 0.5m).
   Tessellator(const ast::AbstractSyntaxTree& map, double chord_error);
 
-  /// Default constructor.
-  Tessellator() = default;
-
-  /// Destructor.
-  ~Tessellator() = default;
-
   /// Returns the flat list of generated road surface meshes.
   [[nodiscard]] auto Meshes() const noexcept -> const std::vector<Mesh>& { return meshes_; }
 

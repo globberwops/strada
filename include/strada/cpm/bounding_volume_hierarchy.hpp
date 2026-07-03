@@ -96,7 +96,7 @@ class BoundingVolumeHierarchy {
 
         for (uint32_t i = 0; i < prim_count; ++i) {
           const auto& prim = primitives_[prim_start + i];
-          if (auto new_dist = callback(prim, min_distance)) {
+          if (auto new_dist = std::forward<F>(callback)(prim, min_distance)) {
             min_distance = *new_dist;
           }
         }
