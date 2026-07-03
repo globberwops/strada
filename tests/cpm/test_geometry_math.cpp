@@ -5,7 +5,7 @@
 
 namespace strada::cpm {
 
-TEST(GeometryMathTest, FresnelCS_SmallArgument) {
+TEST(GeometryMathTest, FresnelCSSmallArgument) {
   // Arrange
   double y = 0.5;
 
@@ -17,7 +17,7 @@ TEST(GeometryMathTest, FresnelCS_SmallArgument) {
   EXPECT_NEAR(result.s, 0.06473243285999927, 1e-9);
 }
 
-TEST(GeometryMathTest, FresnelCS_MediumArgument) {
+TEST(GeometryMathTest, FresnelCSMediumArgument) {
   // Act
   auto result = FresnelCS(3.0);
 
@@ -26,7 +26,7 @@ TEST(GeometryMathTest, FresnelCS_MediumArgument) {
   EXPECT_NEAR(result.s, 0.49631299896737496, 1e-9);
 }
 
-TEST(GeometryMathTest, FresnelCS_LargeArgument) {
+TEST(GeometryMathTest, FresnelCSLargeArgument) {
   // Act
   auto result = FresnelCS(10.0);
 
@@ -35,7 +35,7 @@ TEST(GeometryMathTest, FresnelCS_LargeArgument) {
   EXPECT_NEAR(result.s, 0.46816997858488224, 1e-9);
 }
 
-TEST(GeometryMathTest, FresnelCS_Symmetry) {
+TEST(GeometryMathTest, FresnelCSSymmetry) {
   // Act
   auto pos_res = FresnelCS(0.5);
   auto neg_res = FresnelCS(-0.5);
@@ -45,7 +45,7 @@ TEST(GeometryMathTest, FresnelCS_Symmetry) {
   EXPECT_DOUBLE_EQ(neg_res.s, -pos_res.s);
 }
 
-TEST(GeometryMathTest, EvaluateClothoidIntegrals_SmallA) {
+TEST(GeometryMathTest, EvaluateClothoidIntegralsSmallA) {
   // Arrange
   double param_a = 0.0;
   double param_b = 0.05;
@@ -58,7 +58,7 @@ TEST(GeometryMathTest, EvaluateClothoidIntegrals_SmallA) {
   EXPECT_NEAR(result.y, 0.024994792100675071, 1e-9);
 }
 
-TEST(GeometryMathTest, EvaluateClothoidIntegrals_LargeA) {
+TEST(GeometryMathTest, EvaluateClothoidIntegralsLargeA) {
   // Arrange
   double param_a = 1.0;
   double param_b = 0.5;

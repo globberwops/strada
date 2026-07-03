@@ -65,16 +65,16 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, cpm::CompiledP
   }
 
   if (max_x >= min_x && max_y >= min_y) {
-    camera_.camera_x = 0.5f * (min_x + max_x);
-    camera_.camera_y = 0.5f * (min_y + max_y);
+    camera_.camera_x = 0.5F * (min_x + max_x);
+    camera_.camera_y = 0.5F * (min_y + max_y);
 
     float dx = max_x - min_x;
     float dy = max_y - min_y;
     float max_dim = std::max(dx, dy);
-    if (max_dim > 0.0f) {
-      camera_.zoom = 300.0f / max_dim;
+    if (max_dim > 0.0F) {
+      camera_.zoom = 300.0F / max_dim;
     } else {
-      camera_.zoom = 10.0f;
+      camera_.zoom = 10.0F;
     }
   }
 
@@ -85,7 +85,7 @@ void ViewportWidget::initializeGL() {
   initializeOpenGLFunctions();
 
   // Clear color matching Sleek Premium Dark Mode aesthetics
-  glClearColor(0.1f, 0.12f, 0.15f, 1.0f);
+  glClearColor(0.1F, 0.12F, 0.15F, 1.0F);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
 
@@ -154,7 +154,7 @@ void ViewportWidget::paintGL() {
   }
 
   shader_program_.bind();
-  shader_program_.setUniformValue("useOverrideColor", false);
+  shader_program_.setUniformValue("useOverrideColor", 0);
   shader_program_.setUniformValue("projection", camera_.GetProjectionMatrix());
   shader_program_.setUniformValue("view", camera_.GetViewMatrix());
 
@@ -169,14 +169,14 @@ void ViewportWidget::paintGL() {
   if (show_junction_boundaries_ && !geometry_.boundary_triangle_indices.empty()) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    shader_program_.setUniformValue("useOverrideColor", true);
+    shader_program_.setUniformValue("useOverrideColor", 1);
     shader_program_.setUniformValue("overrideColor",
-                                    QVector4D(245.0f / 255.0f, 197.0f / 255.0f, 61.0f / 255.0f, 0.12f));
+                                    QVector4D(245.0F / 255.0F, 197.0F / 255.0F, 61.0F / 255.0F, 0.12F));
     boundaries_vao_.bind();
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(geometry_.boundary_triangle_indices.size()), GL_UNSIGNED_INT,
                    nullptr);
     boundaries_vao_.release();
-    shader_program_.setUniformValue("useOverrideColor", false);
+    shader_program_.setUniformValue("useOverrideColor", 0);
     glDisable(GL_BLEND);
   }
 
@@ -191,7 +191,7 @@ void ViewportWidget::paintGL() {
   if (!geometry_.line_vertices.empty()) {
     glDisable(GL_DEPTH_TEST);
     lines_vao_.bind();
-    glLineWidth(2.0f);
+    glLineWidth(2.0F);
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.line_vertices.size()));
     lines_vao_.release();
     glEnable(GL_DEPTH_TEST);
@@ -206,8 +206,8 @@ void ViewportWidget::paintGL() {
           glEnable(GL_BLEND);
           glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-          shader_program_.setUniformValue("useOverrideColor", true);
-          shader_program_.setUniformValue("overrideColor", QVector4D(1.0f, 0.75f, 0.0f, 0.4f));
+          shader_program_.setUniformValue("useOverrideColor", 1);
+          shader_program_.setUniformValue("overrideColor", QVector4D(1.0F, 0.75F, 0.0F, 0.4F));
 
           triangles_vao_.bind();
           const void* offset =
@@ -215,7 +215,7 @@ void ViewportWidget::paintGL() {
           glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
           triangles_vao_.release();
 
-          shader_program_.setUniformValue("useOverrideColor", false);
+          shader_program_.setUniformValue("useOverrideColor", 0);
           glDisable(GL_BLEND);
           glEnable(GL_DEPTH_TEST);
         }
@@ -321,13 +321,13 @@ void ViewportWidget::paintGL() {
     // 6. Draw Geographical Scale Bar in the bottom-right corner
     {
       double scale_length = CalculateScaleLength(camera_.zoom);
-      double S = scale_length * camera_.zoom;  // Width on screen
+      double s = scale_length * camera_.zoom;  // Width on screen
 
       int num_segments = 4;
-      double seg_w = S / num_segments;
-      double x0 = width() - 20.0 - S;
+      double seg_w = s / num_segments;
+      double x0 = width() - 20.0 - s;
       for (int i = 0; i < num_segments; ++i) {
-        QRectF seg_rect(x0 + i * seg_w, height() - 35, seg_w, 8);
+        QRectF seg_rect(x0 + (i * seg_w), height() - 35, seg_w, 8);
         if (i % 2 == 0) {
           painter.setBrush(QBrush(QColor(26, 29, 36)));  // Filled dark
         } else {
@@ -347,7 +347,7 @@ void ViewportWidget::paintGL() {
       } else {
         label = QString("%1 m").arg(scale_length);
       }
-      painter.drawText(QRectF(x0, height() - 55, S, 15), Qt::AlignCenter, label);
+      painter.drawText(QRectF(x0, height() - 55, s, 15), Qt::AlignCenter, label);
     }
 
     // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
@@ -473,10 +473,10 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
   QPoint delta = event->pos() - last_mouse_pos_;
   last_mouse_pos_ = event->pos();
 
-  if (event->buttons() & Qt::LeftButton) {
+  if (event->buttons() & Qt::LeftButton != 0u) {
     camera_.Pan(static_cast<float>(delta.x()), static_cast<float>(delta.y()));
-  } else if (event->buttons() & Qt::RightButton) {
-    camera_.Rotate(static_cast<float>(delta.x()) * 0.5f);
+  } else if (event->buttons() & Qt::RightButton != 0u) {
+    camera_.Rotate(static_cast<float>(delta.x()) * 0.5F);
   }
 
   // Hover picking detection (CPU-side via CPM)
@@ -489,7 +489,7 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
     pose.y = world_pos.y();
 
     // Query closest vertex in rendering geometry to find road elevation at mouse cursor
-    float best_z = 0.0f;
+    float best_z = 0.0F;
     if (!geometry_.triangle_vertices.empty()) {
       float min_dist_sq = std::numeric_limits<float>::max();
       for (const auto& v : geometry_.triangle_vertices) {
@@ -535,11 +535,11 @@ void ViewportWidget::wheelEvent(QWheelEvent* event) {
   QPoint num_pixels = event->pixelDelta();
   QPoint num_degrees = event->angleDelta() / 8;
 
-  float factor = 1.0f;
+  float factor = 1.0F;
   if (!num_pixels.isNull()) {
-    factor = std::pow(1.15f, static_cast<float>(num_pixels.y()) * 0.05f);
+    factor = std::pow(1.15F, static_cast<float>(num_pixels.y()) * 0.05F);
   } else if (!num_degrees.isNull()) {
-    factor = std::pow(1.15f, static_cast<float>(num_degrees.y()) / 15.0f);
+    factor = std::pow(1.15F, static_cast<float>(num_degrees.y()) / 15.0F);
   }
 
   camera_.ZoomAt(static_cast<float>(event->position().x()), static_cast<float>(event->position().y()), factor);
@@ -566,13 +566,13 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
       max_y = std::max(max_y, v.y);
     }
     if (max_x >= min_x && max_y >= min_y) {
-      camera_.camera_x = 0.5f * (min_x + max_x);
-      camera_.camera_y = 0.5f * (min_y + max_y);
+      camera_.camera_x = 0.5F * (min_x + max_x);
+      camera_.camera_y = 0.5F * (min_y + max_y);
       float dx = max_x - min_x;
       float dy = max_y - min_y;
       float max_dim = std::max(dx, dy);
-      if (max_dim > 0.0f) {
-        camera_.zoom = 300.0f / max_dim;
+      if (max_dim > 0.0F) {
+        camera_.zoom = 300.0F / max_dim;
       }
     }
     update();
@@ -582,16 +582,17 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
   }
 }
 
-bool ViewportWidget::event(QEvent* event) {
+auto ViewportWidget::event(QEvent* event) -> bool {
   if (event->type() == QEvent::NativeGesture) {
-    auto* gesture_event = static_cast<QNativeGestureEvent*>(event);
+    auto* gesture_event = dynamic_cast<QNativeGestureEvent*>(event);
     if (gesture_event->gestureType() == Qt::ZoomNativeGesture) {
       qreal val = gesture_event->value();
       QPointF pos = gesture_event->position();
       camera_.ZoomAt(static_cast<float>(pos.x()), static_cast<float>(pos.y()), static_cast<float>(1.0 + val));
       update();
       return true;
-    } else if (gesture_event->gestureType() == Qt::RotateNativeGesture) {
+    }
+    if (gesture_event->gestureType() == Qt::RotateNativeGesture) {
       qreal val = gesture_event->value();
       camera_.Rotate(-static_cast<float>(val));
       update();
@@ -608,39 +609,39 @@ void ViewportWidget::RenderGrid() {
   }
 
   // Calculate maximum visible bounds in world coordinates
-  float W = static_cast<float>(width());
-  float H = static_cast<float>(height());
-  float R_screen = std::sqrt(W * W + H * H) / 2.0f;
-  float R_world = R_screen / camera_.zoom;
+  auto w = static_cast<float>(width());
+  auto h = static_cast<float>(height());
+  float r_screen = std::sqrt((w * w) + (h * h)) / 2.0F;
+  float r_world = r_screen / camera_.zoom;
 
-  float min_x = camera_.camera_x - R_world;
-  float max_x = camera_.camera_x + R_world;
-  float min_y = camera_.camera_y - R_world;
-  float max_y = camera_.camera_y + R_world;
+  float min_x = camera_.camera_x - r_world;
+  float max_x = camera_.camera_x + r_world;
+  float min_y = camera_.camera_y - r_world;
+  float max_y = camera_.camera_y + r_world;
 
-  float G = static_cast<float>(scale_length);
+  auto grid_spacing = static_cast<float>(scale_length);
 
   std::vector<Vertex> grid_vertices;
 
   // Grid line color: subtle dark grey-blue
-  float r = 0.16f;
-  float g = 0.18f;
-  float b = 0.22f;
+  float r = 0.16F;
+  float g = 0.18F;
+  float b = 0.22F;
 
   // Vertical lines (constant x)
-  float start_x = std::floor(min_x / G) * G;
-  float end_x = std::ceil(max_x / G) * G;
-  for (float x = start_x; x <= end_x; x += G) {
-    grid_vertices.push_back(Vertex{.x = x, .y = min_y, .z = 0.0f, .r = r, .g = g, .b = b});
-    grid_vertices.push_back(Vertex{.x = x, .y = max_y, .z = 0.0f, .r = r, .g = g, .b = b});
+  float start_x = std::floor(min_x / grid_spacing) * grid_spacing;
+  float end_x = std::ceil(max_x / grid_spacing) * grid_spacing;
+  for (float x = start_x; x <= end_x; x += grid_spacing) {
+    grid_vertices.push_back(Vertex{.x = x, .y = min_y, .z = 0.0F, .r = r, .g = g, .b = b});
+    grid_vertices.push_back(Vertex{.x = x, .y = max_y, .z = 0.0F, .r = r, .g = g, .b = b});
   }
 
   // Horizontal lines (constant y)
-  float start_y = std::floor(min_y / G) * G;
-  float end_y = std::ceil(max_y / G) * G;
-  for (float y = start_y; y <= end_y; y += G) {
-    grid_vertices.push_back(Vertex{.x = min_x, .y = y, .z = 0.0f, .r = r, .g = g, .b = b});
-    grid_vertices.push_back(Vertex{.x = max_x, .y = y, .z = 0.0f, .r = r, .g = g, .b = b});
+  float start_y = std::floor(min_y / grid_spacing) * grid_spacing;
+  float end_y = std::ceil(max_y / grid_spacing) * grid_spacing;
+  for (float y = start_y; y <= end_y; y += grid_spacing) {
+    grid_vertices.push_back(Vertex{.x = min_x, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
+    grid_vertices.push_back(Vertex{.x = max_x, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
   }
 
   if (grid_vertices.empty()) {
@@ -659,7 +660,7 @@ void ViewportWidget::RenderGrid() {
   shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
 
   // Draw lines
-  glLineWidth(1.0f);
+  glLineWidth(1.0F);
   glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(grid_vertices.size()));
 
   grid_vao_.release();

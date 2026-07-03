@@ -299,7 +299,7 @@ TEST(ParserTest, ParseJunctionBoundary) {
 
 TEST(ParserTest, ParseJunctionJointBoundary) {
   // Arrange
-  const std::string xml = R"(<?xml version="1.0" encoding="utf-8"?>
+  const std::string kXml = R"(<?xml version="1.0" encoding="utf-8"?>
 <OpenDRIVE>
     <header revMajor="1" revMinor="9" name="Joint Boundary Test Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
     <road id="1" length="10.0" junction="-1">
@@ -315,7 +315,7 @@ TEST(ParserTest, ParseJunctionJointBoundary) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(xml);
+  auto ast_tree = strada::parser::ParseString(kXml);
 
   // Assert
   ASSERT_EQ(ast_tree.junctions.size(), 1);

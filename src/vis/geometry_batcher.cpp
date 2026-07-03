@@ -6,15 +6,15 @@ namespace strada::vis {
 
 auto GetLaneColor(const std::string& lane_type) noexcept -> Color {
   if (lane_type == "driving") {
-    return Color{0.2f, 0.25f, 0.3f};
+    return Color{.r = 0.2F, .g = 0.25F, .b = 0.3F};
   }
   if (lane_type == "sidewalk") {
-    return Color{0.4f, 0.45f, 0.5f};
+    return Color{.r = 0.4F, .g = 0.45F, .b = 0.5F};
   }
   if (lane_type == "shoulder") {
-    return Color{0.35f, 0.3f, 0.25f};
+    return Color{.r = 0.35F, .g = 0.3F, .b = 0.25F};
   }
-  return Color{0.25f, 0.3f, 0.25f};
+  return Color{.r = 0.25F, .g = 0.3F, .b = 0.25F};
 }
 
 auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
@@ -25,8 +25,9 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
   for (const auto& mesh : tess.Meshes()) {
     Color lane_color = GetLaneColor(mesh.lane_type);
 
-    std::uint32_t index_start = static_cast<std::uint32_t>(batched.triangle_indices.size());
-    std::uint32_t index_count = static_cast<std::uint32_t>(mesh.indices.size());
+    auto index_start =
+        static_cast<std::uint32_t>(batched.triangle_indices.size());
+    auto index_count = static_cast<std::uint32_t>(mesh.indices.size());
 
     for (const auto& v : mesh.vertices) {
       batched.triangle_vertices.push_back(
@@ -49,7 +50,8 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
       continue;
     }
 
-    Color line_color = Color{245.0f / 255.0f, 197.0f / 255.0f, 61.0f / 255.0f};
+    auto line_color =
+        Color{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F};
 
     if (poly.vertices.size() < 2) {
       continue;
@@ -68,10 +70,15 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
 
   // 3. Batch junction boundaries
   for (const auto& boundary_geom : tess.JunctionBoundaries()) {
-    std::uint32_t current_offset = static_cast<std::uint32_t>(batched.boundary_triangle_vertices.size());
+    auto current_offset =
+        static_cast<std::uint32_t>(batched.boundary_triangle_vertices.size());
     for (const auto& v : boundary_geom.vertices) {
-      batched.boundary_triangle_vertices.push_back(
-          Vertex{.x = v.x, .y = v.y, .z = v.z, .r = 245.0f / 255.0f, .g = 197.0f / 255.0f, .b = 61.0f / 255.0f});
+      batched.boundary_triangle_vertices.push_back(Vertex{.x = v.x,
+                                                          .y = v.y,
+                                                          .z = v.z,
+                                                          .r = 245.0F / 255.0F,
+                                                          .g = 197.0F / 255.0F,
+                                                          .b = 61.0F / 255.0F});
     }
     for (std::uint32_t idx : boundary_geom.indices) {
       batched.boundary_triangle_indices.push_back(idx + current_offset);

@@ -41,10 +41,10 @@ class Camera {
   [[nodiscard]] auto GetViewMatrix() const noexcept -> QMatrix4x4;
 
   // View parameters
-  float camera_x{0.0f};    ///< Target center in world X.
-  float camera_y{0.0f};    ///< Target center in world Y.
-  float zoom{1.0f};        ///< Zoom scale factor (pixels per world unit).
-  float rotation{0.0f};    ///< Rotation angle in degrees (clockwise).
+  float camera_x{0.0F};    ///< Target center in world X.
+  float camera_y{0.0F};    ///< Target center in world Y.
+  float zoom{1.0F};        ///< Zoom scale factor (pixels per world unit).
+  float rotation{0.0F};    ///< Rotation angle in degrees (clockwise).
   int viewport_width{1};   ///< Viewport width in pixels.
   int viewport_height{1};  ///< Viewport height in pixels.
 };

@@ -77,10 +77,10 @@ class Tessellator {
   }
 
  private:
-  [[nodiscard]] auto ResolveLaneId(const ast::AbstractSyntaxTree& map, cpm::RoadId road_idx, std::size_t section_idx,
-                                   int original_lane_id) const -> cpm::LaneId;
+  [[nodiscard]] static auto ResolveLaneId(const ast::AbstractSyntaxTree& map, cpm::RoadId road_idx,
+                                          std::size_t section_idx, int original_lane_id) -> cpm::LaneId;
 
-  [[nodiscard]] auto ComputeSamplingStations(const ast::Road& road, double chord_error) const -> std::vector<double>;
+  [[nodiscard]] static auto ComputeSamplingStations(const ast::Road& road, double chord_error) -> std::vector<double>;
 
   void TessellateReferenceLine(cpm::RoadId road_id, const std::vector<double>& stations,
                                const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx);

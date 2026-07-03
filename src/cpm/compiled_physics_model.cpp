@@ -227,7 +227,8 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     lane_network_.GetRoadWidthLimits(static_cast<RoadId>(road_idx), best_s, t_left, t_right);
     constexpr double kSnappingTolerance = 5.0;
 
-    double ds_longitudinal = std::sqrt(std::max(0.0, min_dist_sq - road_t * road_t));
+    double ds_longitudinal =
+        std::sqrt(std::max(0.0, min_dist_sq - (road_t * road_t)));
     if (ds_longitudinal > kSnappingTolerance) {
       return std::nullopt;
     }

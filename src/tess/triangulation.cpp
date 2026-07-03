@@ -41,11 +41,12 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     float cx_px = cx - px;
     float cy_py = cy - py;
 
-    float ccw_ab = ax_px * by_py - ay_py * bx_px;
-    float ccw_bc = bx_px * cy_py - by_py * cx_px;
-    float ccw_ca = cx_px * ay_py - cy_py * ax_px;
+    float ccw_ab = (ax_px * by_py) - (ay_py * bx_px);
+    float ccw_bc = (bx_px * cy_py) - (by_py * cx_px);
+    float ccw_ca = (cx_px * ay_py) - (cy_py * ax_px);
 
-    return (ccw_ab >= 0.0f && ccw_bc >= 0.0f && ccw_ca >= 0.0f) || (ccw_ab <= 0.0f && ccw_bc <= 0.0f && ccw_ca <= 0.0f);
+    return (ccw_ab >= 0.0F && ccw_bc >= 0.0F && ccw_ca >= 0.0F) ||
+           (ccw_ab <= 0.0F && ccw_bc <= 0.0F && ccw_ca <= 0.0F);
   };
 
   auto is_ear = [&](size_t u, size_t w, size_t cv, const std::vector<std::uint32_t>& v_indices) -> bool {
@@ -54,8 +55,9 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     const auto& c = vertices[v_indices[cv]];
 
     // Check if triangle is convex (CCW)
-    float cross_product = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
-    if (cross_product <= 0.0f) {
+    float cross_product =
+        ((b.x - a.x) * (c.y - b.y)) - ((b.y - a.y) * (c.x - b.x));
+    if (cross_product <= 0.0F) {
       return false;
     }
 

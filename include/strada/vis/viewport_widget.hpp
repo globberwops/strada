@@ -12,6 +12,7 @@
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/vis/camera.hpp>
 #include <strada/vis/geometry_batcher.hpp>
+#include <string>
 
 namespace strada::vis {
 
@@ -33,7 +34,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   void mouseMoveEvent(QMouseEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
-  bool event(QEvent* event) override;
+  auto event(QEvent* event) -> bool override;
 
  private:
   BatchedGeometry geometry_;

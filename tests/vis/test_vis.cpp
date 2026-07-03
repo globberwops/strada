@@ -77,9 +77,9 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
   // Verify colors are mapped (driving is dark grey/blue)
   auto color = GetLaneColor("driving");
   for (const auto& v : batched.triangle_vertices) {
-    EXPECT_NEAR(v.r, color.r, 1e-4f);
-    EXPECT_NEAR(v.g, color.g, 1e-4f);
-    EXPECT_NEAR(v.b, color.b, 1e-4f);
+    EXPECT_NEAR(v.r, color.r, 1e-4F);
+    EXPECT_NEAR(v.g, color.g, 1e-4F);
+    EXPECT_NEAR(v.b, color.b, 1e-4F);
   }
 
   // Verify indices are identical since we only have one mesh
@@ -154,13 +154,13 @@ TEST(VisTest, BatchMapGeometryLines) {
       const auto& v_end = batched.line_vertices[idx++];
 
       // Verify coordinate data matches
-      EXPECT_NEAR(v_start.x, poly.vertices[i].x, 1e-4f);
-      EXPECT_NEAR(v_end.x, poly.vertices[i + 1].x, 1e-4f);
+      EXPECT_NEAR(v_start.x, poly.vertices[i].x, 1e-4F);
+      EXPECT_NEAR(v_end.x, poly.vertices[i + 1].x, 1e-4F);
 
       // Yellow color
-      EXPECT_NEAR(v_start.r, 245.0f / 255.0f, 1e-2f);
-      EXPECT_NEAR(v_start.g, 197.0f / 255.0f, 1e-2f);
-      EXPECT_NEAR(v_start.b, 61.0f / 255.0f, 1e-2f);
+      EXPECT_NEAR(v_start.r, 245.0F / 255.0F, 1e-2F);
+      EXPECT_NEAR(v_start.g, 197.0F / 255.0F, 1e-2F);
+      EXPECT_NEAR(v_start.b, 61.0F / 255.0F, 1e-2F);
     }
   }
 }
@@ -233,9 +233,9 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
 
   // Check color matches amber (245, 197, 61)
   for (const auto& v : batched.boundary_triangle_vertices) {
-    EXPECT_NEAR(v.r, 245.0f / 255.0f, 1e-4f);
-    EXPECT_NEAR(v.g, 197.0f / 255.0f, 1e-4f);
-    EXPECT_NEAR(v.b, 61.0f / 255.0f, 1e-4f);
+    EXPECT_NEAR(v.r, 245.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.g, 197.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.b, 61.0F / 255.0F, 1e-4F);
   }
 }
 

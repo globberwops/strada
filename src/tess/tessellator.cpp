@@ -28,7 +28,7 @@ Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error)
 }
 
 auto Tessellator::ResolveLaneId(const ast::AbstractSyntaxTree& map, cpm::RoadId road_idx, std::size_t section_idx,
-                                int original_lane_id) const -> cpm::LaneId {
+                                int original_lane_id) -> cpm::LaneId {
   size_t absolute_lane_idx = 0;
   bool found = false;
   for (size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
@@ -68,7 +68,7 @@ auto Tessellator::ResolveLaneId(const ast::AbstractSyntaxTree& map, cpm::RoadId 
   return static_cast<cpm::LaneId>(absolute_lane_idx);
 }
 
-auto Tessellator::ComputeSamplingStations(const ast::Road& road, double chord_error) const -> std::vector<double> {
+auto Tessellator::ComputeSamplingStations(const ast::Road& road, double chord_error) -> std::vector<double> {
   std::vector<double> stations;
   double road_len = road.length;
 
@@ -284,8 +284,8 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
       }
 
       for (const auto& mesh : meshes_) {
-        if (std::find(connecting_roads.begin(), connecting_roads.end(), mesh.road_id) != connecting_roads.end()) {
-          uint32_t vertex_offset = static_cast<uint32_t>(fallback_vertices.size());
+        if (std::ranges::find(connecting_roads, mesh.road_id) != connecting_roads.end()) {
+          auto vertex_offset = static_cast<uint32_t>(fallback_vertices.size());
           for (const auto& v : mesh.vertices) {
             fallback_vertices.push_back(v);
           }
@@ -339,7 +339,7 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
 
         double seg_len = std::abs(end_s - start_s);
         double ds = std::clamp(chord_error * 5.0, 0.5, 2.0);
-        size_t num_steps = static_cast<size_t>(std::ceil(seg_len / ds));
+        auto num_steps = static_cast<size_t>(std::ceil(seg_len / ds));
         num_steps = std::max<size_t>(num_steps, 2);
 
         for (size_t k = 0; k <= num_steps; ++k) {
@@ -395,8 +395,8 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
           min_right_id = std::min(min_right_id, l.id);
         }
 
-        int L_start = segment.joint_lane_start.value_or(min_right_id);
-        int L_end = segment.joint_lane_end.value_or(max_left_id);
+        int l_start = segment.joint_lane_start.value_or(min_right_id);
+        int l_end = segment.joint_lane_end.value_or(max_left_id);
 
         auto get_outer_t = [&](int lane_id_val) -> double {
           if (lane_id_val == 0) {
@@ -416,12 +416,12 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
           return rp.t;
         };
 
-        double t_start = get_outer_t(L_start);
-        double t_end = get_outer_t(L_end);
+        double t_start = get_outer_t(l_start);
+        double t_end = get_outer_t(l_end);
 
         double t_diff = std::abs(t_end - t_start);
         double dt = std::clamp(chord_error * 5.0, 0.5, 2.0);
-        size_t num_steps = static_cast<size_t>(std::ceil(t_diff / dt));
+        auto num_steps = static_cast<size_t>(std::ceil(t_diff / dt));
         num_steps = std::max<size_t>(num_steps, 2);
 
         for (size_t k = 0; k <= num_steps; ++k) {
@@ -436,17 +436,18 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
 
     // Deduplicate adjacent identical vertices
     if (loop_vertices.size() > 1) {
-      auto it = std::unique(loop_vertices.begin(), loop_vertices.end(), [](const Vertex& a, const Vertex& b) noexcept {
-        return std::abs(a.x - b.x) < 1e-4f && std::abs(a.y - b.y) < 1e-4f && std::abs(a.z - b.z) < 1e-4f;
-      });
+      auto it = std::unique(
+          loop_vertices.begin(), loop_vertices.end(), [](const Vertex& a, const Vertex& b) noexcept -> bool {
+            return std::abs(a.x - b.x) < 1e-4F && std::abs(a.y - b.y) < 1e-4F && std::abs(a.z - b.z) < 1e-4F;
+          });
       loop_vertices.erase(it, loop_vertices.end());
 
       // If the last vertex is identical to the first, remove it to make the loop strictly open-ended
       if (loop_vertices.size() > 2) {
         const auto& first = loop_vertices.front();
         const auto& last = loop_vertices.back();
-        if (std::abs(first.x - last.x) < 1e-4f && std::abs(first.y - last.y) < 1e-4f &&
-            std::abs(first.z - last.z) < 1e-4f) {
+        if (std::abs(first.x - last.x) < 1e-4F && std::abs(first.y - last.y) < 1e-4F &&
+            std::abs(first.z - last.z) < 1e-4F) {
           loop_vertices.pop_back();
         }
       }
