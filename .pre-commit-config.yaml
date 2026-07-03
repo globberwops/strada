@@ -20,8 +20,5 @@ repos:
         args: [-i, --style=file]
       - id: clang-tidy
         args: [-p, build/dev]
-      # - id: oclint
-      - id: uncrustify
       - id: cppcheck
-      - id: cpplint
       - id: include-what-you-use

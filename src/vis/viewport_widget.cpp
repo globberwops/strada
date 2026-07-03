@@ -90,7 +90,8 @@ void ViewportWidget::initializeGL() {
   glDepthFunc(GL_LEQUAL);
 
   // Set up Shader Program
-  const char* vshader_source = R"(
+  const char* vshader_source =
+      R"(
     #version 330 core
     layout(location = 0) in vec3 aPos;
     layout(location = 1) in vec3 aColor;
@@ -103,7 +104,8 @@ void ViewportWidget::initializeGL() {
     }
   )";
 
-  const char* fshader_source = R"(
+  const char* fshader_source =
+      R"(
     #version 330 core
     out vec4 FragColor;
     in vec3 ourColor;
@@ -473,9 +475,9 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
   QPoint delta = event->pos() - last_mouse_pos_;
   last_mouse_pos_ = event->pos();
 
-  if (event->buttons() & Qt::LeftButton != 0u) {
+  if ((event->buttons() & Qt::LeftButton) != 0) {
     camera_.Pan(static_cast<float>(delta.x()), static_cast<float>(delta.y()));
-  } else if (event->buttons() & Qt::RightButton != 0u) {
+  } else if ((event->buttons() & Qt::RightButton) != 0) {
     camera_.Rotate(static_cast<float>(delta.x()) * 0.5F);
   }
 

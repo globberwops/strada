@@ -436,11 +436,10 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
 
     // Deduplicate adjacent identical vertices
     if (loop_vertices.size() > 1) {
-      auto it = std::unique(
-          loop_vertices.begin(), loop_vertices.end(), [](const Vertex& a, const Vertex& b) noexcept -> bool {
-            return std::abs(a.x - b.x) < 1e-4F && std::abs(a.y - b.y) < 1e-4F && std::abs(a.z - b.z) < 1e-4F;
-          });
-      loop_vertices.erase(it, loop_vertices.end());
+      auto [first, last] = std::ranges::unique(loop_vertices, [](const Vertex& a, const Vertex& b) noexcept -> bool {
+        return std::abs(a.x - b.x) < 1e-4F && std::abs(a.y - b.y) < 1e-4F && std::abs(a.z - b.z) < 1e-4F;
+      });
+      loop_vertices.erase(first, last);
 
       // If the last vertex is identical to the first, remove it to make the loop strictly open-ended
       if (loop_vertices.size() > 2) {
