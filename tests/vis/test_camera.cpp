@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <strada/vis/camera.hpp>
 
 namespace strada::vis {
@@ -57,7 +58,7 @@ TEST(CameraTest, ZoomCenteringInvariance) {
   auto w0 = camera.ScreenToWorld(px, py);
 
   // Zoom in centered at cursor
-  camera.ZoomAt(px, py, 1.2F); // zoom * 1.2
+  camera.ZoomAt(px, py, 1.2F);  // zoom * 1.2
 
   // World point under cursor after zoom
   auto w1 = camera.ScreenToWorld(px, py);
@@ -73,7 +74,7 @@ TEST(CameraTest, CameraPanning) {
   camera.camera_x = 0.0F;
   camera.camera_y = 0.0F;
   camera.zoom = 2.0F;
-  camera.rotation = 90.0F; // 90 degrees CCW
+  camera.rotation = 90.0F;  // 90 degrees CCW
 
   // Drag mouse by 10 pixels right, 0 pixels down
   // Since camera is rotated 90 degrees, dragging right shifts the camera in +Y direction in world
@@ -96,9 +97,8 @@ TEST(CameraTest, CameraRotation) {
 
 TEST(CameraTest, ScaleSnapping) {
   // Test various zoom levels
-  const double kZoomLevels[] = {0.001, 0.005, 0.01,  0.05,  0.1,
-                                0.5,   1.0,   1.55,  2.0,   5.0,
-                                10.0,  50.0,  100.0, 500.0, 1000.0};
+  constexpr std::array<double, 15> kZoomLevels = {0.001, 0.005, 0.01, 0.05, 0.1,   0.5,   1.0,   1.55,
+                                                  2.0,   5.0,   10.0, 50.0, 100.0, 500.0, 1000.0};
 
   for (double zoom : kZoomLevels) {
     double scale_length = CalculateScaleLength(zoom);
