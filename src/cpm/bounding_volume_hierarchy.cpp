@@ -92,10 +92,10 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
 
   const double kExtX = centroid_bounds.max_x - centroid_bounds.min_x;
   const double kExtY = centroid_bounds.max_y - centroid_bounds.min_y;
-  int axis = (kExtX > kExtY) ? 0 : 1;
+  const int kAxis = (kExtX > kExtY) ? 0 : 1;
 
-  double min_coord = (axis == 0) ? centroid_bounds.min_x : centroid_bounds.min_y;
-  const double kMaxCoord = (axis == 0) ? centroid_bounds.max_x : centroid_bounds.max_y;
+  double min_coord = (kAxis == 0) ? centroid_bounds.min_x : centroid_bounds.min_y;
+  const double kMaxCoord = (kAxis == 0) ? centroid_bounds.max_x : centroid_bounds.max_y;
 
   if (kMaxCoord - min_coord < 1e-9) {
     return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, kCount);
@@ -111,8 +111,8 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   double scale = kNumBins / (kMaxCoord - min_coord);
   for (std::uint32_t idx = start_idx; idx < end_idx; ++idx) {
     const std::uint32_t kPrimIdx = prim_indices[idx];
-    const double kCentroid = (axis == 0) ? (0.5 * (temp_aabbs[kPrimIdx].min_x + temp_aabbs[kPrimIdx].max_x))
-                                         : (0.5 * (temp_aabbs[kPrimIdx].min_y + temp_aabbs[kPrimIdx].max_y));
+    const double kCentroid = (kAxis == 0) ? (0.5 * (temp_aabbs[kPrimIdx].min_x + temp_aabbs[kPrimIdx].max_x))
+                                          : (0.5 * (temp_aabbs[kPrimIdx].min_y + temp_aabbs[kPrimIdx].max_y));
     int bin_idx = static_cast<int>((kCentroid - min_coord) * scale);
     bin_idx = std::clamp(bin_idx, 0, kNumBins - 1);
     bins[bin_idx].count++;
@@ -170,8 +170,8 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
 
   auto split_it = std::stable_partition(
       prim_indices.begin() + start_idx, prim_indices.begin() + end_idx, [&](std::uint32_t prim_idx) -> bool {
-        const double kCentroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
-                                             : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
+        const double kCentroid = (kAxis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
+                                              : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
         int bin_idx = static_cast<int>((kCentroid - min_coord) * scale);
         bin_idx = std::clamp(bin_idx, 0, kNumBins - 1);
         return bin_idx <= best_split_bin;

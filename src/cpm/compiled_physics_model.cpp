@@ -99,15 +99,15 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives;
   std::vector<Aabb> temp_aabbs;
 
-  auto num_roads = static_cast<std::uint32_t>(model.road_lengths_.size());
-  for (std::uint32_t road_idx = 0; road_idx < num_roads; ++road_idx) {
-    auto [first_seg, seg_count] = model.ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
-    const double kInflation = road_max_t[road_idx];
+  const auto kNumRoads = static_cast<std::uint32_t>(model.road_lengths_.size());
+  for (std::uint32_t road_idx = 0; road_idx < kNumRoads; ++road_idx) {
+    const auto [first_seg, seg_count] = model.ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
+    const auto kInflation = road_max_t[road_idx];
     for (std::uint32_t i = 0; i < seg_count; ++i) {
       const std::uint32_t kSegIdx = first_seg + i;
       temp_primitives.push_back(BoundingVolumeHierarchy::PrimitiveInfo{.road_idx = road_idx, .segment_idx = kSegIdx});
-      auto aabb = model.ref_line_.ComputeSegmentAabb(kSegIdx, kInflation);
-      temp_aabbs.push_back(aabb);
+      const auto kAabb = model.ref_line_.ComputeSegmentAabb(kSegIdx, kInflation);
+      temp_aabbs.push_back(kAabb);
     }
   }
 
@@ -124,8 +124,8 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
 
 [[gnu::hot]] auto CompiledPhysicsModel::RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept
     -> InertialPose {
-  auto road_idx = static_cast<std::uint32_t>(pose.road);
-  auto [first_seg, seg_count] = ref_line_.GetRoadSegments(pose.road);
+  const auto kRoadIdx = static_cast<std::uint32_t>(pose.road);
+  const auto [first_seg, seg_count] = ref_line_.GetRoadSegments(pose.road);
   if (seg_count == 0) {
     return InertialPose{};
   }
@@ -134,35 +134,35 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   const std::uint32_t kSegIdx = ref_line_.FindSegmentIndex(pose.road, pose.s, ctx);
 
   // 2. Evaluate reference line
-  auto pt = ref_line_.Evaluate(kSegIdx, pose.s);
+  const auto kPt = ref_line_.Evaluate(kSegIdx, pose.s);
 
   // 3. Evaluate vertical profile (elevation, pitch, roll, shape height)
-  auto vertical = elevation_profile_.Evaluate(pose.road, pose.s, pose.t);
+  const auto kVertical = elevation_profile_.Evaluate(pose.road, pose.s, pose.t);
 
   // 4. Cross section surface height offset
   const double kHSurf = lane_network_.EvaluateCrossSectionSurfaceOffset(pose.road, pose.s, pose.t);
 
   // 5. Position composition
-  auto r_road = Rotation::FromEuler(pt.heading, vertical.pitch, vertical.roll_total);
+  const auto kRRoad = Rotation::FromEuler(kPt.heading, kVertical.pitch, kVertical.roll_total);
 
   const double kLocalT = pose.t;
-  const double kLocalH = pose.h + kHSurf + vertical.shape_height;
+  const double kLocalH = pose.h + kHSurf + kVertical.shape_height;
 
-  auto offset = r_road.Transform(0.0, kLocalT, kLocalH);
+  const auto kOffset = kRRoad.Transform(0.0, kLocalT, kLocalH);
 
   InertialPose inertial_pose;
-  inertial_pose.x = pt.x + offset[0];
-  inertial_pose.y = pt.y + offset[1];
-  inertial_pose.z = vertical.elevation + offset[2];
+  inertial_pose.x = kPt.x + kOffset[0];
+  inertial_pose.y = kPt.y + kOffset[1];
+  inertial_pose.z = kVertical.elevation + kOffset[2];
 
   // Composed orientation composition
-  auto r_offset = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
-  auto r_inertial = r_road.Compose(r_offset);
+  const auto kROffset = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
+  const auto kRInertial = kRRoad.Compose(kROffset);
 
-  auto euler_angles = r_inertial.ToEuler();
-  inertial_pose.heading = euler_angles.heading;
-  inertial_pose.pitch = euler_angles.pitch;
-  inertial_pose.roll = euler_angles.roll;
+  const auto kEulerAngles = kRInertial.ToEuler();
+  inertial_pose.heading = kEulerAngles.heading;
+  inertial_pose.pitch = kEulerAngles.pitch;
+  inertial_pose.roll = kEulerAngles.roll;
 
   return inertial_pose;
 }
@@ -188,40 +188,40 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     for (std::uint32_t i = 0; i < seg_count; ++i) {
       const std::uint32_t kSegIdx = first_seg + i;
       const double kRoadS = ref_line_.Project(kSegIdx, pose.x, pose.y);
-      auto pt = ref_line_.Evaluate(kSegIdx, kRoadS);
+      const auto kPt = ref_line_.Evaluate(kSegIdx, kRoadS);
 
-      const double kDx = pose.x - pt.x;
-      const double kDy = pose.y - pt.y;
+      const double kDx = pose.x - kPt.x;
+      const double kDy = pose.y - kPt.y;
       const double kDistSq = (kDx * kDx) + (kDy * kDy);
       if (kDistSq < min_dist_sq) {
         min_dist_sq = kDistSq;
         best_s = kRoadS;
-        best_t = (-kDx * std::sin(pt.heading)) + (kDy * std::cos(pt.heading));
-        best_rhdg = pt.heading;
+        best_t = (-kDx * std::sin(kPt.heading)) + (kDy * std::cos(kPt.heading));
+        best_rhdg = kPt.heading;
       }
     }
 
     // Evaluate base vertical profile at best_s (t=0)
-    auto vertical_base = elevation_profile_.Evaluate(static_cast<RoadId>(road_idx), best_s, 0.0);
+    const auto kVerticalBase = elevation_profile_.Evaluate(static_cast<RoadId>(road_idx), best_s, 0.0);
 
     const std::uint32_t kBestSegIdx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
-    auto pt = ref_line_.Evaluate(kBestSegIdx, best_s);
+    const auto kPt = ref_line_.Evaluate(kBestSegIdx, best_s);
 
-    const double kDx = pose.x - pt.x;
-    const double kDy = pose.y - pt.y;
-    const double kDz = pose.z - vertical_base.elevation;
+    const double kDx = pose.x - kPt.x;
+    const double kDy = pose.y - kPt.y;
+    const double kDz = pose.z - kVerticalBase.elevation;
 
     // Base roll calculation
-    auto r_road_base = Rotation::FromEuler(best_rhdg, vertical_base.pitch, vertical_base.natural_roll);
-    const double kRoadTBase = r_road_base.InverseTransform(kDx, kDy, kDz)[1];
+    const auto kRRoadBase = Rotation::FromEuler(best_rhdg, kVerticalBase.pitch, kVerticalBase.natural_roll);
+    const double kRoadTBase = kRRoadBase.InverseTransform(kDx, kDy, kDz)[1];
 
     // Shape evaluation and roll correction
     const double kShapeGrad =
         elevation_profile_.EvaluateShapeTGradient(static_cast<RoadId>(road_idx), best_s, kRoadTBase);
-    const double kRollTotal = vertical_base.natural_roll + std::atan(kShapeGrad);
+    const double kRollTotal = kVerticalBase.natural_roll + std::atan(kShapeGrad);
 
-    auto r_road = Rotation::FromEuler(best_rhdg, vertical_base.pitch, kRollTotal);
-    const double kRoadT = r_road.InverseTransform(kDx, kDy, kDz)[1];
+    const auto kRRoad = Rotation::FromEuler(best_rhdg, kVerticalBase.pitch, kRollTotal);
+    const double kRoadT = kRRoad.InverseTransform(kDx, kDy, kDz)[1];
 
     double t_left = 0.0;
     double t_right = 0.0;
@@ -234,25 +234,24 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     }
 
     if (kRoadT >= t_right - kSnappingTolerance && kRoadT <= t_left + kSnappingTolerance) {
-      RoadPose road_pose;
-      road_pose.road = static_cast<RoadId>(road_idx);
-      road_pose.s = best_s;
-      road_pose.t = kRoadT;
-
       const double kHSurf =
           lane_network_.EvaluateCrossSectionSurfaceOffset(static_cast<RoadId>(road_idx), best_s, kRoadT);
       const double kHShape = elevation_profile_.EvaluateShapeHeight(static_cast<RoadId>(road_idx), best_s, kRoadT);
 
-      const double kLocalH = r_road.InverseTransform(kDx, kDy, kDz)[2];
-      road_pose.h = kLocalH - kHSurf - kHShape;
+      const double kLocalH = kRRoad.InverseTransform(kDx, kDy, kDz)[2];
+      const double kHTotal = kLocalH - kHSurf - kHShape;
 
-      auto r_inertial = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
-      auto r_offset = r_road.Inverse().Compose(r_inertial);
-      auto offset_angles = r_offset.ToEuler();
-      road_pose.heading = offset_angles.heading;
-      road_pose.pitch = offset_angles.pitch;
-      road_pose.roll = offset_angles.roll;
+      const auto kRInertial = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
+      const auto kROffset = kRRoad.Inverse().Compose(kRInertial);
+      const auto kOffsetAngles = kROffset.ToEuler();
 
+      RoadPose road_pose{.s = best_s,
+                         .t = kRoadT,
+                         .h = kHTotal,
+                         .heading = kOffsetAngles.heading,
+                         .pitch = kOffsetAngles.pitch,
+                         .roll = kOffsetAngles.roll,
+                         .road = static_cast<RoadId>(road_idx)};
       return road_pose;
     }
     return std::nullopt;
@@ -260,11 +259,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
   // 1. Check temporal coherence fast path
   if (ctx.last_road.has_value()) {
-    auto road_idx = static_cast<std::uint32_t>(*ctx.last_road);
-    auto fast_pose = snap_to_road(road_idx);
-    if (fast_pose.has_value()) {
-      ref_line_.FindSegmentIndex(*ctx.last_road, fast_pose->s, ctx);
-      return fast_pose;
+    const auto kRoadIdx = static_cast<std::uint32_t>(*ctx.last_road);
+    const auto kFastPose = snap_to_road(kRoadIdx);
+    if (kFastPose.has_value()) {
+      ref_line_.FindSegmentIndex(*ctx.last_road, kFastPose->s, ctx);
+      return kFastPose;
     }
   }
 
@@ -274,11 +273,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
   bounding_volume_hierarchy_.Query(
       pose.x, pose.y,
       [&](const BoundingVolumeHierarchy::PrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {
-        auto candidate = snap_to_road(prim.road_idx);
-        if (candidate.has_value()) {
-          double abs_t = std::abs(candidate->t);
+        const auto kCandidate = snap_to_road(prim.road_idx);
+        if (kCandidate.has_value()) {
+          double abs_t = std::abs(kCandidate->t);
           if (abs_t < current_min_dist) {
-            best_overall_pose = candidate;
+            best_overall_pose = kCandidate;
             return abs_t;
           }
         }
@@ -294,11 +293,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
 auto CompiledPhysicsModel::InertialToLane(InertialPose pose, QueryContext& ctx) const noexcept
     -> std::optional<LanePose> {
-  auto road_pose_opt = InertialToRoad(pose, ctx);
-  if (!road_pose_opt.has_value()) {
+  const auto kRoadPoseOpt = InertialToRoad(pose, ctx);
+  if (!kRoadPoseOpt.has_value()) {
     return std::nullopt;
   }
-  return RoadToLane(*road_pose_opt, ctx);
+  return RoadToLane(*kRoadPoseOpt, ctx);
 }
 
 auto CompiledPhysicsModel::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept -> std::optional<LanePose> {
@@ -312,25 +311,25 @@ auto CompiledPhysicsModel::LaneToRoad(LanePose pose, QueryContext& ctx) const no
 auto CompiledPhysicsModel::RoadCount() const noexcept -> std::size_t { return road_string_ids_.size(); }
 
 auto CompiledPhysicsModel::RoadIdFromString(std::string_view original_id) const noexcept -> std::optional<RoadId> {
-  auto find_it = std::ranges::find(road_string_ids_, original_id);
-  if (find_it != road_string_ids_.end()) {
-    return static_cast<RoadId>(std::distance(road_string_ids_.begin(), find_it));
+  const auto kFindIt = std::ranges::find(road_string_ids_, original_id);
+  if (kFindIt != road_string_ids_.end()) {
+    return static_cast<RoadId>(std::distance(road_string_ids_.begin(), kFindIt));
   }
   return std::nullopt;
 }
 
 auto CompiledPhysicsModel::OriginalRoadId(RoadId road_id) const noexcept -> std::string_view {
-  auto idx = static_cast<std::uint32_t>(road_id);
-  if (idx < road_string_ids_.size()) {
-    return road_string_ids_[idx];
+  const auto kIdx = static_cast<std::uint32_t>(road_id);
+  if (kIdx < road_string_ids_.size()) {
+    return road_string_ids_[kIdx];
   }
   return "";
 }
 
 auto CompiledPhysicsModel::RoadLength(RoadId road_id) const noexcept -> double {
-  auto idx = static_cast<std::uint32_t>(road_id);
-  if (idx < road_lengths_.size()) {
-    return road_lengths_[idx];
+  const auto kIdx = static_cast<std::uint32_t>(road_id);
+  if (kIdx < road_lengths_.size()) {
+    return road_lengths_[kIdx];
   }
   return 0.0;
 }

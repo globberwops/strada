@@ -91,30 +91,30 @@ class BoundingVolumeHierarchy {
 
       const bool kIsLeaf = (node.right & kLeafBitMask) != 0;
       if (kIsLeaf) {
-        auto prim_start = node.left;
-        auto prim_count = node.right & kIndexBitMask;
+        const auto kPrimStart = node.left;
+        const auto kPrimCount = node.right & kIndexBitMask;
 
-        for (std::uint32_t i = 0; i < prim_count; ++i) {
-          const auto& prim = primitives_[prim_start + i];
+        for (std::uint32_t i = 0; i < kPrimCount; ++i) {
+          const auto& prim = primitives_[kPrimStart + i];
           if (auto new_dist = std::forward<F>(callback)(prim, min_distance)) {
             min_distance = *new_dist;
           }
         }
       } else {
-        auto left_child = node.left;
-        auto right_child = node.right & kIndexBitMask;
+        const auto kLeftChild = node.left;
+        const auto kRightChild = node.right & kIndexBitMask;
 
-        const double kDistLeft = DistancePointToAabb(px, py, nodes_[left_child].min_x, nodes_[left_child].min_y,
-                                                     nodes_[left_child].max_x, nodes_[left_child].max_y);
-        const double kDistRight = DistancePointToAabb(px, py, nodes_[right_child].min_x, nodes_[right_child].min_y,
-                                                      nodes_[right_child].max_x, nodes_[right_child].max_y);
+        const double kDistLeft = DistancePointToAabb(px, py, nodes_[kLeftChild].min_x, nodes_[kLeftChild].min_y,
+                                                     nodes_[kLeftChild].max_x, nodes_[kLeftChild].max_y);
+        const double kDistRight = DistancePointToAabb(px, py, nodes_[kRightChild].min_x, nodes_[kRightChild].min_y,
+                                                      nodes_[kRightChild].max_x, nodes_[kRightChild].max_y);
 
         if (kDistLeft < kDistRight) {
-          stack[stack_ptr++] = right_child;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-          stack[stack_ptr++] = left_child;   // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+          stack[stack_ptr++] = kRightChild;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+          stack[stack_ptr++] = kLeftChild;   // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         } else {
-          stack[stack_ptr++] = left_child;   // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-          stack[stack_ptr++] = right_child;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+          stack[stack_ptr++] = kLeftChild;   // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+          stack[stack_ptr++] = kRightChild;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         }
       }
     }
