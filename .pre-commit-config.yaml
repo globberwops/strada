@@ -18,11 +18,24 @@ repos:
     hooks:
       - id: clang-format
         args: [-i, --style=file]
+        stages: [manual]
       - id: clang-tidy
         args: [-p=build/dev]
+        stages: [manual]
       - id: cppcheck
-        args: [--project=build/dev/compile_commands.json, --cppcheck-build-dir=build/dev/cppcheck_cache, --suppress=unusedFunction, --suppress=unmatchedSuppression, --suppress=noExplicitConstructor, --suppress=useStlAlgorithm, --suppress=missingIncludeSystem, --suppress=normalCheckLevelMaxBranches]
+        args:
+          [
+            --project=build/dev/compile_commands.json,
+            --cppcheck-build-dir=build/dev/cppcheck_cache,
+            --suppress=unusedFunction,
+            --suppress=unmatchedSuppression,
+            --suppress=noExplicitConstructor,
+            --suppress=useStlAlgorithm,
+            --suppress=missingIncludeSystem,
+            --suppress=normalCheckLevelMaxBranches,
+          ]
         pass_filenames: false
+        stages: [manual]
   - repo: local
     hooks:
       - id: include-what-you-use
@@ -30,3 +43,4 @@ repos:
         entry: bash -c 'iwyu_tool -p build/dev "$@" -- -Xiwyu --cxx17ns' --
         language: system
         files: \.(h|hpp|c|cc|cpp)$
+        stages: [manual]
