@@ -60,42 +60,42 @@ class Rotation {
   using Matrix3x3 = std::array<std::array<double, 3>, 3>;
 
   static auto EulerToMatrix(double heading, double pitch, double roll) noexcept -> Matrix3x3 {
-    const double cos_heading = std::cos(heading);
-    const double sin_heading = std::sin(heading);
-    const double cos_pitch = std::cos(pitch);
-    const double sin_pitch = std::sin(pitch);
-    const double cos_roll = std::cos(roll);
-    const double sin_roll = std::sin(roll);
+    const double kCosHeading = std::cos(heading);
+    const double kSinHeading = std::sin(heading);
+    const double kCosPitch = std::cos(pitch);
+    const double kSinPitch = std::sin(pitch);
+    const double kCosRoll = std::cos(roll);
+    const double kSinRoll = std::sin(roll);
 
     Matrix3x3 rot_matrix;
-    rot_matrix[0][0] = cos_heading * cos_pitch;
-    rot_matrix[0][1] = ((cos_heading * sin_pitch) * sin_roll) - (sin_heading * cos_roll);
-    rot_matrix[0][2] = ((cos_heading * sin_pitch) * cos_roll) + (sin_heading * sin_roll);
+    rot_matrix[0][0] = kCosHeading * kCosPitch;
+    rot_matrix[0][1] = ((kCosHeading * kSinPitch) * kSinRoll) - (kSinHeading * kCosRoll);
+    rot_matrix[0][2] = ((kCosHeading * kSinPitch) * kCosRoll) + (kSinHeading * kSinRoll);
 
-    rot_matrix[1][0] = sin_heading * cos_pitch;
-    rot_matrix[1][1] = ((sin_heading * sin_pitch) * sin_roll) + (cos_heading * cos_roll);
-    rot_matrix[1][2] = ((sin_heading * sin_pitch) * cos_roll) - (cos_heading * sin_roll);
+    rot_matrix[1][0] = kSinHeading * kCosPitch;
+    rot_matrix[1][1] = ((kSinHeading * kSinPitch) * kSinRoll) + (kCosHeading * kCosRoll);
+    rot_matrix[1][2] = ((kSinHeading * kSinPitch) * kCosRoll) - (kCosHeading * kSinRoll);
 
-    rot_matrix[2][0] = -sin_pitch;
-    rot_matrix[2][1] = cos_pitch * sin_roll;
-    rot_matrix[2][2] = cos_pitch * cos_roll;
+    rot_matrix[2][0] = -kSinPitch;
+    rot_matrix[2][1] = kCosPitch * kSinRoll;
+    rot_matrix[2][2] = kCosPitch * kCosRoll;
 
     return rot_matrix;
   }
 
   static auto MatrixToEuler(const Matrix3x3& rot_matrix) noexcept -> EulerAngles {
     EulerAngles euler;
-    const double sin_pitch = -rot_matrix[2][0];
+    const double kSinPitch = -rot_matrix[2][0];
     constexpr double kPiDiv2 = 0.5 * std::numbers::pi;
     constexpr double kClipLimit = 1.0;
     constexpr double kGimbalLockThreshold = 0.9999999;
 
-    if (sin_pitch <= -kClipLimit) {
+    if (kSinPitch <= -kClipLimit) {
       euler.pitch = -kPiDiv2;
-    } else if (sin_pitch >= kClipLimit) {
+    } else if (kSinPitch >= kClipLimit) {
       euler.pitch = kPiDiv2;
     } else {
-      euler.pitch = std::asin(sin_pitch);
+      euler.pitch = std::asin(kSinPitch);
     }
 
     // Gimbal lock check

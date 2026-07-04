@@ -48,9 +48,9 @@ auto ParseHeader(pugi::xml_node header_node) -> ast::Header {
   header.west = header_node.attribute("west").as_double(0.0);
   header.vendor = header_node.attribute("vendor").as_string("");
 
-  const pugi::xml_node geo_ref_node = header_node.child("geoReference");
-  if (!geo_ref_node.empty()) {
-    header.geo_reference = geo_ref_node.child_value();
+  const pugi::xml_node kGeoRefNode = header_node.child("geoReference");
+  if (!kGeoRefNode.empty()) {
+    header.geo_reference = kGeoRefNode.child_value();
   }
   static const std::unordered_set<std::string> kNownHeaderAttrs = {"revMajor", "revMinor", "name", "version", "date",
                                                                    "north",    "south",    "east", "west",    "vendor"};
@@ -66,37 +66,37 @@ auto ParseGeometry(pugi::xml_node geom_node) -> ast::GeometryRecord {
   geom.hdg = geom_node.attribute("hdg").as_double(0.0);
   geom.length = geom_node.attribute("length").as_double(0.0);
 
-  if (const pugi::xml_node line_node = geom_node.child("line"); !line_node.empty()) {
+  if (const pugi::xml_node kLineNode = geom_node.child("line"); !kLineNode.empty()) {
     geom.shape = ast::Line{};
-  } else if (const pugi::xml_node spiral_node = geom_node.child("spiral"); !spiral_node.empty()) {
+  } else if (const pugi::xml_node kSpiralNode = geom_node.child("spiral"); !kSpiralNode.empty()) {
     ast::Spiral spiral;
-    spiral.curv_start = spiral_node.attribute("curvStart").as_double(0.0);
-    spiral.curv_end = spiral_node.attribute("curvEnd").as_double(0.0);
+    spiral.curv_start = kSpiralNode.attribute("curvStart").as_double(0.0);
+    spiral.curv_end = kSpiralNode.attribute("curvEnd").as_double(0.0);
     geom.shape = spiral;
-  } else if (const pugi::xml_node arc_node = geom_node.child("arc"); !arc_node.empty()) {
+  } else if (const pugi::xml_node kArcNode = geom_node.child("arc"); !kArcNode.empty()) {
     ast::Arc arc;
-    arc.curvature = arc_node.attribute("curvature").as_double(0.0);
+    arc.curvature = kArcNode.attribute("curvature").as_double(0.0);
     geom.shape = arc;
-  } else if (const pugi::xml_node poly3_node = geom_node.child("poly3"); !poly3_node.empty()) {
+  } else if (const pugi::xml_node kPoly3Node = geom_node.child("poly3"); !kPoly3Node.empty()) {
     ast::Poly3 poly3;
-    poly3.a = poly3_node.attribute("a").as_double(0.0);
-    poly3.b = poly3_node.attribute("b").as_double(0.0);
-    poly3.c = poly3_node.attribute("c").as_double(0.0);
-    poly3.d = poly3_node.attribute("d").as_double(0.0);
+    poly3.a = kPoly3Node.attribute("a").as_double(0.0);
+    poly3.b = kPoly3Node.attribute("b").as_double(0.0);
+    poly3.c = kPoly3Node.attribute("c").as_double(0.0);
+    poly3.d = kPoly3Node.attribute("d").as_double(0.0);
     geom.shape = poly3;
-  } else if (const pugi::xml_node param_poly3_node = geom_node.child("paramPoly3"); !param_poly3_node.empty()) {
+  } else if (const pugi::xml_node kParamPoly3Node = geom_node.child("paramPoly3"); !kParamPoly3Node.empty()) {
     ast::ParamPoly3 param_poly3;
-    param_poly3.a_u = param_poly3_node.attribute("aU").as_double(0.0);
-    param_poly3.b_u = param_poly3_node.attribute("bU").as_double(0.0);
-    param_poly3.c_u = param_poly3_node.attribute("cU").as_double(0.0);
-    param_poly3.d_u = param_poly3_node.attribute("dU").as_double(0.0);
-    param_poly3.a_v = param_poly3_node.attribute("aV").as_double(0.0);
-    param_poly3.b_v = param_poly3_node.attribute("bV").as_double(0.0);
-    param_poly3.c_v = param_poly3_node.attribute("cV").as_double(0.0);
-    param_poly3.d_v = param_poly3_node.attribute("dV").as_double(0.0);
+    param_poly3.a_u = kParamPoly3Node.attribute("aU").as_double(0.0);
+    param_poly3.b_u = kParamPoly3Node.attribute("bU").as_double(0.0);
+    param_poly3.c_u = kParamPoly3Node.attribute("cU").as_double(0.0);
+    param_poly3.d_u = kParamPoly3Node.attribute("dU").as_double(0.0);
+    param_poly3.a_v = kParamPoly3Node.attribute("aV").as_double(0.0);
+    param_poly3.b_v = kParamPoly3Node.attribute("bV").as_double(0.0);
+    param_poly3.c_v = kParamPoly3Node.attribute("cV").as_double(0.0);
+    param_poly3.d_v = kParamPoly3Node.attribute("dV").as_double(0.0);
 
-    const std::string p_range_str = param_poly3_node.attribute("pRange").as_string("normalized");
-    if (p_range_str == "arcLength") {
+    const std::string kPRangeStr = kParamPoly3Node.attribute("pRange").as_string("normalized");
+    if (kPRangeStr == "arcLength") {
       param_poly3.p_range = ast::PRange::kArcLength;
     } else {
       param_poly3.p_range = ast::PRange::kNormalized;
@@ -166,60 +166,60 @@ auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile {
     shape_node = shape_node.next_sibling("shape");
   }
 
-  const pugi::xml_node css_node = lat_prof_node.child("crossSectionSurface");
-  if (!css_node.empty()) {
+  const pugi::xml_node kCssNode = lat_prof_node.child("crossSectionSurface");
+  if (!kCssNode.empty()) {
     ast::CrossSectionSurface css;
-    const pugi::xml_node t_offset_node = css_node.child("tOffset");
-    if (!t_offset_node.empty()) {
-      pugi::xml_node coeff_node = t_offset_node.child("coefficients");
+    const pugi::xml_node kTOffsetNode = kCssNode.child("tOffset");
+    if (!kTOffsetNode.empty()) {
+      pugi::xml_node coeff_node = kTOffsetNode.child("coefficients");
       while (!coeff_node.empty()) {
         css.t_offset.push_back(ParseCoefficient(coeff_node));
         coeff_node = coeff_node.next_sibling("coefficients");
       }
     }
-    const pugi::xml_node surface_strips_node = css_node.child("surfaceStrips");
-    if (!surface_strips_node.empty()) {
-      pugi::xml_node strip_node = surface_strips_node.child("strip");
+    const pugi::xml_node kSurfaceStripsNode = kCssNode.child("surfaceStrips");
+    if (!kSurfaceStripsNode.empty()) {
+      pugi::xml_node strip_node = kSurfaceStripsNode.child("strip");
       while (!strip_node.empty()) {
         ast::CrossSectionSurfaceStrip strip;
         strip.id = strip_node.attribute("id").as_int(0);
         strip.mode = strip_node.attribute("mode").as_string("independent");
 
-        const pugi::xml_node width_node = strip_node.child("width");
-        if (!width_node.empty()) {
-          pugi::xml_node coeff_node = width_node.child("coefficients");
+        const pugi::xml_node kWidthNode = strip_node.child("width");
+        if (!kWidthNode.empty()) {
+          pugi::xml_node coeff_node = kWidthNode.child("coefficients");
           while (!coeff_node.empty()) {
             strip.width.push_back(ParseCoefficient(coeff_node));
             coeff_node = coeff_node.next_sibling("coefficients");
           }
         }
-        const pugi::xml_node const_node = strip_node.child("constant");
-        if (!const_node.empty()) {
-          pugi::xml_node coeff_node = const_node.child("coefficients");
+        const pugi::xml_node kConstNode = strip_node.child("constant");
+        if (!kConstNode.empty()) {
+          pugi::xml_node coeff_node = kConstNode.child("coefficients");
           while (!coeff_node.empty()) {
             strip.constant.push_back(ParseCoefficient(coeff_node));
             coeff_node = coeff_node.next_sibling("coefficients");
           }
         }
-        const pugi::xml_node linear_node = strip_node.child("linear");
-        if (!linear_node.empty()) {
-          pugi::xml_node coeff_node = linear_node.child("coefficients");
+        const pugi::xml_node kLinearNode = strip_node.child("linear");
+        if (!kLinearNode.empty()) {
+          pugi::xml_node coeff_node = kLinearNode.child("coefficients");
           while (!coeff_node.empty()) {
             strip.linear.push_back(ParseCoefficient(coeff_node));
             coeff_node = coeff_node.next_sibling("coefficients");
           }
         }
-        const pugi::xml_node quad_node = strip_node.child("quadratic");
-        if (!quad_node.empty()) {
-          pugi::xml_node coeff_node = quad_node.child("coefficients");
+        const pugi::xml_node kQuadNode = strip_node.child("quadratic");
+        if (!kQuadNode.empty()) {
+          pugi::xml_node coeff_node = kQuadNode.child("coefficients");
           while (!coeff_node.empty()) {
             strip.quadratic.push_back(ParseCoefficient(coeff_node));
             coeff_node = coeff_node.next_sibling("coefficients");
           }
         }
-        const pugi::xml_node cubic_node = strip_node.child("cubic");
-        if (!cubic_node.empty()) {
-          pugi::xml_node coeff_node = cubic_node.child("coefficients");
+        const pugi::xml_node kCubicNode = strip_node.child("cubic");
+        if (!kCubicNode.empty()) {
+          pugi::xml_node coeff_node = kCubicNode.child("coefficients");
           while (!coeff_node.empty()) {
             strip.cubic.push_back(ParseCoefficient(coeff_node));
             coeff_node = coeff_node.next_sibling("coefficients");
@@ -241,15 +241,15 @@ auto ParseLane(pugi::xml_node lane_node) -> ast::Lane {
   lane.type = lane_node.attribute("type").as_string("");
   lane.level = lane_node.attribute("level").as_bool(false);
 
-  const pugi::xml_node link_node = lane_node.child("link");
-  if (!link_node.empty()) {
-    const pugi::xml_node pred_node = link_node.child("predecessor");
-    if (!pred_node.empty()) {
-      lane.predecessor = pred_node.attribute("id").as_int(0);
+  const pugi::xml_node kLinkNode = lane_node.child("link");
+  if (!kLinkNode.empty()) {
+    const pugi::xml_node kPredNode = kLinkNode.child("predecessor");
+    if (!kPredNode.empty()) {
+      lane.predecessor = kPredNode.attribute("id").as_int(0);
     }
-    const pugi::xml_node succ_node = link_node.child("successor");
-    if (!succ_node.empty()) {
-      lane.successor = succ_node.attribute("id").as_int(0);
+    const pugi::xml_node kSuccNode = kLinkNode.child("successor");
+    if (!kSuccNode.empty()) {
+      lane.successor = kSuccNode.attribute("id").as_int(0);
     }
   }
 
@@ -337,8 +337,8 @@ auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
   pugi::xml_node seg_node = boundary_node.child("segment");
   while (!seg_node.empty()) {
     ast::JunctionBoundarySegment segment;
-    const std::string type_str = seg_node.attribute("type").as_string("");
-    if (type_str == "joint") {
+    const std::string kTypeStr = seg_node.attribute("type").as_string("");
+    if (kTypeStr == "joint") {
       segment.type = ast::JunctionSegmentType::kJoint;
     } else {
       segment.type = ast::JunctionSegmentType::kLane;
@@ -353,8 +353,8 @@ auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
       segment.s_start = ParseBoundaryCoordinate(seg_node.attribute("sStart").as_string("begin"));
       segment.s_end = ParseBoundaryCoordinate(seg_node.attribute("sEnd").as_string("end"));
     } else {
-      const std::string cp_str = seg_node.attribute("contactPoint").as_string("start");
-      segment.contact_point = (cp_str == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
+      const std::string kCpStr = seg_node.attribute("contactPoint").as_string("start");
+      segment.contact_point = (kCpStr == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
       if (seg_node.attribute("jointLaneStart") != nullptr) {
         segment.joint_lane_start = seg_node.attribute("jointLaneStart").as_int();
       }
@@ -391,8 +391,8 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
     conn.id = conn_node.attribute("id").as_string("");
     conn.incoming_road = conn_node.attribute("incomingRoad").as_string("");
     conn.connecting_road = conn_node.attribute("connectingRoad").as_string("");
-    const std::string cp_str = conn_node.attribute("contactPoint").as_string("start");
-    conn.contact_point = (cp_str == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
+    const std::string kCpStr = conn_node.attribute("contactPoint").as_string("start");
+    conn.contact_point = (kCpStr == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
 
     pugi::xml_node ll_node = conn_node.child("laneLink");
     while (!ll_node.empty()) {
@@ -407,9 +407,9 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
     conn_node = conn_node.next_sibling("connection");
   }
 
-  const pugi::xml_node boundary_node = junction_node.child("boundary");
-  if (!boundary_node.empty()) {
-    junction.boundary = ParseBoundary(boundary_node);
+  const pugi::xml_node kBoundaryNode = junction_node.child("boundary");
+  if (!kBoundaryNode.empty()) {
+    junction.boundary = ParseBoundary(kBoundaryNode);
   }
 
   static const std::unordered_set<std::string> kNownJunctionAttrs = {"id", "name", "type"};
@@ -418,20 +418,20 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
 }
 
 auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
-  const pugi::xml_node root = doc.child("OpenDRIVE");
-  if (!root) {
+  const pugi::xml_node kRoot = doc.child("OpenDRIVE");
+  if (!kRoot) {
     throw MissingElementError("Missing <OpenDRIVE> root element");
   }
 
-  const pugi::xml_node header_node = root.child("header");
-  if (!header_node) {
+  const pugi::xml_node kHeaderNode = kRoot.child("header");
+  if (!kHeaderNode) {
     throw MissingElementError("Missing <header> element");
   }
 
   ast::AbstractSyntaxTree ast_tree;
-  ast_tree.header = ParseHeader(header_node);
+  ast_tree.header = ParseHeader(kHeaderNode);
 
-  pugi::xml_node road_node = root.child("road");
+  pugi::xml_node road_node = kRoot.child("road");
   while (!road_node.empty()) {
     ast::Road road;
     road.id = road_node.attribute("id").as_string("");
@@ -443,8 +443,8 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     }
     road.length = road_node.attribute("length").as_double(0.0);
     road.junction = road_node.attribute("junction").as_string("-1");
-    const std::string rule_str = road_node.attribute("rule").as_string("RHT");
-    if (rule_str == "LHT") {
+    const std::string kRuleStr = road_node.attribute("rule").as_string("RHT");
+    if (kRuleStr == "LHT") {
       road.rule = ast::TrafficRule::kLht;
     } else {
       road.rule = ast::TrafficRule::kRht;
@@ -452,11 +452,11 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     road.name = road_node.attribute("name").as_string("");
 
     // PlanView Geometries
-    const pugi::xml_node plan_view_node = road_node.child("planView");
-    if (plan_view_node.empty()) {
+    const pugi::xml_node kPlanViewNode = road_node.child("planView");
+    if (kPlanViewNode.empty()) {
       throw MissingElementError("<road id=\"" + road.id + "\"> is missing mandatory <planView> element");
     }
-    pugi::xml_node geom_node = plan_view_node.child("geometry");
+    pugi::xml_node geom_node = kPlanViewNode.child("geometry");
     while (!geom_node.empty()) {
       road.plan_view.push_back(ParseGeometry(geom_node));
       geom_node = geom_node.next_sibling("geometry");
@@ -482,7 +482,7 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     road_node = road_node.next_sibling("road");
   }
 
-  pugi::xml_node junction_node = root.child("junction");
+  pugi::xml_node junction_node = kRoot.child("junction");
   while (!junction_node.empty()) {
     ast_tree.junctions.push_back(ParseJunction(junction_node));
     junction_node = junction_node.next_sibling("junction");
@@ -495,18 +495,18 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
 
 auto ParseString(std::string_view xml_content) -> ast::AbstractSyntaxTree {
   pugi::xml_document doc;
-  const pugi::xml_parse_result result = doc.load_buffer(xml_content.data(), xml_content.size());
-  if (!result) {
-    throw XmlParseError(std::string("Failed to parse XML from string: ") + result.description());
+  const pugi::xml_parse_result kResult = doc.load_buffer(xml_content.data(), xml_content.size());
+  if (!kResult) {
+    throw XmlParseError(std::string("Failed to parse XML from string: ") + kResult.description());
   }
   return ParseDocument(doc);
 }
 
 auto ParseFile(const std::filesystem::path& file_path) -> ast::AbstractSyntaxTree {
   pugi::xml_document doc;
-  const pugi::xml_parse_result result = doc.load_file(file_path.c_str());
-  if (!result) {
-    throw XmlParseError(std::string("Failed to parse XML from file: ") + result.description());
+  const pugi::xml_parse_result kResult = doc.load_file(file_path.c_str());
+  if (!kResult) {
+    throw XmlParseError(std::string("Failed to parse XML from file: ") + kResult.description());
   }
   return ParseDocument(doc);
 }

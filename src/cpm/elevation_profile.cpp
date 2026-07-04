@@ -20,16 +20,16 @@ auto EvaluatePolynomial(const PolynomialsSoA& poly, std::uint32_t first_idx, std
   }
   std::uint32_t active_idx = first_idx;
   for (std::uint32_t i = 0; i < count; ++i) {
-    const std::uint32_t idx = first_idx + i;
-    if (s_coord >= poly.s_start[idx]) {
-      active_idx = idx;
+    const std::uint32_t kIdx = first_idx + i;
+    if (s_coord >= poly.s_start[kIdx]) {
+      active_idx = kIdx;
     } else {
       break;
     }
   }
-  const double ds_val = s_coord - poly.s_start[active_idx];
-  return poly.a[active_idx] + (poly.b[active_idx] * ds_val) + (poly.c[active_idx] * ds_val * ds_val) +
-         (poly.d[active_idx] * ds_val * ds_val * ds_val);
+  const double kDsVal = s_coord - poly.s_start[active_idx];
+  return poly.a[active_idx] + (poly.b[active_idx] * kDsVal) + (poly.c[active_idx] * kDsVal * kDsVal) +
+         (poly.d[active_idx] * kDsVal * kDsVal * kDsVal);
 }
 
 void CompileCoefficients(const std::vector<ast::Coefficient>& coeffs, PolynomialsSoA& dest, std::uint32_t& first_idx,
@@ -65,16 +65,16 @@ void FindShapeGroups(const ShapesSoA& shapes, std::uint32_t first_idx, std::uint
   bool found_ge = false;
 
   for (std::uint32_t i = 0; i < count; ++i) {
-    const double s_val = shapes.s[first_idx + i];
-    if (s_val <= s_coord) {
-      if (!found_le || s_val > max_s_le) {
-        max_s_le = s_val;
+    const double kSVal = shapes.s[first_idx + i];
+    if (kSVal <= s_coord) {
+      if (!found_le || kSVal > max_s_le) {
+        max_s_le = kSVal;
         found_le = true;
       }
     }
-    if (s_val >= s_coord) {
-      if (!found_ge || s_val < min_s_ge) {
-        min_s_ge = s_val;
+    if (kSVal >= s_coord) {
+      if (!found_ge || kSVal < min_s_ge) {
+        min_s_ge = kSVal;
         found_ge = true;
       }
     }
@@ -87,10 +87,10 @@ void FindShapeGroups(const ShapesSoA& shapes, std::uint32_t first_idx, std::uint
     group.count = 0;
     bool in_group = false;
     for (std::uint32_t i = 0; i < count; ++i) {
-      const std::uint32_t idx = first_idx + i;
-      if (shapes.s[idx] == max_s_le) {
+      const std::uint32_t kIdx = first_idx + i;
+      if (shapes.s[kIdx] == max_s_le) {
         if (!in_group) {
-          group.first_idx = idx;
+          group.first_idx = kIdx;
           in_group = true;
         }
         group.count++;
@@ -106,10 +106,10 @@ void FindShapeGroups(const ShapesSoA& shapes, std::uint32_t first_idx, std::uint
     group.count = 0;
     bool in_group = false;
     for (std::uint32_t i = 0; i < count; ++i) {
-      const std::uint32_t idx = first_idx + i;
-      if (shapes.s[idx] == min_s_ge) {
+      const std::uint32_t kIdx = first_idx + i;
+      if (shapes.s[kIdx] == min_s_ge) {
         if (!in_group) {
-          group.first_idx = idx;
+          group.first_idx = kIdx;
           in_group = true;
         }
         group.count++;
@@ -125,15 +125,16 @@ auto EvaluateGroupHeight(const ShapesSoA& shapes, const ShapeGroup& group, doubl
   }
   std::uint32_t active_idx = group.first_idx;
   for (std::uint32_t i = 0; i < group.count; ++i) {
-    const std::uint32_t idx = group.first_idx + i;
-    if (t_coord >= shapes.t[idx]) {
-      active_idx = idx;
+    const std::uint32_t kIdx = group.first_idx + i;
+    if (t_coord >= shapes.t[kIdx]) {
+      active_idx = kIdx;
     } else {
       break;
     }
   }
-  const double dt = t_coord - shapes.t[active_idx];
-  return shapes.a[active_idx] + (dt * (shapes.b[active_idx] + dt * (shapes.c[active_idx] + dt * shapes.d[active_idx])));
+  const double kDt = t_coord - shapes.t[active_idx];
+  return shapes.a[active_idx] +
+         (kDt * (shapes.b[active_idx] + kDt * (shapes.c[active_idx] + kDt * shapes.d[active_idx])));
 }
 
 auto EvaluateGroupTGradient(const ShapesSoA& shapes, const ShapeGroup& group, double t_coord) noexcept -> double {
@@ -142,15 +143,15 @@ auto EvaluateGroupTGradient(const ShapesSoA& shapes, const ShapeGroup& group, do
   }
   std::uint32_t active_idx = group.first_idx;
   for (std::uint32_t i = 0; i < group.count; ++i) {
-    const std::uint32_t idx = group.first_idx + i;
-    if (t_coord >= shapes.t[idx]) {
-      active_idx = idx;
+    const std::uint32_t kIdx = group.first_idx + i;
+    if (t_coord >= shapes.t[kIdx]) {
+      active_idx = kIdx;
     } else {
       break;
     }
   }
-  const double dt = t_coord - shapes.t[active_idx];
-  return shapes.b[active_idx] + (dt * (2.0 * shapes.c[active_idx] + dt * 3.0 * shapes.d[active_idx]));
+  const double kDt = t_coord - shapes.t[active_idx];
+  return shapes.b[active_idx] + (kDt * (2.0 * shapes.c[active_idx] + kDt * 3.0 * shapes.d[active_idx]));
 }
 
 }  // namespace
@@ -221,44 +222,44 @@ auto ElevationProfile::Evaluate(RoadId road, double s, double t) const noexcept 
   double natural_pitch = 0.0;
   double natural_roll = 0.0;
 
-  const bool has_css = (road_has_css_[road_idx] != 0U);
+  const bool kHasCss = (road_has_css_[road_idx] != 0U);
 
   elev = EvaluatePolynomial(polynomials_, elevation_.road_elevation_first_idx[road_idx],
                             elevation_.road_elevation_count[road_idx], s);
 
   double d_elev = 0.0;
-  const std::uint32_t elev_first_idx = elevation_.road_elevation_first_idx[road_idx];
-  const std::uint32_t elev_count = elevation_.road_elevation_count[road_idx];
-  if (elev_count > 0) {
-    std::uint32_t active_idx = elev_first_idx;
-    for (std::uint32_t i = 0; i < elev_count; ++i) {
-      const std::uint32_t idx = elev_first_idx + i;
-      if (s >= polynomials_.s_start[idx]) {
-        active_idx = idx;
+  const std::uint32_t kElevFirstIdx = elevation_.road_elevation_first_idx[road_idx];
+  const std::uint32_t kElevCount = elevation_.road_elevation_count[road_idx];
+  if (kElevCount > 0) {
+    std::uint32_t active_idx = kElevFirstIdx;
+    for (std::uint32_t i = 0; i < kElevCount; ++i) {
+      const std::uint32_t kIdx = kElevFirstIdx + i;
+      if (s >= polynomials_.s_start[kIdx]) {
+        active_idx = kIdx;
       } else {
         break;
       }
     }
-    const double ds_poly = s - polynomials_.s_start[active_idx];
-    d_elev = polynomials_.b[active_idx] + (2.0 * polynomials_.c[active_idx] * ds_poly) +
-             (3.0 * polynomials_.d[active_idx] * ds_poly * ds_poly);
+    const double kDsPoly = s - polynomials_.s_start[active_idx];
+    d_elev = polynomials_.b[active_idx] + (2.0 * polynomials_.c[active_idx] * kDsPoly) +
+             (3.0 * polynomials_.d[active_idx] * kDsPoly * kDsPoly);
   }
   natural_pitch = std::atan(d_elev);
 
-  if (!has_css) {
+  if (!kHasCss) {
     natural_roll = EvaluatePolynomial(polynomials_, elevation_.road_superelevation_first_idx[road_idx],
                                       elevation_.road_superelevation_count[road_idx], s);
   }
 
-  const double shape_h = EvaluateShapeHeight(road, s, t);
-  const double shape_grad = EvaluateShapeTGradient(road, s, t);
+  const double kShapeH = EvaluateShapeHeight(road, s, t);
+  const double kShapeGrad = EvaluateShapeTGradient(road, s, t);
 
   VerticalProfile profile;
   profile.elevation = elev;
   profile.pitch = natural_pitch;
   profile.natural_roll = natural_roll;
-  profile.roll_total = natural_roll + std::atan(shape_grad);
-  profile.shape_height = shape_h;
+  profile.roll_total = natural_roll + std::atan(kShapeGrad);
+  profile.shape_height = kShapeH;
 
   return profile;
 }
@@ -269,12 +270,12 @@ auto ElevationProfile::EvaluateShapeHeight(RoadId road, double s, double t) cons
     return 0.0;
   }
 
-  const std::uint32_t first_idx = shapes_.road_shape_first_idx[road_idx];
-  const std::uint32_t count = shapes_.road_shape_count[road_idx];
+  const std::uint32_t kFirstIdx = shapes_.road_shape_first_idx[road_idx];
+  const std::uint32_t kCount = shapes_.road_shape_count[road_idx];
 
   std::optional<ShapeGroup> g1;
   std::optional<ShapeGroup> g2;
-  FindShapeGroups(shapes_, first_idx, count, s, g1, g2);
+  FindShapeGroups(shapes_, kFirstIdx, kCount, s, g1, g2);
 
   if (!g1.has_value() && !g2.has_value()) {
     return 0.0;
@@ -286,13 +287,13 @@ auto ElevationProfile::EvaluateShapeHeight(RoadId road, double s, double t) cons
     return EvaluateGroupHeight(shapes_, *g2, t);
   }
 
-  const double h1 = EvaluateGroupHeight(shapes_, *g1, t);
+  const double kH1 = EvaluateGroupHeight(shapes_, *g1, t);
   if (g1->s == g2->s) {
-    return h1;
+    return kH1;
   }
-  const double h2 = EvaluateGroupHeight(shapes_, *g2, t);
-  const double f = (s - g1->s) / (g2->s - g1->s);
-  return ((1.0 - f) * h1) + (f * h2);
+  const double kH2 = EvaluateGroupHeight(shapes_, *g2, t);
+  const double kF = (s - g1->s) / (g2->s - g1->s);
+  return ((1.0 - kF) * kH1) + (kF * kH2);
 }
 
 auto ElevationProfile::EvaluateShapeTGradient(RoadId road, double s, double t) const noexcept -> double {
@@ -301,12 +302,12 @@ auto ElevationProfile::EvaluateShapeTGradient(RoadId road, double s, double t) c
     return 0.0;
   }
 
-  const std::uint32_t first_idx = shapes_.road_shape_first_idx[road_idx];
-  const std::uint32_t count = shapes_.road_shape_count[road_idx];
+  const std::uint32_t kFirstIdx = shapes_.road_shape_first_idx[road_idx];
+  const std::uint32_t kCount = shapes_.road_shape_count[road_idx];
 
   std::optional<ShapeGroup> g1;
   std::optional<ShapeGroup> g2;
-  FindShapeGroups(shapes_, first_idx, count, s, g1, g2);
+  FindShapeGroups(shapes_, kFirstIdx, kCount, s, g1, g2);
 
   if (!g1.has_value() && !g2.has_value()) {
     return 0.0;
@@ -318,13 +319,13 @@ auto ElevationProfile::EvaluateShapeTGradient(RoadId road, double s, double t) c
     return EvaluateGroupTGradient(shapes_, *g2, t);
   }
 
-  const double g1_val = EvaluateGroupTGradient(shapes_, *g1, t);
+  const double kG1Val = EvaluateGroupTGradient(shapes_, *g1, t);
   if (g1->s == g2->s) {
-    return g1_val;
+    return kG1Val;
   }
-  const double g2_val = EvaluateGroupTGradient(shapes_, *g2, t);
-  const double f = (s - g1->s) / (g2->s - g1->s);
-  return ((1.0 - f) * g1_val) + (f * g2_val);
+  const double kG2Val = EvaluateGroupTGradient(shapes_, *g2, t);
+  const double kF = (s - g1->s) / (g2->s - g1->s);
+  return ((1.0 - kF) * kG1Val) + (kF * kG2Val);
 }
 
 }  // namespace strada::cpm

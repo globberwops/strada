@@ -30,37 +30,37 @@ void Camera::SetViewport(int width, int height) noexcept {
 }
 
 void Camera::ZoomAt(float screen_x, float screen_y, float factor) noexcept {
-  const QPointF w = ScreenToWorld(screen_x, screen_y);
+  const QPointF kW = ScreenToWorld(screen_x, screen_y);
   zoom *= factor;
   zoom = std::max(0.001F, std::min(zoom, 1000.0F));
 
-  const float dx = screen_x - (static_cast<float>(viewport_width) / 2.0F);
-  const float dy = (static_cast<float>(viewport_height) / 2.0F) - screen_y;
+  const float kDx = screen_x - (static_cast<float>(viewport_width) / 2.0F);
+  const float kDy = (static_cast<float>(viewport_height) / 2.0F) - screen_y;
 
-  const float rad = rotation * std::numbers::pi_v<float> / 180.0F;
-  const float cos_val = std::cos(rad);
-  const float sin_val = std::sin(rad);
+  const float kRad = rotation * std::numbers::pi_v<float> / 180.0F;
+  const float kCosVal = std::cos(kRad);
+  const float kSinVal = std::sin(kRad);
 
-  const float rx = (dx * cos_val) + (dy * sin_val);
-  const float ry = (-dx * sin_val) + (dy * cos_val);
+  const float kRx = (kDx * kCosVal) + (kDy * kSinVal);
+  const float kRy = (-kDx * kSinVal) + (kDy * kCosVal);
 
-  camera_x = static_cast<float>(w.x()) - (rx / zoom);
-  camera_y = static_cast<float>(w.y()) - (ry / zoom);
+  camera_x = static_cast<float>(kW.x()) - (kRx / zoom);
+  camera_y = static_cast<float>(kW.y()) - (kRy / zoom);
 }
 
 void Camera::Pan(float delta_screen_x, float delta_screen_y) noexcept {
-  const float dx_gl = delta_screen_x;
-  const float dy_gl = -delta_screen_y;
+  const float kDxGl = delta_screen_x;
+  const float kDyGl = -delta_screen_y;
 
-  const float rad = rotation * std::numbers::pi_v<float> / 180.0F;
-  const float cos_val = std::cos(rad);
-  const float sin_val = std::sin(rad);
+  const float kRad = rotation * std::numbers::pi_v<float> / 180.0F;
+  const float kCosVal = std::cos(kRad);
+  const float kSinVal = std::sin(kRad);
 
-  const float dw_x = ((dx_gl * cos_val) + (dy_gl * sin_val)) / zoom;
-  const float dw_y = ((-dx_gl * sin_val) + (dy_gl * cos_val)) / zoom;
+  const float kDwX = ((kDxGl * kCosVal) + (kDyGl * kSinVal)) / zoom;
+  const float kDwY = ((-kDxGl * kSinVal) + (kDyGl * kCosVal)) / zoom;
 
-  camera_x -= dw_x;
-  camera_y -= dw_y;
+  camera_x -= kDwX;
+  camera_y -= kDwY;
 }
 
 void Camera::Rotate(float delta_degrees) noexcept {
@@ -74,37 +74,37 @@ void Camera::Rotate(float delta_degrees) noexcept {
 }
 
 auto Camera::ScreenToWorld(float screen_x, float screen_y) const noexcept -> QPointF {
-  const float dx = screen_x - (static_cast<float>(viewport_width) / 2.0F);
-  const float dy = (static_cast<float>(viewport_height) / 2.0F) - screen_y;
+  const float kDx = screen_x - (static_cast<float>(viewport_width) / 2.0F);
+  const float kDy = (static_cast<float>(viewport_height) / 2.0F) - screen_y;
 
-  const float rad = rotation * std::numbers::pi_v<float> / 180.0F;
-  const float cos_val = std::cos(rad);
-  const float sin_val = std::sin(rad);
+  const float kRad = rotation * std::numbers::pi_v<float> / 180.0F;
+  const float kCosVal = std::cos(kRad);
+  const float kSinVal = std::sin(kRad);
 
-  const float rx = (dx * cos_val) + (dy * sin_val);
-  const float ry = (-dx * sin_val) + (dy * cos_val);
+  const float kRx = (kDx * kCosVal) + (kDy * kSinVal);
+  const float kRy = (-kDx * kSinVal) + (kDy * kCosVal);
 
-  const float wx = rx / zoom;
-  const float wy = ry / zoom;
+  const float kWx = kRx / zoom;
+  const float kWy = kRy / zoom;
 
-  return QPointF{camera_x + wx, camera_y + wy};
+  return QPointF{camera_x + kWx, camera_y + kWy};
 }
 
 auto Camera::WorldToScreen(float world_x, float world_y) const noexcept -> QPointF {
-  const float wx = world_x - camera_x;
-  const float wy = world_y - camera_y;
+  const float kWx = world_x - camera_x;
+  const float kWy = world_y - camera_y;
 
-  const float rad = rotation * std::numbers::pi_v<float> / 180.0F;
-  const float cos_val = std::cos(rad);
-  const float sin_val = std::sin(rad);
+  const float kRad = rotation * std::numbers::pi_v<float> / 180.0F;
+  const float kCosVal = std::cos(kRad);
+  const float kSinVal = std::sin(kRad);
 
-  const float rx = ((wx * cos_val) - (wy * sin_val)) * zoom;
-  const float ry = ((wx * sin_val) + (wy * cos_val)) * zoom;
+  const float kRx = ((kWx * kCosVal) - (kWy * kSinVal)) * zoom;
+  const float kRy = ((kWx * kSinVal) + (kWy * kCosVal)) * zoom;
 
-  const float screen_x = (static_cast<float>(viewport_width) / 2.0F) + rx;
-  const float screen_y = (static_cast<float>(viewport_height) / 2.0F) - ry;
+  const float kScreenX = (static_cast<float>(viewport_width) / 2.0F) + kRx;
+  const float kScreenY = (static_cast<float>(viewport_height) / 2.0F) - kRy;
 
-  return QPointF{screen_x, screen_y};
+  return QPointF{kScreenX, kScreenY};
 }
 
 auto Camera::GetProjectionMatrix() const noexcept -> QMatrix4x4 {
@@ -131,9 +131,9 @@ auto CalculateScaleLength(double zoom) noexcept -> double {
   const std::array<double, 6> kFactors = {1.0, 1.5, 2.0, 3.0, 5.0, 7.5};
 
   // Find a starting decade
-  const double l_ideal = kIdealScaleWidth / zoom;
-  const double exponent = std::floor(std::log10(l_ideal));
-  const double base = std::pow(kBase10, exponent);
+  const double kLIdeal = kIdealScaleWidth / zoom;
+  const double kExponent = std::floor(std::log10(kLIdeal));
+  const double kBase = std::pow(kBase10, kExponent);
 
   // Search across three decades around the ideal to find the one
   // that results in a screen width strictly within [80, 150].
@@ -143,16 +143,16 @@ auto CalculateScaleLength(double zoom) noexcept -> double {
   bool found_in_range = false;
 
   for (int decade = -1; decade <= 1; ++decade) {
-    const double scale_mult = base * std::pow(kBase10, decade);
-    for (const double f : kFactors) {
-      const double candidate = f * scale_mult;
-      const double width = candidate * zoom;
-      if (width >= kMinScaleWidth && width <= kMaxScaleWidth) {
+    const double kScaleMult = kBase * std::pow(kBase10, decade);
+    for (const double kF : kFactors) {
+      const double kCandidate = kF * kScaleMult;
+      const double kWidth = kCandidate * zoom;
+      if (kWidth >= kMinScaleWidth && kWidth <= kMaxScaleWidth) {
         found_in_range = true;
-        const double dist = std::abs(width - kIdealScaleWidth);
-        if (dist < best_dist_to_ideal) {
-          best_dist_to_ideal = dist;
-          best_val = candidate;
+        const double kDist = std::abs(kWidth - kIdealScaleWidth);
+        if (kDist < best_dist_to_ideal) {
+          best_dist_to_ideal = kDist;
+          best_val = kCandidate;
         }
       }
     }
@@ -163,14 +163,14 @@ auto CalculateScaleLength(double zoom) noexcept -> double {
   if (!found_in_range) {
     double min_diff = std::numeric_limits<double>::max();
     for (int decade = -2; decade <= 2; ++decade) {
-      const double scale_mult = base * std::pow(kBase10, decade);
-      for (const double f : kFactors) {
-        const double candidate = f * scale_mult;
-        const double width = candidate * zoom;
-        const double diff = std::abs(width - kIdealScaleWidth);
-        if (diff < min_diff) {
-          min_diff = diff;
-          best_val = candidate;
+      const double kScaleMult = kBase * std::pow(kBase10, decade);
+      for (const double kF : kFactors) {
+        const double kCandidate = kF * kScaleMult;
+        const double kWidth = kCandidate * zoom;
+        const double kDiff = std::abs(kWidth - kIdealScaleWidth);
+        if (kDiff < min_diff) {
+          min_diff = kDiff;
+          best_val = kCandidate;
         }
       }
     }

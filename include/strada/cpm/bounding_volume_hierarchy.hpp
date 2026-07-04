@@ -84,13 +84,13 @@ class BoundingVolumeHierarchy {
       auto curr_idx = stack[--stack_ptr];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
       const auto& node = nodes_[curr_idx];
 
-      const double dist_to_box = DistancePointToAabb(px, py, node.min_x, node.min_y, node.max_x, node.max_y);
-      if (dist_to_box > min_distance) {
+      const double kDistToBox = DistancePointToAabb(px, py, node.min_x, node.min_y, node.max_x, node.max_y);
+      if (kDistToBox > min_distance) {
         continue;
       }
 
-      const bool is_leaf = (node.right & kLeafBitMask) != 0;
-      if (is_leaf) {
+      const bool kIsLeaf = (node.right & kLeafBitMask) != 0;
+      if (kIsLeaf) {
         auto prim_start = node.left;
         auto prim_count = node.right & kIndexBitMask;
 
@@ -104,12 +104,12 @@ class BoundingVolumeHierarchy {
         auto left_child = node.left;
         auto right_child = node.right & kIndexBitMask;
 
-        const double dist_left = DistancePointToAabb(px, py, nodes_[left_child].min_x, nodes_[left_child].min_y,
+        const double kDistLeft = DistancePointToAabb(px, py, nodes_[left_child].min_x, nodes_[left_child].min_y,
                                                      nodes_[left_child].max_x, nodes_[left_child].max_y);
-        const double dist_right = DistancePointToAabb(px, py, nodes_[right_child].min_x, nodes_[right_child].min_y,
+        const double kDistRight = DistancePointToAabb(px, py, nodes_[right_child].min_x, nodes_[right_child].min_y,
                                                       nodes_[right_child].max_x, nodes_[right_child].max_y);
 
-        if (dist_left < dist_right) {
+        if (kDistLeft < kDistRight) {
           stack[stack_ptr++] = right_child;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
           stack[stack_ptr++] = left_child;   // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         } else {

@@ -26,8 +26,8 @@ auto EvaluateAstLaneWidth(const ast::Lane& lane, double s_local_to_section) noex
       break;
     }
   }
-  const double ds = s_local_to_section - active->s_offset;
-  return active->a + (active->b * ds) + (active->c * ds * ds) + (active->d * ds * ds * ds);
+  const double kDs = s_local_to_section - active->s_offset;
+  return active->a + (active->b * kDs) + (active->c * kDs * kDs) + (active->d * kDs * kDs * kDs);
 }
 
 }  // namespace
@@ -60,31 +60,31 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
 
       constexpr int kSecSamples = 10;
       for (int i = 0; i <= kSecSamples; ++i) {
-        const double s_local = (static_cast<double>(i) / kSecSamples) * sec_length;
+        const double kSLocal = (static_cast<double>(i) / kSecSamples) * sec_length;
         double left_width = 0.0;
         double right_width = 0.0;
 
         for (const auto& lane : section.left) {
-          left_width += EvaluateAstLaneWidth(lane, s_local);
+          left_width += EvaluateAstLaneWidth(lane, kSLocal);
         }
         for (const auto& lane : section.right) {
-          right_width += EvaluateAstLaneWidth(lane, s_local);
+          right_width += EvaluateAstLaneWidth(lane, kSLocal);
         }
 
         // Evaluate road laneOffset
         double lane_offset_val = 0.0;
         if (!road.lanes.offsets.empty()) {
           const ast::LaneOffset* active = road.lanes.offsets.data();
-          const double s_road = section.s + s_local;
+          const double kSRoad = section.s + kSLocal;
           for (const auto& offset : road.lanes.offsets) {
-            if (s_road >= offset.s) {
+            if (kSRoad >= offset.s) {
               active = &offset;
             } else {
               break;
             }
           }
-          const double ds_offset = s_road - active->s;
-          lane_offset_val = active->a + (ds_offset * (active->b + (ds_offset * (active->c + (ds_offset * active->d)))));
+          const double kDsOffset = kSRoad - active->s;
+          lane_offset_val = active->a + (kDsOffset * (active->b + (kDsOffset * (active->c + (kDsOffset * active->d)))));
         }
 
         max_road_t = std::max(max_road_t, left_width + std::abs(lane_offset_val));
@@ -102,11 +102,11 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   auto num_roads = static_cast<std::uint32_t>(model.road_lengths_.size());
   for (std::uint32_t road_idx = 0; road_idx < num_roads; ++road_idx) {
     auto [first_seg, seg_count] = model.ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
-    const double inflation = road_max_t[road_idx];
+    const double kInflation = road_max_t[road_idx];
     for (std::uint32_t i = 0; i < seg_count; ++i) {
-      const std::uint32_t seg_idx = first_seg + i;
-      temp_primitives.push_back(BoundingVolumeHierarchy::PrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
-      auto aabb = model.ref_line_.ComputeSegmentAabb(seg_idx, inflation);
+      const std::uint32_t kSegIdx = first_seg + i;
+      temp_primitives.push_back(BoundingVolumeHierarchy::PrimitiveInfo{.road_idx = road_idx, .segment_idx = kSegIdx});
+      auto aabb = model.ref_line_.ComputeSegmentAabb(kSegIdx, kInflation);
       temp_aabbs.push_back(aabb);
     }
   }
@@ -131,24 +131,24 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   }
 
   // 1. Find segment index
-  const std::uint32_t seg_idx = ref_line_.FindSegmentIndex(pose.road, pose.s, ctx);
+  const std::uint32_t kSegIdx = ref_line_.FindSegmentIndex(pose.road, pose.s, ctx);
 
   // 2. Evaluate reference line
-  auto pt = ref_line_.Evaluate(seg_idx, pose.s);
+  auto pt = ref_line_.Evaluate(kSegIdx, pose.s);
 
   // 3. Evaluate vertical profile (elevation, pitch, roll, shape height)
   auto vertical = elevation_profile_.Evaluate(pose.road, pose.s, pose.t);
 
   // 4. Cross section surface height offset
-  const double h_surf = lane_network_.EvaluateCrossSectionSurfaceOffset(pose.road, pose.s, pose.t);
+  const double kHSurf = lane_network_.EvaluateCrossSectionSurfaceOffset(pose.road, pose.s, pose.t);
 
   // 5. Position composition
   auto r_road = Rotation::FromEuler(pt.heading, vertical.pitch, vertical.roll_total);
 
-  const double local_t = pose.t;
-  const double local_h = pose.h + h_surf + vertical.shape_height;
+  const double kLocalT = pose.t;
+  const double kLocalH = pose.h + kHSurf + vertical.shape_height;
 
-  auto offset = r_road.Transform(0.0, local_t, local_h);
+  auto offset = r_road.Transform(0.0, kLocalT, kLocalH);
 
   InertialPose inertial_pose;
   inertial_pose.x = pt.x + offset[0];
@@ -168,8 +168,8 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
 }
 
 auto CompiledPhysicsModel::LaneToInertial(LanePose pose, QueryContext& ctx) const noexcept -> InertialPose {
-  const RoadPose road_pose = LaneToRoad(pose, ctx);
-  return RoadToInertial(road_pose, ctx);
+  const RoadPose kRoadPose = LaneToRoad(pose, ctx);
+  return RoadToInertial(kRoadPose, ctx);
 }
 
 auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) const noexcept
@@ -186,17 +186,17 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     double best_rhdg = 0.0;
 
     for (std::uint32_t i = 0; i < seg_count; ++i) {
-      const std::uint32_t seg_idx = first_seg + i;
-      const double road_s = ref_line_.Project(seg_idx, pose.x, pose.y);
-      auto pt = ref_line_.Evaluate(seg_idx, road_s);
+      const std::uint32_t kSegIdx = first_seg + i;
+      const double kRoadS = ref_line_.Project(kSegIdx, pose.x, pose.y);
+      auto pt = ref_line_.Evaluate(kSegIdx, kRoadS);
 
-      const double dx = pose.x - pt.x;
-      const double dy = pose.y - pt.y;
-      const double dist_sq = (dx * dx) + (dy * dy);
-      if (dist_sq < min_dist_sq) {
-        min_dist_sq = dist_sq;
-        best_s = road_s;
-        best_t = (-dx * std::sin(pt.heading)) + (dy * std::cos(pt.heading));
+      const double kDx = pose.x - pt.x;
+      const double kDy = pose.y - pt.y;
+      const double kDistSq = (kDx * kDx) + (kDy * kDy);
+      if (kDistSq < min_dist_sq) {
+        min_dist_sq = kDistSq;
+        best_s = kRoadS;
+        best_t = (-kDx * std::sin(pt.heading)) + (kDy * std::cos(pt.heading));
         best_rhdg = pt.heading;
       }
     }
@@ -204,47 +204,47 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     // Evaluate base vertical profile at best_s (t=0)
     auto vertical_base = elevation_profile_.Evaluate(static_cast<RoadId>(road_idx), best_s, 0.0);
 
-    const std::uint32_t best_seg_idx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
-    auto pt = ref_line_.Evaluate(best_seg_idx, best_s);
+    const std::uint32_t kBestSegIdx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
+    auto pt = ref_line_.Evaluate(kBestSegIdx, best_s);
 
-    const double dx = pose.x - pt.x;
-    const double dy = pose.y - pt.y;
-    const double dz = pose.z - vertical_base.elevation;
+    const double kDx = pose.x - pt.x;
+    const double kDy = pose.y - pt.y;
+    const double kDz = pose.z - vertical_base.elevation;
 
     // Base roll calculation
     auto r_road_base = Rotation::FromEuler(best_rhdg, vertical_base.pitch, vertical_base.natural_roll);
-    const double road_t_base = r_road_base.InverseTransform(dx, dy, dz)[1];
+    const double kRoadTBase = r_road_base.InverseTransform(kDx, kDy, kDz)[1];
 
     // Shape evaluation and roll correction
-    const double shape_grad =
-        elevation_profile_.EvaluateShapeTGradient(static_cast<RoadId>(road_idx), best_s, road_t_base);
-    const double roll_total = vertical_base.natural_roll + std::atan(shape_grad);
+    const double kShapeGrad =
+        elevation_profile_.EvaluateShapeTGradient(static_cast<RoadId>(road_idx), best_s, kRoadTBase);
+    const double kRollTotal = vertical_base.natural_roll + std::atan(kShapeGrad);
 
-    auto r_road = Rotation::FromEuler(best_rhdg, vertical_base.pitch, roll_total);
-    const double road_t = r_road.InverseTransform(dx, dy, dz)[1];
+    auto r_road = Rotation::FromEuler(best_rhdg, vertical_base.pitch, kRollTotal);
+    const double kRoadT = r_road.InverseTransform(kDx, kDy, kDz)[1];
 
     double t_left = 0.0;
     double t_right = 0.0;
     lane_network_.GetRoadWidthLimits(static_cast<RoadId>(road_idx), best_s, t_left, t_right);
     constexpr double kSnappingTolerance = 5.0;
 
-    const double ds_longitudinal = std::sqrt(std::max(0.0, min_dist_sq - (road_t * road_t)));
-    if (ds_longitudinal > kSnappingTolerance) {
+    const double kDsLongitudinal = std::sqrt(std::max(0.0, min_dist_sq - (kRoadT * kRoadT)));
+    if (kDsLongitudinal > kSnappingTolerance) {
       return std::nullopt;
     }
 
-    if (road_t >= t_right - kSnappingTolerance && road_t <= t_left + kSnappingTolerance) {
+    if (kRoadT >= t_right - kSnappingTolerance && kRoadT <= t_left + kSnappingTolerance) {
       RoadPose road_pose;
       road_pose.road = static_cast<RoadId>(road_idx);
       road_pose.s = best_s;
-      road_pose.t = road_t;
+      road_pose.t = kRoadT;
 
-      const double h_surf =
-          lane_network_.EvaluateCrossSectionSurfaceOffset(static_cast<RoadId>(road_idx), best_s, road_t);
-      const double h_shape = elevation_profile_.EvaluateShapeHeight(static_cast<RoadId>(road_idx), best_s, road_t);
+      const double kHSurf =
+          lane_network_.EvaluateCrossSectionSurfaceOffset(static_cast<RoadId>(road_idx), best_s, kRoadT);
+      const double kHShape = elevation_profile_.EvaluateShapeHeight(static_cast<RoadId>(road_idx), best_s, kRoadT);
 
-      const double local_h = r_road.InverseTransform(dx, dy, dz)[2];
-      road_pose.h = local_h - h_surf - h_shape;
+      const double kLocalH = r_road.InverseTransform(kDx, kDy, kDz)[2];
+      road_pose.h = kLocalH - kHSurf - kHShape;
 
       auto r_inertial = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
       auto r_offset = r_road.Inverse().Compose(r_inertial);

@@ -57,34 +57,34 @@ constexpr auto kGaussWeights =
 constexpr int kNumGaussPoints = std::min(kGaussPoints.size(), kGaussWeights.size());
 
 auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
-  const double s = a > 0.0 ? 1.0 : -1.0;
-  const double absa = std::abs(a);
-  const double z = k1SqrtPi * std::sqrt(absa);
-  const double ell = s * b * k1SqrtPi / std::sqrt(absa);
-  const double g = -0.5 * s * (b * b) / absa;
-  const double cg = std::cos(g) / z;
-  const double sg = std::sin(g) / z;
+  const double kS = a > 0.0 ? 1.0 : -1.0;
+  const double kAbsa = std::abs(a);
+  const double kZ = k1SqrtPi * std::sqrt(kAbsa);
+  const double kEll = kS * b * k1SqrtPi / std::sqrt(kAbsa);
+  const double kG = -0.5 * kS * (b * b) / kAbsa;
+  const double kCg = std::cos(kG) / kZ;
+  const double kSg = std::sin(kG) / kZ;
 
-  auto [cl, sl] = FresnelCS(ell);
-  auto [cz, sz] = FresnelCS(ell + z);
+  auto [cl, sl] = FresnelCS(kEll);
+  auto [cz, sz] = FresnelCS(kEll + kZ);
 
-  const double dc0 = cz - cl;
-  const double ds0 = sz - sl;
+  const double kDc0 = cz - cl;
+  const double kDs0 = sz - sl;
 
-  const double x_val = (cg * dc0) - (s * sg * ds0);
-  const double y_val = (sg * dc0) + (s * cg * ds0);
-  return ClothoidResult{.x = x_val, .y = y_val};
+  const double kXVal = (kCg * kDc0) - (kS * kSg * kDs0);
+  const double kYVal = (kSg * kDc0) + (kS * kCg * kDs0);
+  return ClothoidResult{.x = kXVal, .y = kYVal};
 }
 
 }  // namespace
 
 auto FresnelCS(double y) noexcept -> FresnelResult {
   constexpr double kEps = 1e-15;
-  const double x = y > 0.0 ? y : -y;
+  const double kX = y > 0.0 ? y : -y;
   double c = 0.0;
   double s = 0.0;
 
-  if (x < 1.0) {
+  if (kX < 1.0) {
     double twofn = kNaN;
     double fact = kNaN;
     double denterm = kNaN;
@@ -92,8 +92,8 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
     double sum = kNaN;
     double term = kNaN;
 
-    const double s_val = kPi2 * (x * x);
-    const double t_val = -s_val * s_val;
+    const double kSVal = kPi2 * (kX * kX);
+    const double kTVal = -kSVal * kSVal;
 
     twofn = 0.0;
     fact = 1.0;
@@ -104,12 +104,12 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
       twofn += 2.0;
       fact *= twofn * (twofn - 1.0);
       denterm += 4.0;
-      numterm *= t_val;
+      numterm *= kTVal;
       term = numterm / (fact * denterm);
       sum += term;
     } while (std::abs(term) > kEps * std::abs(sum));
 
-    c = x * sum;
+    c = kX * sum;
 
     twofn = 1.0;
     fact = 1.0;
@@ -120,59 +120,59 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
       twofn += 2.0;
       fact *= twofn * (twofn - 1.0);
       denterm += 4.0;
-      numterm *= t_val;
+      numterm *= kTVal;
       term = numterm / (fact * denterm);
       sum += term;
     } while (std::abs(term) > kEps * std::abs(sum));
 
-    s = kPi2 * sum * (x * x * x);
+    s = kPi2 * sum * (kX * kX * kX);
 
-  } else if (x < 6.0) {
+  } else if (kX < 6.0) {
     double sumn = 0.0;
     double sumd = kFd[11];
     for (int k = 10; k >= 0; --k) {
-      sumn = kFn[k] + (x * sumn);
-      sumd = kFd[k] + (x * sumd);
+      sumn = kFn[k] + (kX * sumn);
+      sumd = kFd[k] + (kX * sumd);
     }
-    const double f_val = sumn / sumd;
+    const double kFVal = sumn / sumd;
 
     sumn = 0.0;
     sumd = kGd[11];
     for (int k = 10; k >= 0; --k) {
-      sumn = kGn[k] + (x * sumn);
-      sumd = kGd[k] + (x * sumd);
+      sumn = kGn[k] + (kX * sumn);
+      sumd = kGd[k] + (kX * sumd);
     }
-    const double g_val = sumn / sumd;
+    const double kGVal = sumn / sumd;
 
-    const double u_val = kPi2 * (x * x);
-    const double sin_u = std::sin(u_val);
-    const double cos_u = std::cos(u_val);
-    c = 0.5 + (f_val * sin_u) - (g_val * cos_u);
-    s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
+    const double kUVal = kPi2 * (kX * kX);
+    const double kSinU = std::sin(kUVal);
+    const double kCosU = std::cos(kUVal);
+    c = 0.5 + (kFVal * kSinU) - (kGVal * kCosU);
+    s = 0.5 - (kFVal * kCosU) - (kGVal * kSinU);
 
   } else {
     double absterm = kNaN;
-    const double s_val = kPi * x * x;
-    const double t_val = -1.0 / (s_val * s_val);
+    const double kSVal = kPi * kX * kX;
+    const double kTVal = -1.0 / (kSVal * kSVal);
 
     double numterm = -1.0;
     double term = 1.0;
     double sum = 1.0;
     double oldterm = 1.0;
-    const double eps10 = 0.1 * kEps;
+    const double kEps10 = 0.1 * kEps;
 
     do {
       numterm += 4.0;
-      term *= numterm * (numterm - 2.0) * t_val;
+      term *= numterm * (numterm - 2.0) * kTVal;
       sum += term;
       absterm = std::abs(term);
       if (oldterm < absterm) {
         break;
       }
       oldterm = absterm;
-    } while (absterm > eps10 * std::abs(sum));
+    } while (absterm > kEps10 * std::abs(sum));
 
-    const double f_val = sum / (kPi * x);
+    const double kFVal = sum / (kPi * kX);
 
     numterm = -1.0;
     term = 1.0;
@@ -181,23 +181,23 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
 
     do {
       numterm += 4.0;
-      term *= numterm * (numterm + 2.0) * t_val;
+      term *= numterm * (numterm + 2.0) * kTVal;
       sum += term;
       absterm = std::abs(term);
       if (oldterm < absterm) {
         break;
       }
       oldterm = absterm;
-    } while (absterm > eps10 * std::abs(sum));
+    } while (absterm > kEps10 * std::abs(sum));
 
-    double g_val = kPi * x;
-    g_val = sum / (g_val * g_val * x);
+    double g_val = kPi * kX;
+    g_val = sum / (g_val * g_val * kX);
 
-    const double u_val = kPi2 * (x * x);
-    const double sin_u = std::sin(u_val);
-    const double cos_u = std::cos(u_val);
-    c = 0.5 + (f_val * sin_u) - (g_val * cos_u);
-    s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
+    const double kUVal = kPi2 * (kX * kX);
+    const double kSinU = std::sin(kUVal);
+    const double kCosU = std::cos(kUVal);
+    c = 0.5 + (kFVal * kSinU) - (g_val * kCosU);
+    s = 0.5 - (kFVal * kCosU) - (g_val * kSinU);
   }
 
   if (y < 0.0) {
@@ -214,42 +214,42 @@ auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> Cloth
     double y0 = 0.0;
     double x2 = 0.0;
     double y2 = 0.0;
-    const double abs_b = std::abs(param_b);
-    if (abs_b < 0.1) {
-      const double b2 = param_b * param_b;
-      const double b4 = b2 * b2;
-      const double b6 = b4 * b2;
-      x0 = 1.0 - (b2 / 6.0) + (b4 / 120.0) - (b6 / 5040.0);
-      y0 = (param_b / 2.0) - ((param_b * b2) / 24.0) + ((param_b * b4) / 720.0) - ((param_b * b6) / 40320.0);
-      x2 = (1.0 / 3.0) - (b2 / 10.0) + (b4 / 168.0) - (b6 / 6480.0);
-      y2 = (param_b / 4.0) - ((param_b * b2) / 36.0) + ((param_b * b4) / 960.0) - ((param_b * b6) / 50400.0);
+    const double kAbsB = std::abs(param_b);
+    if (kAbsB < 0.1) {
+      const double kB2 = param_b * param_b;
+      const double kB4 = kB2 * kB2;
+      const double kB6 = kB4 * kB2;
+      x0 = 1.0 - (kB2 / 6.0) + (kB4 / 120.0) - (kB6 / 5040.0);
+      y0 = (param_b / 2.0) - ((param_b * kB2) / 24.0) + ((param_b * kB4) / 720.0) - ((param_b * kB6) / 40320.0);
+      x2 = (1.0 / 3.0) - (kB2 / 10.0) + (kB4 / 168.0) - (kB6 / 6480.0);
+      y2 = (param_b / 4.0) - ((param_b * kB2) / 36.0) + ((param_b * kB4) / 960.0) - ((param_b * kB6) / 50400.0);
     } else {
-      const double sin_b = std::sin(param_b);
-      const double cos_b = std::cos(param_b);
-      const double inv_b = 1.0 / param_b;
-      const double inv_b2 = inv_b * inv_b;
-      const double inv_b3 = inv_b2 * inv_b;
-      x0 = sin_b * inv_b;
-      y0 = (1.0 - cos_b) * inv_b;
-      x2 = (sin_b * inv_b) + (2.0 * (cos_b * inv_b2)) - (2.0 * (sin_b * inv_b3));
-      y2 = (-(cos_b * inv_b)) + (2.0 * (sin_b * inv_b2)) - (2.0 * ((1.0 - cos_b) * inv_b3));
+      const double kSinB = std::sin(param_b);
+      const double kCosB = std::cos(param_b);
+      const double kInvB = 1.0 / param_b;
+      const double kInvB2 = kInvB * kInvB;
+      const double kInvB3 = kInvB2 * kInvB;
+      x0 = kSinB * kInvB;
+      y0 = (1.0 - kCosB) * kInvB;
+      x2 = (kSinB * kInvB) + (2.0 * (kCosB * kInvB2)) - (2.0 * (kSinB * kInvB3));
+      y2 = (-(kCosB * kInvB)) + (2.0 * (kSinB * kInvB2)) - (2.0 * ((1.0 - kCosB) * kInvB3));
     }
-    const double x_val = x0 - (0.5 * (param_a * y2));
-    const double y_val = y0 + (0.5 * (param_a * x2));
-    return {.x = x_val, .y = y_val};
+    const double kXVal = x0 - (0.5 * (param_a * y2));
+    const double kYVal = y0 + (0.5 * (param_a * x2));
+    return {.x = kXVal, .y = kYVal};
   }
   return EvalXYaLarge(param_a, param_b);
 }
 
 auto IntegrateArcLength(double u, double b, double c, double d) noexcept -> double {
   double sum = 0.0;
-  const double half_u = 0.5 * u;
+  const double kHalfU = 0.5 * u;
   for (int i = 0; i < kNumGaussPoints; ++i) {
-    const double sigma = half_u * (kGaussPoints[i] + 1.0);
-    const double v_prime = b + (2.0 * c * sigma) + (3.0 * d * sigma * sigma);
-    sum += kGaussWeights[i] * std::sqrt(1.0 + (v_prime * v_prime));
+    const double kSigma = kHalfU * (kGaussPoints[i] + 1.0);
+    const double kVPrime = b + (2.0 * c * kSigma) + (3.0 * d * kSigma * kSigma);
+    sum += kGaussWeights[i] * std::sqrt(1.0 + (kVPrime * kVPrime));
   }
-  return half_u * sum;
+  return kHalfU * sum;
 }
 
 auto SolveUForS(double s_target, double length, double b_u, double b, double c, double d) noexcept -> double {
@@ -260,16 +260,16 @@ auto SolveUForS(double s_target, double length, double b_u, double b, double c, 
   constexpr double kTol = 1e-12;
   constexpr int kMaxIter = 100;
   for (int iter = 0; iter < kMaxIter; ++iter) {
-    const double s_val = IntegrateArcLength(u_val, b, c, d);
-    const double v_prime = b + (2.0 * c * u_val) + (3.0 * d * u_val * u_val);
-    const double f_val = s_val - s_target;
-    const double f_prime = std::sqrt(1.0 + (v_prime * v_prime));
-    if (std::abs(f_prime) < 1e-12) {
+    const double kSVal = IntegrateArcLength(u_val, b, c, d);
+    const double kVPrime = b + (2.0 * c * u_val) + (3.0 * d * u_val * u_val);
+    const double kFVal = kSVal - s_target;
+    const double kFPrime = std::sqrt(1.0 + (kVPrime * kVPrime));
+    if (std::abs(kFPrime) < 1e-12) {
       break;
     }
-    const double diff = f_val / f_prime;
-    u_val -= diff;
-    if (std::abs(f_val) < kTol) {
+    const double kDiff = kFVal / kFPrime;
+    u_val -= kDiff;
+    if (std::abs(kFVal) < kTol) {
       break;
     }
   }
@@ -292,25 +292,25 @@ auto ConvertPoly3ToParamPoly3(double length, double a, double b, double c, doubl
     return param;
   }
 
-  const double den = std::sqrt(1.0 + (b * b));
-  const double b_u = 1.0 / den;
-  const double b_v = b / den;
+  const double kDen = std::sqrt(1.0 + (b * b));
+  const double kBU = 1.0 / kDen;
+  const double kBV = b / kDen;
 
-  const double u1 = SolveUForS(0.5 * length, length, b_u, b, c, d);
-  const double u2 = SolveUForS(length, length, b_u, b, c, d);
+  const double kU1 = SolveUForS(0.5 * length, length, kBU, b, c, d);
+  const double kU2 = SolveUForS(length, length, kBU, b, c, d);
 
-  const double v1 = a + (u1 * (b + u1 * (c + d * u1)));
-  const double v2 = a + (u2 * (b + u2 * (c + d * u2)));
+  const double kV1 = a + (kU1 * (b + kU1 * (c + d * kU1)));
+  const double kV2 = a + (kU2 * (b + kU2 * (c + d * kU2)));
 
   param.a_u = 0.0;
-  param.b_u = b_u;
-  param.c_u = (8.0 * u1 - u2 - 3.0 * b_u * length) / (length * length);
-  param.d_u = (2.0 * u2 - 8.0 * u1 + 2.0 * b_u * length) / (length * length * length);
+  param.b_u = kBU;
+  param.c_u = (8.0 * kU1 - kU2 - 3.0 * kBU * length) / (length * length);
+  param.d_u = (2.0 * kU2 - 8.0 * kU1 + 2.0 * kBU * length) / (length * length * length);
 
   param.a_v = a;
-  param.b_v = b_v;
-  param.c_v = (8.0 * v1 - v2 - 7.0 * a - 3.0 * b_v * length) / (length * length);
-  param.d_v = (2.0 * v2 - 8.0 * v1 + 6.0 * a + 2.0 * b_v * length) / (length * length * length);
+  param.b_v = kBV;
+  param.c_v = (8.0 * kV1 - kV2 - 7.0 * a - 3.0 * kBV * length) / (length * length);
+  param.d_v = (2.0 * kV2 - 8.0 * kV1 + 6.0 * a + 2.0 * kBV * length) / (length * length * length);
 
   return param;
 }

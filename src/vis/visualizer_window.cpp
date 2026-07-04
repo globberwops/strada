@@ -45,21 +45,21 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     auto map = parser::ParseFile(file_path);
 
     // 2. Build Tessellator
-    const tess::Tessellator tess(map, 0.1);  // Use 0.1m chord error for rendering quality
+    const tess::Tessellator kTess(map, 0.1);  // Use 0.1m chord error for rendering quality
 
     // 3. Batch Geometry
-    auto batched = BatchMapGeometry(tess);
+    auto batched = BatchMapGeometry(kTess);
 
     // 4. Update Viewport
     viewport_->SetGeometry(batched, cpm::CompiledPhysicsModel::Build(map));
 
     // Update title and status bar
-    const QFileInfo file_info(QString::fromStdString(file_path));
-    setWindowTitle(QString("Strada 2D Map Visualizer - %1").arg(file_info.fileName()));
+    const QFileInfo kFileInfo(QString::fromStdString(file_path));
+    setWindowTitle(QString("Strada 2D Map Visualizer - %1").arg(kFileInfo.fileName()));
     statusBar()->showMessage(QString("Loaded %1 (%2 road meshes, %3 polylines)")
-                                 .arg(file_info.fileName())
-                                 .arg(tess.Meshes().size())
-                                 .arg(tess.Polylines().size()));
+                                 .arg(kFileInfo.fileName())
+                                 .arg(kTess.Meshes().size())
+                                 .arg(kTess.Polylines().size()));
   } catch (const std::exception& ex) {
     statusBar()->showMessage(QString("Error loading map: %1").arg(ex.what()));
   }
