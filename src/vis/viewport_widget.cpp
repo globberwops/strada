@@ -329,7 +329,8 @@ void ViewportWidget::paintGL() {
         painter.setPen(QColor(160, 170, 184));
         painter.drawText(kXOffset, y_offset, "Inertial (x, y):");
         painter.setPen(QColor(100, 181, 246));  // Light blue for values
-        painter.drawText(kXOffset + 95, y_offset, "--");
+        const QString kInertialCoords = QString("%1 m, %2 m").arg(hovered_x_, 0, 'f', 3).arg(hovered_y_, 0, 'f', 3);
+        painter.drawText(kXOffset + 95, y_offset, kInertialCoords);
       }
     }
 
@@ -537,9 +538,12 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
     const QPointF kWorldPos =
         camera_.ScreenToWorld(static_cast<float>(event->position().x()), static_cast<float>(event->position().y()));
 
+    hovered_x_ = kWorldPos.x();
+    hovered_y_ = kWorldPos.y();
+
     cpm::InertialPose pose{};
-    pose.x = kWorldPos.x();
-    pose.y = kWorldPos.y();
+    pose.x = hovered_x_;
+    pose.y = hovered_y_;
 
     // Query closest vertex in rendering geometry to find road elevation at mouse cursor
     float best_z = 0.0F;

@@ -69,6 +69,8 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   std::optional<cpm::LanePose> hovered_pose_;
   std::string hovered_road_name_;
   int hovered_lane_original_id_{0};
+  double hovered_x_{0.0};
+  double hovered_y_{0.0};
 
   void SetupTriangles();
   void SetupLines();
