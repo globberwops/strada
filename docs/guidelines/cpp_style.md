@@ -22,6 +22,7 @@ The Strada codebase overrides the standard Google C++ Style Guide in several key
 - **Member Initializers:**
   - Initialize fundamental/primitive types (e.g., `int`, `double`, `bool`, pointers) using `{}` (e.g., `double length{};`) to prevent uninitialized values.
   - Standard library and custom class types (e.g., `std::string`, `std::vector`) must be default-initialized **without** `{}` to prevent `clang-tidy` warning `readability-redundant-member-init`.
+- **Std Number Types:** Always use standard library integer and floating-point types prefixed with `std::` (e.g., `std::uint32_t`, `std::int64_t`, `std::size_t`) instead of plain types without the namespace prefix (e.g., `uint32_t`, `int64_t`, `size_t`).
 - **Exceptions & Hot-Paths:** Exceptions **must not** be used in performance-critical hot-paths (e.g., geometry queries, coordinate translations, physics calculations). Exceptions are permitted only in non-hot-paths (e.g., startup file parsing, initialization).
 - **Ownership & Smart Pointers:** Never use raw pointers for ownership. Use `std::unique_ptr<T>` for exclusive ownership, and `std::shared_ptr<T>` only for shared ownership. Pass non-owning access using raw pointers `T*` (if nullable) or references `T&` (if non-nullable).
 - **Enum Trailing Commas:** Trailing commas in enums must be **removed** (enforced by `clang-format`).
