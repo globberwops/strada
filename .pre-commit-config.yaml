@@ -26,12 +26,6 @@ repos:
           [
             --project=build/dev/compile_commands.json,
             --cppcheck-build-dir=build/dev/cppcheck_cache,
-            --suppress=unusedFunction,
-            --suppress=unmatchedSuppression,
-            --suppress=noExplicitConstructor,
-            --suppress=useStlAlgorithm,
-            --suppress=missingIncludeSystem,
-            --suppress=normalCheckLevelMaxBranches,
           ]
         pass_filenames: false
         stages: [manual]
