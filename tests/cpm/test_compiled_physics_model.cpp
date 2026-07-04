@@ -1061,8 +1061,7 @@ TEST(CompiledPhysicsModelTest, BivariateShapeProfile) {
   // Arrange
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   // Note: bivariate_shape_road.xodr is located in tests/cpm/data/
-  std::filesystem::path file_path =
-      std::filesystem::path(STRADA_TEST_DATA_DIR) / ".." / "cpm" / "data" / "bivariate_shape_road.xodr";
+  std::filesystem::path file_path = data_dir / ".." / "cpm" / "data" / "bivariate_shape_road.xodr";
   auto ast = strada::parser::ParseFile(file_path);
   auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
 
