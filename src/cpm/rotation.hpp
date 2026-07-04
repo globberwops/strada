@@ -14,7 +14,7 @@ struct EulerAngles {
 
 class Rotation {
  public:
-  Rotation() = default;
+  constexpr Rotation() = default;
 
   static auto FromEuler(double heading, double pitch, double roll) noexcept -> Rotation {
     Rotation r;
@@ -24,13 +24,13 @@ class Rotation {
 
   [[nodiscard]] auto ToEuler() const noexcept -> EulerAngles { return MatrixToEuler(matrix_); }
 
-  [[nodiscard]] auto Compose(const Rotation& other) const noexcept -> Rotation {
+  [[nodiscard]] constexpr auto Compose(const Rotation& other) const noexcept -> Rotation {
     Rotation r;
     r.matrix_ = ComposeRotations(matrix_, other.matrix_);
     return r;
   }
 
-  [[nodiscard]] auto Inverse() const noexcept -> Rotation {
+  [[nodiscard]] constexpr auto Inverse() const noexcept -> Rotation {
     Rotation r;
     r.matrix_[0][0] = matrix_[0][0];
     r.matrix_[0][1] = matrix_[1][0];
@@ -44,13 +44,13 @@ class Rotation {
     return r;
   }
 
-  [[nodiscard]] auto Transform(double x, double y, double z) const noexcept -> std::array<double, 3> {
+  [[nodiscard]] constexpr auto Transform(double x, double y, double z) const noexcept -> std::array<double, 3> {
     return {(matrix_[0][0] * x) + (matrix_[0][1] * y) + (matrix_[0][2] * z),
             (matrix_[1][0] * x) + (matrix_[1][1] * y) + (matrix_[1][2] * z),
             (matrix_[2][0] * x) + (matrix_[2][1] * y) + (matrix_[2][2] * z)};
   }
 
-  [[nodiscard]] auto InverseTransform(double x, double y, double z) const noexcept -> std::array<double, 3> {
+  [[nodiscard]] constexpr auto InverseTransform(double x, double y, double z) const noexcept -> std::array<double, 3> {
     return {(matrix_[0][0] * x) + (matrix_[1][0] * y) + (matrix_[2][0] * z),
             (matrix_[0][1] * x) + (matrix_[1][1] * y) + (matrix_[2][1] * z),
             (matrix_[0][2] * x) + (matrix_[1][2] * y) + (matrix_[2][2] * z)};
@@ -114,7 +114,7 @@ class Rotation {
     return euler;
   }
 
-  static auto ComposeRotations(const Matrix3x3& rot_a, const Matrix3x3& rot_b) noexcept -> Matrix3x3 {
+  static constexpr auto ComposeRotations(const Matrix3x3& rot_a, const Matrix3x3& rot_b) noexcept -> Matrix3x3 {
     Matrix3x3 rot_c;
     rot_c[0][0] = (rot_a[0][0] * rot_b[0][0]) + (rot_a[0][1] * rot_b[1][0]) + (rot_a[0][2] * rot_b[2][0]);
     rot_c[0][1] = (rot_a[0][0] * rot_b[0][1]) + (rot_a[0][1] * rot_b[1][1]) + (rot_a[0][2] * rot_b[2][1]);
