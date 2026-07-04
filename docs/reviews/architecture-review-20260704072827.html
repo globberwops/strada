@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture Review — Strada</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Outfit (headings/body) and JetBrains Mono (code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Mermaid JS -->
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      body {
+        font-family: 'Outfit', sans-serif;
+      }
+      pre, code {
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-800 antialiased min-h-screen">
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-12">
+      <!-- Header -->
+      <header class="border-b border-slate-200 pb-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-4xl font-bold tracking-tight text-slate-900">Architecture Review: strada</h1>
+            <p class="text-slate-500 font-mono text-sm mt-2">Date: 2026-07-04 | OS: linux</p>
+          </div>
+          <div class="flex flex-wrap gap-4 text-xs font-mono text-slate-600 bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+            <div class="flex items-center gap-1.5">
+              <span class="w-3.5 h-3.5 bg-white border border-slate-300 rounded inline-block"></span>
+              <span>Module</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3.5 h-3.5 border border-slate-300 border-dashed rounded inline-block"></span>
+              <span>Seam</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3.5 h-3.5 bg-red-500 rounded-full inline-block"></span>
+              <span class="text-red-600 font-semibold">Leakage</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3.5 h-3.5 deep rounded inline-block"></span>
+              <span class="text-slate-900 font-semibold">Deep Module</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Candidates list -->
+      <section id="candidates" class="space-y-12">
+
+        <!-- Candidate 1 -->
+        <article class="bg-white border border-slate-200 rounded-xl p-8 shadow-sm space-y-6">
+          <div class="flex justify-between items-start">
+            <div class="space-y-1">
+              <h2 class="text-2xl font-bold text-slate-950 font-serif">1. Consolidate Polynomial Math into a Deep Polynomials Module</h2>
+              <div class="flex flex-wrap gap-2 pt-1.5">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Strong</span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">local-substitutable</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-sm font-mono text-slate-500 bg-slate-50 p-3 rounded-lg space-y-0.5 border border-slate-100">
+            <div>include/strada/cpm/elevation_profile.hpp</div>
+            <div>src/cpm/elevation_profile.cpp</div>
+            <div>include/strada/cpm/lane_network.hpp</div>
+            <div>src/cpm/lane_network.cpp</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Before diagram -->
+            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
+              <h3 class="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-3 text-center">Before</h3>
+              <pre class="mermaid min-h-[300px]">
+flowchart TD
+    subgraph EP [ElevationProfile Module]
+        A[Evaluate] --> B[EvaluatePolynomial]
+        A --> C[CompileCoefficients]
+        D[(Elevation SoA)]
+        classDef ep_mod fill:#fef08a,stroke:#eab308,stroke-width:1px;
+        class EP ep_mod;
+    end
+    subgraph LN [LaneNetwork Module]
+        E[Evaluate] --> F[EvaluatePolynomial]
+        E --> G[CompileCoefficients]
+        H[(Lane SoA)]
+        classDef ln_mod fill:#fed7aa,stroke:#f97316,stroke-width:1px;
+        class LN ln_mod;
+    end
+              </pre>
+            </div>
+            <!-- After diagram -->
+            <div class="rounded-lg border border-slate-200 bg-slate-900 p-4 text-white">
+              <h3 class="text-xs uppercase tracking-wider font-semibold text-slate-400 mb-3 text-center">After</h3>
+              <pre class="mermaid min-h-[300px]">
+flowchart TD
+    subgraph EP [ElevationProfile Module]
+        A[Evaluate]
+    end
+    subgraph LN [LaneNetwork Module]
+        B[Evaluate]
+    end
+    subgraph P [Deep Polynomials Module]
+        C[Polynomials] --> D[Evaluate]
+        C --> E[Compile]
+        F[(PolynomialsSoA)]
+        classDef deep_mod fill:#1e293b,stroke:#0f172a,stroke-width:2px,color:#fff;
+        class P deep_mod;
+    end
+    EP -->|use| P
+    LN -->|use| P
+              </pre>
+            </div>
+          </div>
+
+          <div class="space-y-4 pt-2">
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Problem</h4>
+              <p class="text-slate-700 mt-1">Both ElevationProfile and LaneNetwork duplicate the implementation of PolynomialsSoA compilation and evaluation, scattering optimizations and violating locality.</p>
+            </div>
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Solution</h4>
+              <p class="text-slate-700 mt-1">Extract vertical and lateral profile polynomial math into a single dedicated, deep Polynomials module.</p>
+            </div>
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Wins</h4>
+              <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-slate-700 text-sm list-disc pl-5">
+                <li>locality: optimization rules live in one module</li>
+                <li>leverage: one optimized implementation serves multiple clients</li>
+                <li>interface shrinks: internal duplicates are removed</li>
+                <li>locality: tests exercise a single mathematical interface</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- Candidate 2 -->
+        <article class="bg-white border border-slate-200 rounded-xl p-8 shadow-sm space-y-6">
+          <div class="flex justify-between items-start">
+            <div class="space-y-1">
+              <h2 class="text-2xl font-bold text-slate-950 font-serif">2. Introduce a Lane Resolution Seam on the Compiled Map</h2>
+              <div class="flex flex-wrap gap-2 pt-1.5">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Strong</span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">in-process</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-sm font-mono text-slate-500 bg-slate-50 p-3 rounded-lg space-y-0.5 border border-slate-100">
+            <div>include/strada/tess/tessellator.hpp</div>
+            <div>src/tess/tessellator.cpp</div>
+            <div>include/strada/cpm/compiled_physics_model.hpp</div>
+            <div>include/strada/cpm/lane_network.hpp</div>
+            <div>src/cpm/lane_network.cpp</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Before diagram -->
+            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
+              <h3 class="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-3 text-center">Before</h3>
+              <pre class="mermaid min-h-[300px]">
+flowchart TD
+    subgraph T [Tessellator Module]
+        A[Tessellate] --> B[ResolveLaneId helper]
+    end
+    subgraph AST [AbstractSyntaxTree]
+        C[(AST Roads/Lanes)]
+    end
+    B -.leak.-> C
+    classDef leak stroke:#dc2626,stroke-width:2px;
+    class B,C leak;
+              </pre>
+            </div>
+            <!-- After diagram -->
+            <div class="rounded-lg border border-slate-200 bg-slate-900 p-4 text-white">
+              <h3 class="text-xs uppercase tracking-wider font-semibold text-slate-400 mb-3 text-center">After</h3>
+              <pre class="mermaid min-h-[300px]">
+flowchart TD
+    subgraph T [Tessellator Module]
+        A[Tessellate]
+    end
+    subgraph CPM [CompiledPhysicsModel Module]
+        B[FindLaneId interface] --> C[LaneNetwork Module]
+    end
+    A -->|query| B
+    classDef deep_mod fill:#1e293b,stroke:#0f172a,stroke-width:2px,color:#fff;
+    class CPM deep_mod;
+              </pre>
+            </div>
+          </div>
+
+          <div class="space-y-4 pt-2">
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Problem</h4>
+              <p class="text-slate-700 mt-1">Tessellator duplicates AST-to-compiled lane handle mapping logic, bypassing the CPM seam and causing architectural friction.</p>
+            </div>
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Solution</h4>
+              <p class="text-slate-700 mt-1">Expose a pre-compiled lane lookup method FindLaneId on the CompiledPhysicsModel interface.</p>
+            </div>
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Wins</h4>
+              <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-slate-700 text-sm list-disc pl-5">
+                <li>locality: indexing rules reside in compiled map</li>
+                <li>leverage: callers resolve IDs with one method</li>
+                <li>locality: AST inspection logic is eliminated</li>
+                <li>interface: cleaner boundary between AST and CPM</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- Candidate 3 -->
+        <article class="bg-white border border-slate-200 rounded-xl p-8 shadow-sm space-y-6">
+          <div class="flex justify-between items-start">
+            <div class="space-y-1">
+              <h2 class="text-2xl font-bold text-slate-950 font-serif">3. Encapsulate Road Width Estimation inside LaneNetwork</h2>
+              <div class="flex flex-wrap gap-2 pt-1.5">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Worth exploring</span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">local-substitutable</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-sm font-mono text-slate-500 bg-slate-50 p-3 rounded-lg space-y-0.5 border border-slate-100">
+            <div>include/strada/cpm/compiled_physics_model.hpp</div>
+            <div>src/cpm/compiled_physics_model.cpp</div>
+            <div>include/strada/cpm/lane_network.hpp</div>
+            <div>src/cpm/reference_line.cpp</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Before diagram -->
+            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
+              <h3 class="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-3 text-center">Before</h3>
+              <pre class="mermaid min-h-[300px]">
+flowchart TD
+    subgraph CPM [CPM Build Orchestration]
+        A[Build] --> B[Sample AST widths/offsets]
+        A --> C[ReferenceLine::Build]
+        A --> D[LaneNetwork::Build]
+    end
+              </pre>
+            </div>
+            <!-- After diagram -->
+            <div class="rounded-lg border border-slate-200 bg-slate-900 p-4 text-white">
+              <h3 class="text-xs uppercase tracking-wider font-semibold text-slate-400 mb-3 text-center">After</h3>
+              <pre class="mermaid min-h-[300px]">
+flowchart TD
+    subgraph CPM [CPM Build Orchestration]
+        A[Build]
+    end
+    subgraph LN [LaneNetwork Module]
+        B[Build & Estimate Max Widths]
+    end
+    subgraph RL [ReferenceLine Module]
+        C[Build & Compute AABBs]
+    end
+    A --> LN
+    LN -->|provide widths| A
+    A -->|widths| RL
+    classDef deep_mod fill:#1e293b,stroke:#0f172a,stroke-width:2px,color:#fff;
+    class LN,RL deep_mod;
+              </pre>
+            </div>
+          </div>
+
+          <div class="space-y-4 pt-2">
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Problem</h4>
+              <p class="text-slate-700 mt-1">CompiledPhysicsModel::Build performs raw AST lane geometry sampling loops, making the orchestration function shallow and highly coupled to raw AST schemas.</p>
+            </div>
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Solution</h4>
+              <p class="text-slate-700 mt-1">Move road-width estimation into LaneNetwork::Build and feed pre-computed widths directly into ReferenceLine AABB creation.</p>
+            </div>
+            <div>
+              <h4 class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Wins</h4>
+              <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-slate-700 text-sm list-disc pl-5">
+                <li>locality: width logic stays in lane network</li>
+                <li>interface: CPM orchestration is simple</li>
+                <li>locality: tests verify width compiler in isolation</li>
+                <li>leverage: ReferenceLine builds AABBs without AST</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- Top Recommendation -->
+      <section id="top-recommendation" class="bg-slate-900 text-white rounded-xl p-8 shadow-md border border-slate-950 space-y-4">
+        <h2 class="text-xl font-bold tracking-wide uppercase text-indigo-400">Top Recommendation</h2>
+        <h3 class="text-2xl font-serif font-bold">Introduce a Lane Resolution Seam on the Compiled Map</h3>
+        <p class="text-slate-300 max-w-3xl">
+          We recommend implementing <span class="text-white font-semibold">Candidate 2 (Introduce a Lane Resolution Seam on the Compiled Map)</span> first. Currently, the Tessellator is forced to replicate the internal indexing order rules of the Compiled Physics Model by performing manual AST traversal loops. Resolving this via a unified FindLaneId seam on CPM/LaneNetwork eliminates this leak, aligns the codebase with our design guidelines, and improves test isolation.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

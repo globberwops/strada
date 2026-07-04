@@ -7,8 +7,8 @@
 #include <optional>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/coordinate.hpp>
-#include <strada/cpm/elevation_profile.hpp>
 #include <strada/cpm/ids.hpp>
+#include <strada/cpm/polynomials.hpp>
 #include <strada/cpm/query_context.hpp>
 #include <vector>
 
@@ -169,7 +169,7 @@ class LaneNetwork {
   LaneOffsetsSoA lane_offsets_;
   RoadCrossSectionSurfaceSoA road_css_;
   StripsSoA strips_;
-  PolynomialsSoA polynomials_;
+  Polynomials polynomials_;
 };
 
 }  // namespace strada::cpm

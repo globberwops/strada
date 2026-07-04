@@ -13,38 +13,6 @@ namespace strada::cpm {
 
 namespace {
 
-auto EvaluatePolynomial(const PolynomialsSoA& poly, std::uint32_t first_idx, std::uint32_t count,
-                        double s_coord) noexcept -> double {
-  if (count == 0) {
-    return 0.0;
-  }
-  std::uint32_t active_idx = first_idx;
-  for (std::uint32_t i = 0; i < count; ++i) {
-    const std::uint32_t kIdx = first_idx + i;
-    if (s_coord >= poly.s_start[kIdx]) {
-      active_idx = kIdx;
-    } else {
-      break;
-    }
-  }
-  const double kDsVal = s_coord - poly.s_start[active_idx];
-  return poly.a[active_idx] + (poly.b[active_idx] * kDsVal) + (poly.c[active_idx] * kDsVal * kDsVal) +
-         (poly.d[active_idx] * kDsVal * kDsVal * kDsVal);
-}
-
-void CompileCoefficients(const std::vector<ast::Coefficient>& coeffs, PolynomialsSoA& dest, std::uint32_t& first_idx,
-                         std::uint32_t& count) {
-  first_idx = static_cast<std::uint32_t>(dest.s_start.size());
-  count = static_cast<std::uint32_t>(coeffs.size());
-  for (const auto& coeff : coeffs) {
-    dest.s_start.push_back(coeff.s);
-    dest.a.push_back(coeff.a);
-    dest.b.push_back(coeff.b);
-    dest.c.push_back(coeff.c);
-    dest.d.push_back(coeff.d);
-  }
-}
-
 struct ShapeGroup {
   double s{};
   std::uint32_t first_idx{};
@@ -162,28 +130,24 @@ auto ElevationProfile::Build(const ast::AbstractSyntaxTree& map) -> ElevationPro
   for (const auto& road : map.roads) {
     // Elevation profile compilation
     {
-      auto first_idx = 0U;
-      auto count = 0U;
       std::vector<ast::Coefficient> coeffs;
       coeffs.reserve(road.elevation_profile.elevations.size());
       for (const auto& elev : road.elevation_profile.elevations) {
         coeffs.push_back({elev.s, elev.a, elev.b, elev.c, elev.d});
       }
-      CompileCoefficients(coeffs, profile.polynomials_, first_idx, count);
+      auto [first_idx, count] = profile.polynomials_.Compile(coeffs);
       profile.elevation_.road_elevation_first_idx.push_back(first_idx);
       profile.elevation_.road_elevation_count.push_back(count);
     }
 
     // Superelevation profile compilation
     {
-      auto first_idx = 0U;
-      auto count = 0U;
       std::vector<ast::Coefficient> coeffs;
       coeffs.reserve(road.lateral_profile.superelevations.size());
       for (const auto& super : road.lateral_profile.superelevations) {
         coeffs.push_back({super.s, super.a, super.b, super.c, super.d});
       }
-      CompileCoefficients(coeffs, profile.polynomials_, first_idx, count);
+      auto [first_idx, count] = profile.polynomials_.Compile(coeffs);
       profile.elevation_.road_superelevation_first_idx.push_back(first_idx);
       profile.elevation_.road_superelevation_count.push_back(count);
     }
@@ -224,31 +188,16 @@ auto ElevationProfile::Evaluate(RoadId road, double s, double t) const noexcept 
 
   const bool kHasCss = (road_has_css_[road_idx] != 0U);
 
-  elev = EvaluatePolynomial(polynomials_, elevation_.road_elevation_first_idx[road_idx],
-                            elevation_.road_elevation_count[road_idx], s);
+  elev = polynomials_.Evaluate(elevation_.road_elevation_first_idx[road_idx], elevation_.road_elevation_count[road_idx],
+                               s);
 
-  double d_elev = 0.0;
-  const std::uint32_t kElevFirstIdx = elevation_.road_elevation_first_idx[road_idx];
-  const std::uint32_t kElevCount = elevation_.road_elevation_count[road_idx];
-  if (kElevCount > 0) {
-    std::uint32_t active_idx = kElevFirstIdx;
-    for (std::uint32_t i = 0; i < kElevCount; ++i) {
-      const std::uint32_t kIdx = kElevFirstIdx + i;
-      if (s >= polynomials_.s_start[kIdx]) {
-        active_idx = kIdx;
-      } else {
-        break;
-      }
-    }
-    const double kDsPoly = s - polynomials_.s_start[active_idx];
-    d_elev = polynomials_.b[active_idx] + (2.0 * polynomials_.c[active_idx] * kDsPoly) +
-             (3.0 * polynomials_.d[active_idx] * kDsPoly * kDsPoly);
-  }
+  double d_elev = polynomials_.EvaluateDerivative(elevation_.road_elevation_first_idx[road_idx],
+                                                  elevation_.road_elevation_count[road_idx], s);
   natural_pitch = std::atan(d_elev);
 
   if (!kHasCss) {
-    natural_roll = EvaluatePolynomial(polynomials_, elevation_.road_superelevation_first_idx[road_idx],
-                                      elevation_.road_superelevation_count[road_idx], s);
+    natural_roll = polynomials_.Evaluate(elevation_.road_superelevation_first_idx[road_idx],
+                                         elevation_.road_superelevation_count[road_idx], s);
   }
 
   const double kShapeH = EvaluateShapeHeight(road, s, t);

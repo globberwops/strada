@@ -5,19 +5,11 @@
 #include <cstdint>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/aligned_allocator.hpp>
+#include <strada/cpm/polynomials.hpp>
 #include <strada/cpm/reference_line.hpp>
 #include <vector>
 
 namespace strada::cpm {
-
-/// Represents a flat Structure of Arrays (SoA) for polynomial coefficients.
-struct PolynomialsSoA {
-  AlignedVector<double> s_start;  ///< Start s-coordinate of the polynomial's valid range.
-  AlignedVector<double> a;        ///< Constant coefficient (a).
-  AlignedVector<double> b;        ///< Linear coefficient (b).
-  AlignedVector<double> c;        ///< Quadratic coefficient (c).
-  AlignedVector<double> d;        ///< Cubic coefficient (d).
-};
 
 /// Represents a flat Structure of Arrays (SoA) for shape profile parameters.
 struct ShapesSoA {
@@ -96,7 +88,7 @@ class ElevationProfile {
  private:
   ElevationSoA elevation_;
   ShapesSoA shapes_;
-  PolynomialsSoA polynomials_;
+  Polynomials polynomials_;
   std::vector<std::uint8_t> road_has_css_;
 };
 

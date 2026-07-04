@@ -16,48 +16,16 @@ namespace strada::cpm {
 
 namespace {
 
-auto EvaluatePolynomial(const PolynomialsSoA& poly, std::uint32_t first_idx, std::uint32_t count,
-                        double s_coord) noexcept -> double {
-  if (count == 0) {
-    return 0.0;
-  }
-  std::uint32_t active_idx = first_idx;
-  for (std::uint32_t i = 0; i < count; ++i) {
-    const std::uint32_t kIdx = first_idx + i;
-    if (s_coord >= poly.s_start[kIdx]) {
-      active_idx = kIdx;
-    } else {
-      break;
-    }
-  }
-  const double kDsVal = s_coord - poly.s_start[active_idx];
-  return poly.a[active_idx] + (poly.b[active_idx] * kDsVal) + (poly.c[active_idx] * kDsVal * kDsVal) +
-         (poly.d[active_idx] * kDsVal * kDsVal * kDsVal);
-}
-
-void CompileCoefficients(const std::vector<ast::Coefficient>& coeffs, PolynomialsSoA& dest, std::uint32_t& first_idx,
-                         std::uint32_t& count) {
-  first_idx = static_cast<std::uint32_t>(dest.s_start.size());
-  count = static_cast<std::uint32_t>(coeffs.size());
-  for (const auto& coeff : coeffs) {
-    dest.s_start.push_back(coeff.s);
-    dest.a.push_back(coeff.a);
-    dest.b.push_back(coeff.b);
-    dest.c.push_back(coeff.c);
-    dest.d.push_back(coeff.d);
-  }
-}
-
-auto EvaluateStripOwnHeight(const PolynomialsSoA& poly, const StripsSoA& strips, std::uint32_t strip_idx,
-                            double s_coord, double dt_val) noexcept -> double {
-  const double kCoeff0 = EvaluatePolynomial(poly, strips.c0_first_idx[strip_idx], strips.c0_count[strip_idx], s_coord);
-  const double kCoeff1 = EvaluatePolynomial(poly, strips.c1_first_idx[strip_idx], strips.c1_count[strip_idx], s_coord);
-  const double kCoeff2 = EvaluatePolynomial(poly, strips.c2_first_idx[strip_idx], strips.c2_count[strip_idx], s_coord);
-  const double kCoeff3 = EvaluatePolynomial(poly, strips.c3_first_idx[strip_idx], strips.c3_count[strip_idx], s_coord);
+auto EvaluateStripOwnHeight(const Polynomials& poly, const StripsSoA& strips, std::uint32_t strip_idx, double s_coord,
+                            double dt_val) noexcept -> double {
+  const double kCoeff0 = poly.Evaluate(strips.c0_first_idx[strip_idx], strips.c0_count[strip_idx], s_coord);
+  const double kCoeff1 = poly.Evaluate(strips.c1_first_idx[strip_idx], strips.c1_count[strip_idx], s_coord);
+  const double kCoeff2 = poly.Evaluate(strips.c2_first_idx[strip_idx], strips.c2_count[strip_idx], s_coord);
+  const double kCoeff3 = poly.Evaluate(strips.c3_first_idx[strip_idx], strips.c3_count[strip_idx], s_coord);
   return kCoeff0 + (kCoeff1 * dt_val) + (kCoeff2 * dt_val * dt_val) + (kCoeff3 * dt_val * dt_val * dt_val);
 }
 
-auto EvaluateStripHeight(const PolynomialsSoA& poly, const StripsSoA& strips, std::uint32_t strip_idx,
+auto EvaluateStripHeight(const Polynomials& poly, const StripsSoA& strips, std::uint32_t strip_idx,
                          std::uint32_t first_strip_idx, std::uint32_t strip_count, double s_coord,
                          double dt_val) noexcept -> double {
   double h_accum = EvaluateStripOwnHeight(poly, strips, strip_idx, s_coord, dt_val);
@@ -71,8 +39,7 @@ auto EvaluateStripHeight(const PolynomialsSoA& poly, const StripsSoA& strips, st
     for (std::uint32_t j = 0; j < strip_count; ++j) {
       const std::uint32_t kInnerIdx = first_strip_idx + j;
       if (strips.strip_id[kInnerIdx] == kInnerId) {
-        const double kInnerW =
-            EvaluatePolynomial(poly, strips.width_first_idx[kInnerIdx], strips.width_count[kInnerIdx], s_coord);
+        const double kInnerW = poly.Evaluate(strips.width_first_idx[kInnerIdx], strips.width_count[kInnerIdx], s_coord);
         const double kInnerDt = (kInnerId > 0) ? kInnerW : -kInnerW;
         h_accum += EvaluateStripOwnHeight(poly, strips, kInnerIdx, s_coord, kInnerDt);
         curr_strip_idx = kInnerIdx;
@@ -87,14 +54,14 @@ auto EvaluateStripHeight(const PolynomialsSoA& poly, const StripsSoA& strips, st
   return h_accum;
 }
 
-void EvaluateCrossSectionSurfaceOffset(const PolynomialsSoA& polynomials, const StripsSoA& strips,
+void EvaluateCrossSectionSurfaceOffset(const Polynomials& polynomials, const StripsSoA& strips,
                                        const RoadCrossSectionSurfaceSoA& road_css, std::uint32_t road_idx,
                                        double s_coord, double t_coord, double& h_surf) noexcept {
   h_surf = 0.0;
   const std::uint32_t kCssStripCount = road_css.strip_count.empty() ? 0 : road_css.strip_count[road_idx];
   if (kCssStripCount > 0) {
-    const double kTOffset = EvaluatePolynomial(polynomials, road_css.t_offset_first_idx[road_idx],
-                                               road_css.t_offset_count[road_idx], s_coord);
+    const double kTOffset =
+        polynomials.Evaluate(road_css.t_offset_first_idx[road_idx], road_css.t_offset_count[road_idx], s_coord);
 
     const double kTSurf = t_coord - kTOffset;
     const bool kIsLeft = (kTSurf >= 0.0);
@@ -112,7 +79,7 @@ void EvaluateCrossSectionSurfaceOffset(const PolynomialsSoA& polynomials, const 
         double width_val = std::numeric_limits<double>::infinity();
         const std::uint32_t kWCount = strips.width_count[kStripIdx];
         if (kWCount > 0) {
-          width_val = EvaluatePolynomial(polynomials, strips.width_first_idx[kStripIdx], kWCount, s_coord);
+          width_val = polynomials.Evaluate(strips.width_first_idx[kStripIdx], kWCount, s_coord);
         }
 
         if (kTTarget >= t_accum && kTTarget < t_accum + width_val) {
@@ -141,9 +108,7 @@ auto LaneNetwork::Build(const ast::AbstractSyntaxTree& map) -> LaneNetwork {
       network.road_css_.first_strip_idx.push_back(static_cast<std::uint32_t>(network.strips_.strip_id.size()));
       network.road_css_.strip_count.push_back(static_cast<std::uint32_t>(css.strips.size()));
 
-      auto t_off_idx = 0U;
-      auto t_off_cnt = 0U;
-      CompileCoefficients(css.t_offset, network.polynomials_, t_off_idx, t_off_cnt);
+      auto [t_off_idx, t_off_cnt] = network.polynomials_.Compile(css.t_offset);
       network.road_css_.t_offset_first_idx.push_back(t_off_idx);
       network.road_css_.t_offset_count.push_back(t_off_cnt);
 
@@ -156,28 +121,25 @@ auto LaneNetwork::Build(const ast::AbstractSyntaxTree& map) -> LaneNetwork {
         network.strips_.strip_id.push_back(strip.id);
         network.strips_.is_relative.push_back(static_cast<std::uint8_t>(strip.mode == "relative"));
 
-        auto first_idx = 0U;
-        auto count = 0U;
+        auto [w_first, w_count] = network.polynomials_.Compile(strip.width);
+        network.strips_.width_first_idx.push_back(w_first);
+        network.strips_.width_count.push_back(w_count);
 
-        CompileCoefficients(strip.width, network.polynomials_, first_idx, count);
-        network.strips_.width_first_idx.push_back(first_idx);
-        network.strips_.width_count.push_back(count);
+        auto [c0_first, c0_count] = network.polynomials_.Compile(strip.constant);
+        network.strips_.c0_first_idx.push_back(c0_first);
+        network.strips_.c0_count.push_back(c0_count);
 
-        CompileCoefficients(strip.constant, network.polynomials_, first_idx, count);
-        network.strips_.c0_first_idx.push_back(first_idx);
-        network.strips_.c0_count.push_back(count);
+        auto [c1_first, c1_count] = network.polynomials_.Compile(strip.linear);
+        network.strips_.c1_first_idx.push_back(c1_first);
+        network.strips_.c1_count.push_back(c1_count);
 
-        CompileCoefficients(strip.linear, network.polynomials_, first_idx, count);
-        network.strips_.c1_first_idx.push_back(first_idx);
-        network.strips_.c1_count.push_back(count);
+        auto [c2_first, c2_count] = network.polynomials_.Compile(strip.quadratic);
+        network.strips_.c2_first_idx.push_back(c2_first);
+        network.strips_.c2_count.push_back(c2_count);
 
-        CompileCoefficients(strip.quadratic, network.polynomials_, first_idx, count);
-        network.strips_.c2_first_idx.push_back(first_idx);
-        network.strips_.c2_count.push_back(count);
-
-        CompileCoefficients(strip.cubic, network.polynomials_, first_idx, count);
-        network.strips_.c3_first_idx.push_back(first_idx);
-        network.strips_.c3_count.push_back(count);
+        auto [c3_first, c3_count] = network.polynomials_.Compile(strip.cubic);
+        network.strips_.c3_first_idx.push_back(c3_first);
+        network.strips_.c3_count.push_back(c3_count);
       }
     } else {
       network.road_css_.first_strip_idx.push_back(0);

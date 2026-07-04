@@ -10,6 +10,7 @@ target_sources(
           cpm/bounding_volume_hierarchy.cpp
           cpm/elevation_profile.cpp
           cpm/lane_network.cpp
+          cpm/polynomials.cpp
           tess/tessellator.cpp
           tess/triangulation.cpp
   PUBLIC FILE_SET
@@ -33,6 +34,7 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/reference_line.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/elevation_profile.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/lane_network.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/cpm/polynomials.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/tess/tessellator.hpp)
 
 target_link_libraries(strada PRIVATE pugixml)
