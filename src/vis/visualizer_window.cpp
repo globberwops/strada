@@ -45,7 +45,7 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     auto map = parser::ParseFile(file_path);
 
     // 2. Build Tessellator
-    tess::Tessellator tess(map, 0.1);  // Use 0.1m chord error for rendering quality
+    tess::Tessellator const tess(map, 0.1);  // Use 0.1m chord error for rendering quality
 
     // 3. Batch Geometry
     auto batched = BatchMapGeometry(tess);
@@ -54,7 +54,7 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     viewport_->SetGeometry(batched, cpm::CompiledPhysicsModel::Build(map));
 
     // Update title and status bar
-    QFileInfo file_info(QString::fromStdString(file_path));
+    QFileInfo const file_info(QString::fromStdString(file_path));
     setWindowTitle(QString("Strada 2D Map Visualizer - %1").arg(file_info.fileName()));
     statusBar()->showMessage(QString("Loaded %1 (%2 road meshes, %3 polylines)")
                                  .arg(file_info.fileName())

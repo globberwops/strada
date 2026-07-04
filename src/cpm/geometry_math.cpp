@@ -57,22 +57,22 @@ constexpr auto kGaussWeights =
 constexpr int kNumGaussPoints = std::min(kGaussPoints.size(), kGaussWeights.size());
 
 auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
-  double s = a > 0.0 ? 1.0 : -1.0;
-  double absa = std::abs(a);
-  double z = k1SqrtPi * std::sqrt(absa);
-  double ell = s * b * k1SqrtPi / std::sqrt(absa);
-  double g = -0.5 * s * (b * b) / absa;
-  double cg = std::cos(g) / z;
-  double sg = std::sin(g) / z;
+  double const s = a > 0.0 ? 1.0 : -1.0;
+  double const absa = std::abs(a);
+  double const z = k1SqrtPi * std::sqrt(absa);
+  double const ell = s * b * k1SqrtPi / std::sqrt(absa);
+  double const g = -0.5 * s * (b * b) / absa;
+  double const cg = std::cos(g) / z;
+  double const sg = std::sin(g) / z;
 
   auto [cl, sl] = FresnelCS(ell);
   auto [cz, sz] = FresnelCS(ell + z);
 
-  double dc0 = cz - cl;
-  double ds0 = sz - sl;
+  double const dc0 = cz - cl;
+  double const ds0 = sz - sl;
 
-  double x_val = (cg * dc0) - (s * sg * ds0);
-  double y_val = (sg * dc0) + (s * cg * ds0);
+  double const x_val = (cg * dc0) - (s * sg * ds0);
+  double const y_val = (sg * dc0) + (s * cg * ds0);
   return ClothoidResult{.x = x_val, .y = y_val};
 }
 
@@ -80,7 +80,7 @@ auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
 
 auto FresnelCS(double y) noexcept -> FresnelResult {
   constexpr double kEps = 1e-15;
-  double x = y > 0.0 ? y : -y;
+  double const x = y > 0.0 ? y : -y;
   double c = 0.0;
   double s = 0.0;
 
@@ -92,8 +92,8 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
     double sum = kNaN;
     double term = kNaN;
 
-    double s_val = kPi2 * (x * x);
-    double t_val = -s_val * s_val;
+    double const s_val = kPi2 * (x * x);
+    double const t_val = -s_val * s_val;
 
     twofn = 0.0;
     fact = 1.0;
@@ -134,7 +134,7 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
       sumn = kFn[k] + (x * sumn);
       sumd = kFd[k] + (x * sumd);
     }
-    double f_val = sumn / sumd;
+    double const f_val = sumn / sumd;
 
     sumn = 0.0;
     sumd = kGd[11];
@@ -142,24 +142,24 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
       sumn = kGn[k] + (x * sumn);
       sumd = kGd[k] + (x * sumd);
     }
-    double g_val = sumn / sumd;
+    double const g_val = sumn / sumd;
 
-    double u_val = kPi2 * (x * x);
-    double sin_u = std::sin(u_val);
-    double cos_u = std::cos(u_val);
+    double const u_val = kPi2 * (x * x);
+    double const sin_u = std::sin(u_val);
+    double const cos_u = std::cos(u_val);
     c = 0.5 + (f_val * sin_u) - (g_val * cos_u);
     s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
 
   } else {
     double absterm = kNaN;
-    double s_val = kPi * x * x;
-    double t_val = -1.0 / (s_val * s_val);
+    double const s_val = kPi * x * x;
+    double const t_val = -1.0 / (s_val * s_val);
 
     double numterm = -1.0;
     double term = 1.0;
     double sum = 1.0;
     double oldterm = 1.0;
-    double eps10 = 0.1 * kEps;
+    double const eps10 = 0.1 * kEps;
 
     do {
       numterm += 4.0;
@@ -172,7 +172,7 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
       oldterm = absterm;
     } while (absterm > eps10 * std::abs(sum));
 
-    double f_val = sum / (kPi * x);
+    double const f_val = sum / (kPi * x);
 
     numterm = -1.0;
     term = 1.0;
@@ -193,9 +193,9 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
     double g_val = kPi * x;
     g_val = sum / (g_val * g_val * x);
 
-    double u_val = kPi2 * (x * x);
-    double sin_u = std::sin(u_val);
-    double cos_u = std::cos(u_val);
+    double const u_val = kPi2 * (x * x);
+    double const sin_u = std::sin(u_val);
+    double const cos_u = std::cos(u_val);
     c = 0.5 + (f_val * sin_u) - (g_val * cos_u);
     s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
   }
@@ -214,28 +214,28 @@ auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> Cloth
     double y0 = 0.0;
     double x2 = 0.0;
     double y2 = 0.0;
-    double abs_b = std::abs(param_b);
+    double const abs_b = std::abs(param_b);
     if (abs_b < 0.1) {
-      double b2 = param_b * param_b;
-      double b4 = b2 * b2;
-      double b6 = b4 * b2;
+      double const b2 = param_b * param_b;
+      double const b4 = b2 * b2;
+      double const b6 = b4 * b2;
       x0 = 1.0 - (b2 / 6.0) + (b4 / 120.0) - (b6 / 5040.0);
       y0 = (param_b / 2.0) - ((param_b * b2) / 24.0) + ((param_b * b4) / 720.0) - ((param_b * b6) / 40320.0);
       x2 = (1.0 / 3.0) - (b2 / 10.0) + (b4 / 168.0) - (b6 / 6480.0);
       y2 = (param_b / 4.0) - ((param_b * b2) / 36.0) + ((param_b * b4) / 960.0) - ((param_b * b6) / 50400.0);
     } else {
-      double sin_b = std::sin(param_b);
-      double cos_b = std::cos(param_b);
-      double inv_b = 1.0 / param_b;
-      double inv_b2 = inv_b * inv_b;
-      double inv_b3 = inv_b2 * inv_b;
+      double const sin_b = std::sin(param_b);
+      double const cos_b = std::cos(param_b);
+      double const inv_b = 1.0 / param_b;
+      double const inv_b2 = inv_b * inv_b;
+      double const inv_b3 = inv_b2 * inv_b;
       x0 = sin_b * inv_b;
       y0 = (1.0 - cos_b) * inv_b;
       x2 = (sin_b * inv_b) + (2.0 * (cos_b * inv_b2)) - (2.0 * (sin_b * inv_b3));
       y2 = (-(cos_b * inv_b)) + (2.0 * (sin_b * inv_b2)) - (2.0 * ((1.0 - cos_b) * inv_b3));
     }
-    double x_val = x0 - (0.5 * (param_a * y2));
-    double y_val = y0 + (0.5 * (param_a * x2));
+    double const x_val = x0 - (0.5 * (param_a * y2));
+    double const y_val = y0 + (0.5 * (param_a * x2));
     return {.x = x_val, .y = y_val};
   }
   return EvalXYaLarge(param_a, param_b);
@@ -243,10 +243,10 @@ auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> Cloth
 
 auto IntegrateArcLength(double u, double b, double c, double d) noexcept -> double {
   double sum = 0.0;
-  double half_u = 0.5 * u;
+  double const half_u = 0.5 * u;
   for (int i = 0; i < kNumGaussPoints; ++i) {
-    double sigma = half_u * (kGaussPoints[i] + 1.0);
-    double v_prime = b + (2.0 * c * sigma) + (3.0 * d * sigma * sigma);
+    double const sigma = half_u * (kGaussPoints[i] + 1.0);
+    double const v_prime = b + (2.0 * c * sigma) + (3.0 * d * sigma * sigma);
     sum += kGaussWeights[i] * std::sqrt(1.0 + (v_prime * v_prime));
   }
   return half_u * sum;
@@ -260,14 +260,14 @@ auto SolveUForS(double s_target, double length, double b_u, double b, double c, 
   constexpr double kTol = 1e-12;
   constexpr int kMaxIter = 100;
   for (int iter = 0; iter < kMaxIter; ++iter) {
-    double s_val = IntegrateArcLength(u_val, b, c, d);
-    double v_prime = b + (2.0 * c * u_val) + (3.0 * d * u_val * u_val);
-    double f_val = s_val - s_target;
-    double f_prime = std::sqrt(1.0 + (v_prime * v_prime));
+    double const s_val = IntegrateArcLength(u_val, b, c, d);
+    double const v_prime = b + (2.0 * c * u_val) + (3.0 * d * u_val * u_val);
+    double const f_val = s_val - s_target;
+    double const f_prime = std::sqrt(1.0 + (v_prime * v_prime));
     if (std::abs(f_prime) < 1e-12) {
       break;
     }
-    double diff = f_val / f_prime;
+    double const diff = f_val / f_prime;
     u_val -= diff;
     if (std::abs(f_val) < kTol) {
       break;
@@ -292,15 +292,15 @@ auto ConvertPoly3ToParamPoly3(double length, double a, double b, double c, doubl
     return param;
   }
 
-  double den = std::sqrt(1.0 + (b * b));
-  double b_u = 1.0 / den;
-  double b_v = b / den;
+  double const den = std::sqrt(1.0 + (b * b));
+  double const b_u = 1.0 / den;
+  double const b_v = b / den;
 
-  double u1 = SolveUForS(0.5 * length, length, b_u, b, c, d);
-  double u2 = SolveUForS(length, length, b_u, b, c, d);
+  double const u1 = SolveUForS(0.5 * length, length, b_u, b, c, d);
+  double const u2 = SolveUForS(length, length, b_u, b, c, d);
 
-  double v1 = a + (u1 * (b + u1 * (c + d * u1)));
-  double v2 = a + (u2 * (b + u2 * (c + d * u2)));
+  double const v1 = a + (u1 * (b + u1 * (c + d * u1)));
+  double const v2 = a + (u2 * (b + u2 * (c + d * u2)));
 
   param.a_u = 0.0;
   param.b_u = b_u;
