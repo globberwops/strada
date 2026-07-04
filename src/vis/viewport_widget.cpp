@@ -233,10 +233,9 @@ void ViewportWidget::paintGL() {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // Draw Lane Inspector HUD card if hovered
     if (has_model_ && hovered_pose_) {
       // Draw dark glassmorphic card container in the top-left corner
-      const QRect kRect(20, 20, 260, 110);
+      const QRect kRect(20, 20, 260, 135);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(kRect, 8.0, 8.0);
@@ -274,12 +273,25 @@ void ViewportWidget::paintGL() {
       painter.drawText(kXOffset + 70, y_offset, QString::number(hovered_lane_original_id_));
       y_offset += kLineHeight;
 
-      // Coordinates (s, t)
+      // Obtain road-level coordinates from LanePose
+      cpm::QueryContext temp_ctx;
+      const cpm::RoadPose kRp = cpm_model_.LaneToRoad(*hovered_pose_, temp_ctx);
+
+      // Track Coordinates (s, t)
       painter.setPen(QColor(160, 170, 184));
       painter.drawText(kXOffset, y_offset, "Track (s, t):");
       painter.setPen(QColor(100, 181, 246));  // Light blue for values
-      const QString kCoords = QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
-      painter.drawText(kXOffset + 85, y_offset, kCoords);
+      const QString kTrackCoords = QString("%1 m, %2 m").arg(kRp.s, 0, 'f', 3).arg(kRp.t, 0, 'f', 3);
+      painter.drawText(kXOffset + 85, y_offset, kTrackCoords);
+      y_offset += kLineHeight;
+
+      // Lane Coordinates (s, t)
+      painter.setPen(QColor(160, 170, 184));
+      painter.drawText(kXOffset, y_offset, "Lane (s, t):");
+      painter.setPen(QColor(100, 181, 246));  // Light blue for values
+      const QString kLaneCoords =
+          QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
+      painter.drawText(kXOffset + 85, y_offset, kLaneCoords);
     }
 
     // 5. Draw Compass Gizmo in the top-right corner
