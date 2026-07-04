@@ -10,12 +10,12 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     return indices;
   }
 
-  const size_t n = vertices.size();
+  const std::size_t n = vertices.size();
   std::vector<std::uint32_t> v(n);
 
   // Compute signed area to determine winding order
   double area = 0.0;
-  for (size_t i = 0; i < n; ++i) {
+  for (std::size_t i = 0; i < n; ++i) {
     const auto& p1 = vertices[i];
     const auto& p2 = vertices[(i + 1) % n];
     area += (static_cast<double>(p1.x) * p2.y) - (static_cast<double>(p2.x) * p1.y);
@@ -23,11 +23,11 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
 
   // Winding order: if area is negative, we want CW, if positive CCW.
   if (area < 0.0) {
-    for (size_t i = 0; i < n; ++i) {
+    for (std::size_t i = 0; i < n; ++i) {
       v[i] = static_cast<std::uint32_t>(n - 1 - i);
     }
   } else {
-    for (size_t i = 0; i < n; ++i) {
+    for (std::size_t i = 0; i < n; ++i) {
       v[i] = static_cast<std::uint32_t>(i);
     }
   }
@@ -48,7 +48,7 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     return (ccw_ab >= 0.0F && ccw_bc >= 0.0F && ccw_ca >= 0.0F) || (ccw_ab <= 0.0F && ccw_bc <= 0.0F && ccw_ca <= 0.0F);
   };
 
-  auto is_ear = [&](size_t u, size_t w, size_t cv, const std::vector<std::uint32_t>& v_indices) -> bool {
+  auto is_ear = [&](std::size_t u, std::size_t w, std::size_t cv, const std::vector<std::uint32_t>& v_indices) -> bool {
     const auto& a = vertices[v_indices[u]];
     const auto& b = vertices[v_indices[w]];
     const auto& c = vertices[v_indices[cv]];
@@ -60,7 +60,7 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     }
 
     // Check if any other vertex is inside the triangle
-    for (size_t p = 0; p < v_indices.size(); ++p) {
+    for (std::size_t p = 0; p < v_indices.size(); ++p) {
       if (p == u || p == w || p == cv) {
         continue;
       }
@@ -72,12 +72,12 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     return true;
   };
 
-  size_t count = 2 * n;  // Prevent infinite loop on degenerate polygons
-  size_t nv = n;
+  std::size_t count = 2 * n;  // Prevent infinite loop on degenerate polygons
+  std::size_t nv = n;
   while (nv > 2) {
     if (count == 0) {
       // Degenerate fallback to triangle fan to avoid hanging
-      for (size_t i = 1; i < nv - 1; ++i) {
+      for (std::size_t i = 1; i < nv - 1; ++i) {
         indices.push_back(v[0]);
         indices.push_back(v[i]);
         indices.push_back(v[i + 1]);
@@ -86,10 +86,10 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     }
     count--;
 
-    for (size_t i = 0; i < nv; ++i) {
-      const size_t u = (i == 0) ? (nv - 1) : (i - 1);
-      const size_t w = i;
-      const size_t cv = (i + 1 == nv) ? 0 : (i + 1);
+    for (std::size_t i = 0; i < nv; ++i) {
+      const std::size_t u = (i == 0) ? (nv - 1) : (i - 1);
+      const std::size_t w = i;
+      const std::size_t cv = (i + 1 == nv) ? 0 : (i + 1);
 
       if (is_ear(u, w, cv, v)) {
         indices.push_back(v[u]);

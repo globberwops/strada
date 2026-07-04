@@ -7,7 +7,7 @@ namespace strada::cpm {
 
 TEST(BoundingVolumeHierarchyTest, SingleNodeConstruction) {
   // Arrange
-  std::vector<uint32_t> prim_indices = {0};
+  std::vector<std::uint32_t> prim_indices = {0};
   std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives = {{.road_idx = 0, .segment_idx = 0}};
   std::vector<Aabb> temp_aabbs = {{.min_x = 10.0, .min_y = 20.0, .max_x = 30.0, .max_y = 40.0}};
 
@@ -27,7 +27,7 @@ TEST(BoundingVolumeHierarchyTest, SingleNodeConstruction) {
 
 TEST(BoundingVolumeHierarchyTest, RecursiveSplitting) {
   // Arrange
-  std::vector<uint32_t> prim_indices = {0, 1, 2, 3, 4};
+  std::vector<std::uint32_t> prim_indices = {0, 1, 2, 3, 4};
   std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives = {{.road_idx = 0, .segment_idx = 0},
                                                                          {.road_idx = 1, .segment_idx = 0},
                                                                          {.road_idx = 2, .segment_idx = 0},
@@ -53,7 +53,7 @@ TEST(BoundingVolumeHierarchyTest, RecursiveSplitting) {
 
 TEST(BoundingVolumeHierarchyTest, TraversalAndPruning) {
   // Arrange
-  std::vector<uint32_t> prim_indices = {0, 1, 2, 3, 4};
+  std::vector<std::uint32_t> prim_indices = {0, 1, 2, 3, 4};
   std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives = {{.road_idx = 0, .segment_idx = 0},
                                                                          {.road_idx = 1, .segment_idx = 0},
                                                                          {.road_idx = 2, .segment_idx = 0},
@@ -69,7 +69,7 @@ TEST(BoundingVolumeHierarchyTest, TraversalAndPruning) {
   auto bounding_volume_hierarchy = BoundingVolumeHierarchy::Build(prim_indices, temp_primitives, temp_aabbs);
 
   // Act
-  std::vector<uint32_t> visited_roads;
+  std::vector<std::uint32_t> visited_roads;
   bounding_volume_hierarchy.Query(
       0.5, 0.5,
       [&](const BoundingVolumeHierarchy::PrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {

@@ -18,25 +18,25 @@ namespace strada::cpm {
 /// axis-aligned bounding boxes (AABBs) for fast road/segment lookup.
 class BoundingVolumeHierarchy {
  public:
-  static constexpr uint32_t kLeafBitMask = 0x80000000;
-  static constexpr uint32_t kIndexBitMask = 0x7FFFFFFF;
+  static constexpr std::uint32_t kLeafBitMask = 0x80000000;
+  static constexpr std::uint32_t kIndexBitMask = 0x7FFFFFFF;
   static constexpr std::size_t kMaxStackDepth = 64;
   static constexpr std::size_t kExpectedNodeSize = 40;
 
   /// Represents a flat node in the bounding volume hierarchy.
   struct Node {
-    double min_x{};    ///< Minimum x coordinate of the node's bounding box.
-    double min_y{};    ///< Minimum y coordinate of the node's bounding box.
-    double max_x{};    ///< Maximum x coordinate of the node's bounding box.
-    double max_y{};    ///< Maximum y coordinate of the node's bounding box.
-    uint32_t left{};   ///< For leaf nodes: primitive start index. For internal nodes: left child index.
-    uint32_t right{};  ///< For leaf nodes: primitive count with MSB set. For internal nodes: right child index.
+    double min_x{};         ///< Minimum x coordinate of the node's bounding box.
+    double min_y{};         ///< Minimum y coordinate of the node's bounding box.
+    double max_x{};         ///< Maximum x coordinate of the node's bounding box.
+    double max_y{};         ///< Maximum y coordinate of the node's bounding box.
+    std::uint32_t left{};   ///< For leaf nodes: primitive start index. For internal nodes: left child index.
+    std::uint32_t right{};  ///< For leaf nodes: primitive count with MSB set. For internal nodes: right child index.
   };
 
   /// Represents association mapping of a leaf primitive to the road and segment.
   struct PrimitiveInfo {
-    uint32_t road_idx{};     ///< Index of the road in the compiled physics model.
-    uint32_t segment_idx{};  ///< Index of the road segment in the reference line.
+    std::uint32_t road_idx{};     ///< Index of the road in the compiled physics model.
+    std::uint32_t segment_idx{};  ///< Index of the road segment in the reference line.
   };
 
   /// Default-constructs an empty BoundingVolumeHierarchy.
@@ -57,7 +57,7 @@ class BoundingVolumeHierarchy {
   /// \param temp_primitives A view over the source primitives info.
   /// \param temp_aabbs A view over the corresponding source plan-view AABBs.
   /// \return The fully constructed BoundingVolumeHierarchy.
-  static auto Build(std::vector<uint32_t>& prim_indices, std::span<const PrimitiveInfo> temp_primitives,
+  static auto Build(std::vector<std::uint32_t>& prim_indices, std::span<const PrimitiveInfo> temp_primitives,
                     std::span<const Aabb> temp_aabbs) -> BoundingVolumeHierarchy;
 
   /// Queries the hierarchy for primitives that contain or are close to a given point.
@@ -74,7 +74,7 @@ class BoundingVolumeHierarchy {
       return;
     }
 
-    std::array<uint32_t, kMaxStackDepth> stack{};
+    std::array<std::uint32_t, kMaxStackDepth> stack{};
     int stack_ptr{0};
     stack[stack_ptr++] = 0;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
@@ -94,7 +94,7 @@ class BoundingVolumeHierarchy {
         auto prim_start = node.left;
         auto prim_count = node.right & kIndexBitMask;
 
-        for (uint32_t i = 0; i < prim_count; ++i) {
+        for (std::uint32_t i = 0; i < prim_count; ++i) {
           const auto& prim = primitives_[prim_start + i];
           if (auto new_dist = std::forward<F>(callback)(prim, min_distance)) {
             min_distance = *new_dist;

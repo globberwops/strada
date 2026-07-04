@@ -15,7 +15,7 @@ Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error)
   auto model = cpm::CompiledPhysicsModel::Build(map);
   cpm::QueryContext ctx;
 
-  for (size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {
+  for (std::size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {
     const auto& road = map.roads[road_idx];
     auto road_id = static_cast<cpm::RoadId>(road_idx);
     auto stations = ComputeSamplingStations(road, chord_error);
@@ -29,11 +29,11 @@ Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error)
 
 auto Tessellator::ResolveLaneId(const ast::AbstractSyntaxTree& map, cpm::RoadId road_idx, std::size_t section_idx,
                                 int original_lane_id) -> cpm::LaneId {
-  size_t absolute_lane_idx = 0;
+  std::size_t absolute_lane_idx = 0;
   bool found = false;
-  for (size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
+  for (std::size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
     const auto& r = map.roads[r_i];
-    for (size_t s_i = 0; s_i < r.lanes.sections.size(); ++s_i) {
+    for (std::size_t s_i = 0; s_i < r.lanes.sections.size(); ++s_i) {
       const auto& sec = r.lanes.sections[s_i];
       std::vector<int> sorted_ids;
       sorted_ids.reserve(sec.right.size());
@@ -77,7 +77,7 @@ auto Tessellator::ComputeSamplingStations(const ast::Road& road, double chord_er
     const double geom_length = geom.length;
 
     // Determine step count based on geometry type and chord error
-    size_t num_steps = 10;  // Default fallback
+    std::size_t num_steps = 10;  // Default fallback
 
     if (std::holds_alternative<ast::Line>(geom.shape)) {
       num_steps = 1;
@@ -87,17 +87,17 @@ auto Tessellator::ComputeSamplingStations(const ast::Road& road, double chord_er
         const double radius = 1.0 / curvature;
         double ds = std::sqrt(8.0 * radius * chord_error);
         ds = std::clamp(ds, 0.2, 5.0);  // Clamp step size to reasonable bounds
-        num_steps = static_cast<size_t>(std::ceil(geom_length / ds));
+        num_steps = static_cast<std::size_t>(std::ceil(geom_length / ds));
       }
     } else {
       // Fallback for spirals and polynomials
       const double ds = std::clamp(chord_error * 5.0, 0.5, 2.0);
-      num_steps = static_cast<size_t>(std::ceil(geom_length / ds));
+      num_steps = static_cast<std::size_t>(std::ceil(geom_length / ds));
     }
 
-    num_steps = std::max<size_t>(num_steps, 1);
+    num_steps = std::max<std::size_t>(num_steps, 1);
 
-    for (size_t i = 0; i < num_steps; ++i) {
+    for (std::size_t i = 0; i < num_steps; ++i) {
       const double s = geom_s_start + (static_cast<double>(i) * geom_length / static_cast<double>(num_steps));
       stations.push_back(s);
     }
@@ -134,7 +134,7 @@ void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road
                                          cpm::QueryContext& ctx, const ast::AbstractSyntaxTree& map) {
   const double road_len = road.length;
 
-  for (size_t sec_idx = 0; sec_idx < road.lanes.sections.size(); ++sec_idx) {
+  for (std::size_t sec_idx = 0; sec_idx < road.lanes.sections.size(); ++sec_idx) {
     const auto& section = road.lanes.sections[sec_idx];
     const double sec_s_start = section.s;
     const double sec_s_end = (sec_idx + 1 < road.lanes.sections.size()) ? road.lanes.sections[sec_idx + 1].s : road_len;
@@ -236,11 +236,11 @@ void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road
       }
 
       // Build indices for the surface triangles (CCW winding)
-      for (size_t j = 0; j < sec_stations.size() - 1; ++j) {
-        auto idx_a = static_cast<uint32_t>(2 * j);
-        auto idx_b = static_cast<uint32_t>((2 * j) + 1);
-        auto idx_c = static_cast<uint32_t>(2 * (j + 1));
-        auto idx_d = static_cast<uint32_t>((2 * (j + 1)) + 1);
+      for (std::size_t j = 0; j < sec_stations.size() - 1; ++j) {
+        auto idx_a = static_cast<std::uint32_t>(2 * j);
+        auto idx_b = static_cast<std::uint32_t>((2 * j) + 1);
+        auto idx_c = static_cast<std::uint32_t>(2 * (j + 1));
+        auto idx_d = static_cast<std::uint32_t>((2 * (j + 1)) + 1);
 
         if (lane.id > 0) {
           mesh.indices.push_back(idx_a);
@@ -274,10 +274,10 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
   for (const auto& junction : map.junctions) {
     if (!junction.boundary.has_value()) {
       std::vector<Vertex> fallback_vertices;
-      std::vector<uint32_t> fallback_indices;
+      std::vector<std::uint32_t> fallback_indices;
 
       std::vector<cpm::RoadId> connecting_roads;
-      for (size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
+      for (std::size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
         if (map.roads[r_i].junction == junction.id) {
           connecting_roads.push_back(static_cast<cpm::RoadId>(r_i));
         }
@@ -285,11 +285,11 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
 
       for (const auto& mesh : meshes_) {
         if (std::ranges::find(connecting_roads, mesh.road_id) != connecting_roads.end()) {
-          auto vertex_offset = static_cast<uint32_t>(fallback_vertices.size());
+          auto vertex_offset = static_cast<std::uint32_t>(fallback_vertices.size());
           for (const auto& v : mesh.vertices) {
             fallback_vertices.push_back(v);
           }
-          for (const uint32_t idx : mesh.indices) {
+          for (const std::uint32_t idx : mesh.indices) {
             fallback_indices.push_back(idx + vertex_offset);
           }
         }
@@ -309,9 +309,9 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
 
     for (const auto& segment : junction.boundary->segments) {
       // Find road index
-      size_t road_idx = 0;
+      std::size_t road_idx = 0;
       bool found_road = false;
-      for (size_t i = 0; i < map.roads.size(); ++i) {
+      for (std::size_t i = 0; i < map.roads.size(); ++i) {
         if (map.roads[i].id == segment.road_id) {
           road_idx = i;
           found_road = true;
@@ -339,15 +339,15 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
 
         const double seg_len = std::abs(end_s - start_s);
         const double ds = std::clamp(chord_error * 5.0, 0.5, 2.0);
-        auto num_steps = static_cast<size_t>(std::ceil(seg_len / ds));
-        num_steps = std::max<size_t>(num_steps, 2);
+        auto num_steps = static_cast<std::size_t>(std::ceil(seg_len / ds));
+        num_steps = std::max<std::size_t>(num_steps, 2);
 
-        for (size_t k = 0; k <= num_steps; ++k) {
+        for (std::size_t k = 0; k <= num_steps; ++k) {
           const double s = start_s + (static_cast<double>(k) * (end_s - start_s) / static_cast<double>(num_steps));
 
           // Find active lane section at s
-          size_t s_idx = 0;
-          for (size_t idx = 0; idx < road.lanes.sections.size(); ++idx) {
+          std::size_t s_idx = 0;
+          for (std::size_t idx = 0; idx < road.lanes.sections.size(); ++idx) {
             if (s >= road.lanes.sections[idx].s) {
               s_idx = idx;
             } else {
@@ -376,8 +376,8 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
         double s = (segment.contact_point == ast::ContactPoint::kStart) ? 0.0 : road.length;
 
         // Find active lane section at s
-        size_t s_idx = 0;
-        for (size_t idx = 0; idx < road.lanes.sections.size(); ++idx) {
+        std::size_t s_idx = 0;
+        for (std::size_t idx = 0; idx < road.lanes.sections.size(); ++idx) {
           if (s >= road.lanes.sections[idx].s) {
             s_idx = idx;
           } else {
@@ -421,10 +421,10 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
 
         const double t_diff = std::abs(t_end - t_start);
         const double dt = std::clamp(chord_error * 5.0, 0.5, 2.0);
-        auto num_steps = static_cast<size_t>(std::ceil(t_diff / dt));
-        num_steps = std::max<size_t>(num_steps, 2);
+        auto num_steps = static_cast<std::size_t>(std::ceil(t_diff / dt));
+        num_steps = std::max<std::size_t>(num_steps, 2);
 
-        for (size_t k = 0; k <= num_steps; ++k) {
+        for (std::size_t k = 0; k <= num_steps; ++k) {
           const double t = t_start + (static_cast<double>(k) * (t_end - t_start) / static_cast<double>(num_steps));
           const cpm::RoadPose rp = {
               .s = s, .t = t, .h = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0, .road = road_id};

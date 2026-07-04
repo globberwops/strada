@@ -213,7 +213,7 @@ void ViewportWidget::paintGL() {
 
           triangles_vao_.bind();
           const void* offset =
-              reinterpret_cast<const void*>(static_cast<uintptr_t>(range.index_start) * sizeof(std::uint32_t));
+              reinterpret_cast<const void*>(static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
           glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
           triangles_vao_.release();
 

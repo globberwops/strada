@@ -213,20 +213,20 @@ TEST(TessellatorTest, LaneSurfaceTriangulation) {
     ASSERT_FALSE(mesh.vertices.empty());
     ASSERT_FALSE(mesh.indices.empty());
 
-    size_t num_stations = mesh.vertices.size() / 2;
+    std::size_t num_stations = mesh.vertices.size() / 2;
     EXPECT_EQ(mesh.vertices.size(), num_stations * 2);
     EXPECT_EQ(mesh.indices.size(), 6 * (num_stations - 1));
 
     // Verify indices point within valid vertex range
-    for (uint32_t idx : mesh.indices) {
+    for (std::uint32_t idx : mesh.indices) {
       EXPECT_LT(idx, mesh.vertices.size());
     }
 
     // Verify winding order is strictly Counter-Clockwise (CCW) in the xy-plane
-    for (size_t i = 0; i < mesh.indices.size(); i += 3) {
-      uint32_t idx0 = mesh.indices[i];
-      uint32_t idx1 = mesh.indices[i + 1];
-      uint32_t idx2 = mesh.indices[i + 2];
+    for (std::size_t i = 0; i < mesh.indices.size(); i += 3) {
+      std::uint32_t idx0 = mesh.indices[i];
+      std::uint32_t idx1 = mesh.indices[i + 1];
+      std::uint32_t idx2 = mesh.indices[i + 2];
 
       const auto& v0 = mesh.vertices[idx0];
       const auto& v1 = mesh.vertices[idx1];
@@ -357,7 +357,7 @@ TEST(TessellatorTest, JunctionBoundaryFallbackWithoutBoundaryTag) {
 
   ast::Road road;
   road.id = "1";
-  road.junction = "100"; // belongs to junction 100
+  road.junction = "100";  // belongs to junction 100
   road.length = 10.0;
 
   ast::GeometryRecord geom;

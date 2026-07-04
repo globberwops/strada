@@ -16,46 +16,46 @@ namespace strada::cpm {
 
 /// Represents a flat Structure of Arrays (SoA) for cross-section strips.
 struct StripsSoA {
-  std::vector<int32_t> strip_id;          ///< Unique ID of each strip.
-  std::vector<uint8_t> is_relative;       ///< Flag indicating if width is relative.
-  std::vector<uint32_t> width_first_idx;  ///< Start index in width polynomials.
-  std::vector<uint32_t> width_count;      ///< Count of width polynomials.
-  std::vector<uint32_t> c0_first_idx;     ///< Start index in c0 shape polynomials.
-  std::vector<uint32_t> c0_count;         ///< Count of c0 shape polynomials.
-  std::vector<uint32_t> c1_first_idx;     ///< Start index in c1 shape polynomials.
-  std::vector<uint32_t> c1_count;         ///< Count of c1 shape polynomials.
-  std::vector<uint32_t> c2_first_idx;     ///< Start index in c2 shape polynomials.
-  std::vector<uint32_t> c2_count;         ///< Count of c2 shape polynomials.
-  std::vector<uint32_t> c3_first_idx;     ///< Start index in c3 shape polynomials.
-  std::vector<uint32_t> c3_count;         ///< Count of c3 shape polynomials.
+  std::vector<std::int32_t> strip_id;          ///< Unique ID of each strip.
+  std::vector<std::uint8_t> is_relative;       ///< Flag indicating if width is relative.
+  std::vector<std::uint32_t> width_first_idx;  ///< Start index in width polynomials.
+  std::vector<std::uint32_t> width_count;      ///< Count of width polynomials.
+  std::vector<std::uint32_t> c0_first_idx;     ///< Start index in c0 shape polynomials.
+  std::vector<std::uint32_t> c0_count;         ///< Count of c0 shape polynomials.
+  std::vector<std::uint32_t> c1_first_idx;     ///< Start index in c1 shape polynomials.
+  std::vector<std::uint32_t> c1_count;         ///< Count of c1 shape polynomials.
+  std::vector<std::uint32_t> c2_first_idx;     ///< Start index in c2 shape polynomials.
+  std::vector<std::uint32_t> c2_count;         ///< Count of c2 shape polynomials.
+  std::vector<std::uint32_t> c3_first_idx;     ///< Start index in c3 shape polynomials.
+  std::vector<std::uint32_t> c3_count;         ///< Count of c3 shape polynomials.
 };
 
 /// Represents a flat Structure of Arrays (SoA) for road-level cross-section surfaces.
 struct RoadCrossSectionSurfaceSoA {
-  std::vector<uint32_t> first_strip_idx;     ///< Start index of the road's strips.
-  std::vector<uint32_t> strip_count;         ///< Count of the road's strips.
-  std::vector<uint32_t> t_offset_first_idx;  ///< Start index of the lateral offset polynomials.
-  std::vector<uint32_t> t_offset_count;      ///< Count of the lateral offset polynomials.
+  std::vector<std::uint32_t> first_strip_idx;     ///< Start index of the road's strips.
+  std::vector<std::uint32_t> strip_count;         ///< Count of the road's strips.
+  std::vector<std::uint32_t> t_offset_first_idx;  ///< Start index of the lateral offset polynomials.
+  std::vector<std::uint32_t> t_offset_count;      ///< Count of the lateral offset polynomials.
 };
 
 /// Represents a flat Structure of Arrays (SoA) for lane sections (CSR format).
 struct LaneSectionsSoA {
-  std::vector<double> section_s;                 ///< Start s-coordinate of each section.
-  std::vector<uint32_t> section_first_lane_idx;  ///< Start index of section's lanes.
-  std::vector<uint32_t> section_lane_count;      ///< Count of section's lanes.
-  std::vector<uint32_t> road_section_first_idx;  ///< Start index of road sections.
-  std::vector<uint32_t> road_section_count;      ///< Count of road sections.
+  std::vector<double> section_s;                      ///< Start s-coordinate of each section.
+  std::vector<std::uint32_t> section_first_lane_idx;  ///< Start index of section's lanes.
+  std::vector<std::uint32_t> section_lane_count;      ///< Count of section's lanes.
+  std::vector<std::uint32_t> road_section_first_idx;  ///< Start index of road sections.
+  std::vector<std::uint32_t> road_section_count;      ///< Count of road sections.
 };
 
 /// Represents a flat Structure of Arrays (SoA) for lanes.
 struct LanesSoA {
-  std::vector<int> lane_original_id;            ///< Original integer ID from parser.
-  std::vector<RoadId> lane_road_id;             ///< Reference to the parent road.
-  std::vector<uint32_t> lane_section_idx;       ///< Reference to the lane section index.
-  std::vector<uint32_t> lane_first_width_idx;   ///< Start index in lane width polynomials.
-  std::vector<uint32_t> lane_width_count;       ///< Count of lane width polynomials.
-  std::vector<uint32_t> lane_first_height_idx;  ///< Start index in lane height polynomials.
-  std::vector<uint32_t> lane_height_count;      ///< Count of lane height polynomials.
+  std::vector<int> lane_original_id;                 ///< Original integer ID from parser.
+  std::vector<RoadId> lane_road_id;                  ///< Reference to the parent road.
+  std::vector<std::uint32_t> lane_section_idx;       ///< Reference to the lane section index.
+  std::vector<std::uint32_t> lane_first_width_idx;   ///< Start index in lane width polynomials.
+  std::vector<std::uint32_t> lane_width_count;       ///< Count of lane width polynomials.
+  std::vector<std::uint32_t> lane_first_height_idx;  ///< Start index in lane height polynomials.
+  std::vector<std::uint32_t> lane_height_count;      ///< Count of lane height polynomials.
 };
 
 /// Represents a flat Structure of Arrays (SoA) for lane width profiles.
@@ -76,13 +76,13 @@ struct LaneHeightsSoA {
 
 /// Represents a flat Structure of Arrays (SoA) for lane offsets (road level).
 struct LaneOffsetsSoA {
-  std::vector<double> lane_offset_s_start;           ///< Start s-coordinate of offset profile.
-  std::vector<double> lane_offset_a;                 ///< Constant coefficient (a).
-  std::vector<double> lane_offset_b;                 ///< Linear coefficient (b).
-  std::vector<double> lane_offset_c;                 ///< Quadratic coefficient (c).
-  std::vector<double> lane_offset_d;                 ///< Cubic coefficient (d).
-  std::vector<uint32_t> road_lane_offset_first_idx;  ///< Start index of road offsets.
-  std::vector<uint32_t> road_lane_offset_count;      ///< Count of road offsets.
+  std::vector<double> lane_offset_s_start;                ///< Start s-coordinate of offset profile.
+  std::vector<double> lane_offset_a;                      ///< Constant coefficient (a).
+  std::vector<double> lane_offset_b;                      ///< Linear coefficient (b).
+  std::vector<double> lane_offset_c;                      ///< Quadratic coefficient (c).
+  std::vector<double> lane_offset_d;                      ///< Cubic coefficient (d).
+  std::vector<std::uint32_t> road_lane_offset_first_idx;  ///< Start index of road offsets.
+  std::vector<std::uint32_t> road_lane_offset_count;      ///< Count of road offsets.
 };
 
 /// Compiled representation of the lane network topology and profile curves.

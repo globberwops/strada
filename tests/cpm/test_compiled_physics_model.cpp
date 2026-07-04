@@ -647,14 +647,14 @@ TEST(CompiledPhysicsModelTest, BoundingVolumeHierarchyConstructionAndLayout) {
   for (const auto& node : nodes) {
     bool is_leaf = (node.right & strada::cpm::BoundingVolumeHierarchy::kLeafBitMask) != 0;
     if (is_leaf) {
-      uint32_t start = node.left;
-      uint32_t count = node.right & strada::cpm::BoundingVolumeHierarchy::kIndexBitMask;
+      std::uint32_t start = node.left;
+      std::uint32_t count = node.right & strada::cpm::BoundingVolumeHierarchy::kIndexBitMask;
       EXPECT_LT(start, primitives.size());
       EXPECT_LE(start + count, primitives.size());
       EXPECT_GT(count, 0U);
     } else {
-      uint32_t left_child = node.left;
-      uint32_t right_child = node.right & strada::cpm::BoundingVolumeHierarchy::kIndexBitMask;
+      std::uint32_t left_child = node.left;
+      std::uint32_t right_child = node.right & strada::cpm::BoundingVolumeHierarchy::kIndexBitMask;
       EXPECT_LT(left_child, nodes.size());
       EXPECT_LT(right_child, nodes.size());
       EXPECT_NE(left_child, 0U);

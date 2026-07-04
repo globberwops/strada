@@ -23,11 +23,11 @@ struct Vertex {
 
 /// Represents a static index and vertex buffer mesh of a lane or road surface.
 struct Mesh {
-  std::vector<Vertex> vertices;   ///< Flat list of 3D vertices.
-  std::vector<uint32_t> indices;  ///< Indices defining triangle layout.
-  cpm::RoadId road_id{};          ///< Compiled ID of the parent road.
-  cpm::LaneId lane_id{};          ///< Compiled ID of the lane.
-  std::string lane_type;          ///< The structural type of the lane (e.g., "driving", "sidewalk").
+  std::vector<Vertex> vertices;        ///< Flat list of 3D vertices.
+  std::vector<std::uint32_t> indices;  ///< Indices defining triangle layout.
+  cpm::RoadId road_id{};               ///< Compiled ID of the parent road.
+  cpm::LaneId lane_id{};               ///< Compiled ID of the lane.
+  std::string lane_type;               ///< The structural type of the lane (e.g., "driving", "sidewalk").
 };
 
 /// Represents a static set of points forming a line boundary or marking.

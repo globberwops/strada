@@ -83,7 +83,7 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
   }
 
   // Verify indices are identical since we only have one mesh
-  for (size_t i = 0; i < mesh.indices.size(); ++i) {
+  for (std::size_t i = 0; i < mesh.indices.size(); ++i) {
     EXPECT_EQ(batched.triangle_indices[i], mesh.indices[i]);
   }
 }
@@ -134,7 +134,7 @@ TEST(VisTest, BatchMapGeometryLines) {
 
   // Assert:
   // For each polyline of M vertices, we generate 2*(M-1) vertices for GL_LINES
-  size_t expected_line_verts = 0;
+  std::size_t expected_line_verts = 0;
   for (const auto& poly : tess.Polylines()) {
     if (poly.is_reference_line) {
       expected_line_verts += 2 * (poly.vertices.size() - 1);
@@ -144,12 +144,12 @@ TEST(VisTest, BatchMapGeometryLines) {
 
   // Check line segment pairings and colors
   // Only the reference line should be present (yellow)
-  size_t idx = 0;
+  std::size_t idx = 0;
   for (const auto& poly : tess.Polylines()) {
     if (!poly.is_reference_line) {
       continue;
     }
-    for (size_t i = 0; i < poly.vertices.size() - 1; ++i) {
+    for (std::size_t i = 0; i < poly.vertices.size() - 1; ++i) {
       const auto& v_start = batched.line_vertices[idx++];
       const auto& v_end = batched.line_vertices[idx++];
 

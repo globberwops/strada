@@ -21,22 +21,22 @@ struct PolynomialsSoA {
 
 /// Represents a flat Structure of Arrays (SoA) for shape profile parameters.
 struct ShapesSoA {
-  AlignedVector<double> s;                     ///< Start s-coordinate of the shape.
-  AlignedVector<double> t;                     ///< Start t-coordinate of the shape.
-  AlignedVector<double> a;                     ///< Constant coefficient (a).
-  AlignedVector<double> b;                     ///< Linear coefficient (b).
-  AlignedVector<double> c;                     ///< Quadratic coefficient (c).
-  AlignedVector<double> d;                     ///< Cubic coefficient (d).
-  std::vector<uint32_t> road_shape_first_idx;  ///< Start index of road shapes.
-  std::vector<uint32_t> road_shape_count;      ///< Count of road shapes.
+  AlignedVector<double> s;                          ///< Start s-coordinate of the shape.
+  AlignedVector<double> t;                          ///< Start t-coordinate of the shape.
+  AlignedVector<double> a;                          ///< Constant coefficient (a).
+  AlignedVector<double> b;                          ///< Linear coefficient (b).
+  AlignedVector<double> c;                          ///< Quadratic coefficient (c).
+  AlignedVector<double> d;                          ///< Cubic coefficient (d).
+  std::vector<std::uint32_t> road_shape_first_idx;  ///< Start index of road shapes.
+  std::vector<std::uint32_t> road_shape_count;      ///< Count of road shapes.
 };
 
 /// Represents a flat Structure of Arrays (SoA) for road elevation and superelevation.
 struct ElevationSoA {
-  std::vector<uint32_t> road_elevation_first_idx;       ///< Start index in elevation polynomials.
-  std::vector<uint32_t> road_elevation_count;           ///< Count of elevation polynomials.
-  std::vector<uint32_t> road_superelevation_first_idx;  ///< Start index in superelevation polynomials.
-  std::vector<uint32_t> road_superelevation_count;      ///< Count of superelevation polynomials.
+  std::vector<std::uint32_t> road_elevation_first_idx;       ///< Start index in elevation polynomials.
+  std::vector<std::uint32_t> road_elevation_count;           ///< Count of elevation polynomials.
+  std::vector<std::uint32_t> road_superelevation_first_idx;  ///< Start index in superelevation polynomials.
+  std::vector<std::uint32_t> road_superelevation_count;      ///< Count of superelevation polynomials.
 };
 
 /// Represents evaluated vertical properties of a road at a given (s, t) point.
@@ -97,7 +97,7 @@ class ElevationProfile {
   ElevationSoA elevation_;
   ShapesSoA shapes_;
   PolynomialsSoA polynomials_;
-  std::vector<uint8_t> road_has_css_;
+  std::vector<std::uint8_t> road_has_css_;
 };
 
 }  // namespace strada::cpm

@@ -55,7 +55,7 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
       continue;
     }
 
-    for (size_t i = 0; i < poly.vertices.size() - 1; ++i) {
+    for (std::size_t i = 0; i < poly.vertices.size() - 1; ++i) {
       const auto& v0 = poly.vertices[i];
       const auto& v1 = poly.vertices[i + 1];
 

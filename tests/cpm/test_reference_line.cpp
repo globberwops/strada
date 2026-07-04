@@ -178,7 +178,7 @@ TEST(ReferenceLineTest, FindSegmentIndexAndCoherence) {
   QueryContext ctx;
 
   // 1. Initial query: empty cache, should look up and find segment 0, and update cache
-  uint32_t idx1 = ref_line.FindSegmentIndex(RoadId{0}, 10.0, ctx);
+  std::uint32_t idx1 = ref_line.FindSegmentIndex(RoadId{0}, 10.0, ctx);
   EXPECT_EQ(idx1, 0);
   EXPECT_TRUE(ctx.last_road.has_value());
   EXPECT_EQ(*ctx.last_road, RoadId{0});
@@ -186,11 +186,11 @@ TEST(ReferenceLineTest, FindSegmentIndexAndCoherence) {
   EXPECT_EQ(*ctx.last_segment_idx, 0);
 
   // 2. Query at s = 15.0: should hit the temporal cache fast path
-  uint32_t idx2 = ref_line.FindSegmentIndex(RoadId{0}, 15.0, ctx);
+  std::uint32_t idx2 = ref_line.FindSegmentIndex(RoadId{0}, 15.0, ctx);
   EXPECT_EQ(idx2, 0);
 
   // 3. Query at s = 25.0: cache miss (out of segment bounds), should update to segment 1
-  uint32_t idx3 = ref_line.FindSegmentIndex(RoadId{0}, 25.0, ctx);
+  std::uint32_t idx3 = ref_line.FindSegmentIndex(RoadId{0}, 25.0, ctx);
   EXPECT_EQ(idx3, 1);
   EXPECT_EQ(*ctx.last_segment_idx, 1);
 }

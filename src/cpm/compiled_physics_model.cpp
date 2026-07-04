@@ -49,7 +49,7 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
 
   for (const auto& road : map.roads) {
     double max_road_t = 0.0;
-    for (size_t sec_idx = 0; sec_idx < road.lanes.sections.size(); ++sec_idx) {
+    for (std::size_t sec_idx = 0; sec_idx < road.lanes.sections.size(); ++sec_idx) {
       const auto& section = road.lanes.sections[sec_idx];
       double sec_length = 0.0;
       if (sec_idx + 1 < road.lanes.sections.size()) {
@@ -99,12 +99,12 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives;
   std::vector<Aabb> temp_aabbs;
 
-  auto num_roads = static_cast<uint32_t>(model.road_lengths_.size());
-  for (uint32_t road_idx = 0; road_idx < num_roads; ++road_idx) {
+  auto num_roads = static_cast<std::uint32_t>(model.road_lengths_.size());
+  for (std::uint32_t road_idx = 0; road_idx < num_roads; ++road_idx) {
     auto [first_seg, seg_count] = model.ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
     const double inflation = road_max_t[road_idx];
-    for (uint32_t i = 0; i < seg_count; ++i) {
-      const uint32_t seg_idx = first_seg + i;
+    for (std::uint32_t i = 0; i < seg_count; ++i) {
+      const std::uint32_t seg_idx = first_seg + i;
       temp_primitives.push_back(BoundingVolumeHierarchy::PrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
       auto aabb = model.ref_line_.ComputeSegmentAabb(seg_idx, inflation);
       temp_aabbs.push_back(aabb);
@@ -112,8 +112,8 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   }
 
   if (!temp_primitives.empty()) {
-    std::vector<uint32_t> prim_indices(temp_primitives.size());
-    for (uint32_t i = 0; i < prim_indices.size(); ++i) {
+    std::vector<std::uint32_t> prim_indices(temp_primitives.size());
+    for (std::uint32_t i = 0; i < prim_indices.size(); ++i) {
       prim_indices[i] = i;
     }
     model.bounding_volume_hierarchy_ = BoundingVolumeHierarchy::Build(prim_indices, temp_primitives, temp_aabbs);
@@ -124,14 +124,14 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
 
 [[gnu::hot]] auto CompiledPhysicsModel::RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept
     -> InertialPose {
-  auto road_idx = static_cast<uint32_t>(pose.road);
+  auto road_idx = static_cast<std::uint32_t>(pose.road);
   auto [first_seg, seg_count] = ref_line_.GetRoadSegments(pose.road);
   if (seg_count == 0) {
     return InertialPose{};
   }
 
   // 1. Find segment index
-  const uint32_t seg_idx = ref_line_.FindSegmentIndex(pose.road, pose.s, ctx);
+  const std::uint32_t seg_idx = ref_line_.FindSegmentIndex(pose.road, pose.s, ctx);
 
   // 2. Evaluate reference line
   auto pt = ref_line_.Evaluate(seg_idx, pose.s);
@@ -174,7 +174,7 @@ auto CompiledPhysicsModel::LaneToInertial(LanePose pose, QueryContext& ctx) cons
 
 auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) const noexcept
     -> std::optional<RoadPose> {
-  auto snap_to_road = [&](uint32_t road_idx) noexcept -> std::optional<RoadPose> {
+  auto snap_to_road = [&](std::uint32_t road_idx) noexcept -> std::optional<RoadPose> {
     auto [first_seg, seg_count] = ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
     if (seg_count == 0) {
       return std::nullopt;
@@ -185,8 +185,8 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     double best_t = 0.0;
     double best_rhdg = 0.0;
 
-    for (uint32_t i = 0; i < seg_count; ++i) {
-      const uint32_t seg_idx = first_seg + i;
+    for (std::uint32_t i = 0; i < seg_count; ++i) {
+      const std::uint32_t seg_idx = first_seg + i;
       const double road_s = ref_line_.Project(seg_idx, pose.x, pose.y);
       auto pt = ref_line_.Evaluate(seg_idx, road_s);
 
@@ -204,7 +204,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     // Evaluate base vertical profile at best_s (t=0)
     auto vertical_base = elevation_profile_.Evaluate(static_cast<RoadId>(road_idx), best_s, 0.0);
 
-    const uint32_t best_seg_idx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
+    const std::uint32_t best_seg_idx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
     auto pt = ref_line_.Evaluate(best_seg_idx, best_s);
 
     const double dx = pose.x - pt.x;
@@ -260,7 +260,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
   // 1. Check temporal coherence fast path
   if (ctx.last_road.has_value()) {
-    auto road_idx = static_cast<uint32_t>(*ctx.last_road);
+    auto road_idx = static_cast<std::uint32_t>(*ctx.last_road);
     auto fast_pose = snap_to_road(road_idx);
     if (fast_pose.has_value()) {
       ref_line_.FindSegmentIndex(*ctx.last_road, fast_pose->s, ctx);
@@ -320,7 +320,7 @@ auto CompiledPhysicsModel::RoadIdFromString(std::string_view original_id) const 
 }
 
 auto CompiledPhysicsModel::OriginalRoadId(RoadId road_id) const noexcept -> std::string_view {
-  auto idx = static_cast<uint32_t>(road_id);
+  auto idx = static_cast<std::uint32_t>(road_id);
   if (idx < road_string_ids_.size()) {
     return road_string_ids_[idx];
   }
@@ -328,7 +328,7 @@ auto CompiledPhysicsModel::OriginalRoadId(RoadId road_id) const noexcept -> std:
 }
 
 auto CompiledPhysicsModel::RoadLength(RoadId road_id) const noexcept -> double {
-  auto idx = static_cast<uint32_t>(road_id);
+  auto idx = static_cast<std::uint32_t>(road_id);
   if (idx < road_lengths_.size()) {
     return road_lengths_[idx];
   }

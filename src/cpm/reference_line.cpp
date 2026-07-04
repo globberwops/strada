@@ -19,8 +19,8 @@ auto ReferenceLine::Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine {
   ReferenceLine rl;
 
   for (const auto& road : map.roads) {
-    rl.road_ref_line_first_idx_.push_back(static_cast<uint32_t>(rl.s_offset_.size()));
-    rl.road_ref_line_count_.push_back(static_cast<uint32_t>(road.plan_view.size()));
+    rl.road_ref_line_first_idx_.push_back(static_cast<std::uint32_t>(rl.s_offset_.size()));
+    rl.road_ref_line_count_.push_back(static_cast<std::uint32_t>(road.plan_view.size()));
 
     for (const auto& geom : road.plan_view) {
       rl.s_offset_.push_back(geom.s);
@@ -45,7 +45,7 @@ auto ReferenceLine::Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine {
         rl.pp3_p_range_.push_back(0);
       } else if (std::holds_alternative<ast::Arc>(geom.shape)) {
         rl.type_.push_back(GeometryType::kArc);
-        rl.type_index_.push_back(static_cast<uint32_t>(rl.arc_curvature_.size()));
+        rl.type_index_.push_back(static_cast<std::uint32_t>(rl.arc_curvature_.size()));
         rl.arc_curvature_.push_back(std::get<ast::Arc>(geom.shape).curvature);
         rl.spiral_curv_start_.push_back(0.0);
         rl.spiral_curv_end_.push_back(0.0);
@@ -111,7 +111,7 @@ auto ReferenceLine::Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine {
   return rl;
 }
 
-auto ReferenceLine::Evaluate(uint32_t seg_idx, double road_s) const noexcept -> ReferenceLinePoint {
+auto ReferenceLine::Evaluate(std::uint32_t seg_idx, double road_s) const noexcept -> ReferenceLinePoint {
   const double ds_val = road_s - s_offset_[seg_idx];
   double ref_x = x_[seg_idx];
   double ref_y = y_[seg_idx];
@@ -119,7 +119,7 @@ auto ReferenceLine::Evaluate(uint32_t seg_idx, double road_s) const noexcept -> 
   double tangent_hdg = ref_hdg;
 
   const GeometryType type = type_[seg_idx];
-  const uint32_t type_idx = type_index_[seg_idx];
+  const std::uint32_t type_idx = type_index_[seg_idx];
 
   if (type == GeometryType::kLine) {
     ref_x += ds_val * std::cos(ref_hdg);
@@ -157,7 +157,7 @@ auto ReferenceLine::Evaluate(uint32_t seg_idx, double road_s) const noexcept -> 
     const double b_v = pp3_b_v_[seg_idx];
     const double c_v = pp3_c_v_[seg_idx];
     const double d_v = pp3_d_v_[seg_idx];
-    const uint8_t p_range = pp3_p_range_[seg_idx];
+    const std::uint8_t p_range = pp3_p_range_[seg_idx];
 
     const double length = length_[seg_idx];
     double p_val = ds_val;
@@ -182,11 +182,11 @@ auto ReferenceLine::Evaluate(uint32_t seg_idx, double road_s) const noexcept -> 
   return ReferenceLinePoint{.x = ref_x, .y = ref_y, .heading = tangent_hdg};
 }
 
-auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexcept -> double {
+auto ReferenceLine::Project(std::uint32_t seg_idx, double px, double py) const noexcept -> double {
   const double s_start = s_offset_[seg_idx];
   const double seg_length = length_[seg_idx];
   const GeometryType type = type_[seg_idx];
-  const uint32_t type_idx = type_index_[seg_idx];
+  const std::uint32_t type_idx = type_index_[seg_idx];
 
   if (type == GeometryType::kLine) {
     const double dx = px - x_[seg_idx];
@@ -270,16 +270,16 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
   return s_start + (0.5 * (left_s + right_s));
 }
 
-auto ReferenceLine::FindSegmentIndex(RoadId road, double s_coord, QueryContext& ctx) const noexcept -> uint32_t {
-  auto road_idx = static_cast<uint32_t>(road);
-  const uint32_t first_seg = road_ref_line_first_idx_[road_idx];
-  const uint32_t seg_count = road_ref_line_count_[road_idx];
+auto ReferenceLine::FindSegmentIndex(RoadId road, double s_coord, QueryContext& ctx) const noexcept -> std::uint32_t {
+  auto road_idx = static_cast<std::uint32_t>(road);
+  const std::uint32_t first_seg = road_ref_line_first_idx_[road_idx];
+  const std::uint32_t seg_count = road_ref_line_count_[road_idx];
 
-  uint32_t seg_idx = first_seg;
+  std::uint32_t seg_idx = first_seg;
   bool hit = false;
 
   if (ctx.last_road == road && ctx.last_segment_idx.has_value()) {
-    const uint32_t last_idx = *ctx.last_segment_idx;
+    const std::uint32_t last_idx = *ctx.last_segment_idx;
     if (last_idx >= first_seg && last_idx < first_seg + seg_count) {
       const double s_start = s_offset_[last_idx];
       const double s_end = s_start + length_[last_idx];
@@ -291,8 +291,8 @@ auto ReferenceLine::FindSegmentIndex(RoadId road, double s_coord, QueryContext& 
   }
 
   if (!hit) [[unlikely]] {
-    for (uint32_t i = 0; i < seg_count; ++i) {
-      const uint32_t idx = first_seg + i;
+    for (std::uint32_t i = 0; i < seg_count; ++i) {
+      const std::uint32_t idx = first_seg + i;
       if (s_coord >= s_offset_[idx]) {
         seg_idx = idx;
       } else {
@@ -305,19 +305,19 @@ auto ReferenceLine::FindSegmentIndex(RoadId road, double s_coord, QueryContext& 
   return seg_idx;
 }
 
-auto ReferenceLine::GetRoadSegments(RoadId road) const noexcept -> std::pair<uint32_t, uint32_t> {
-  auto road_idx = static_cast<uint32_t>(road);
+auto ReferenceLine::GetRoadSegments(RoadId road) const noexcept -> std::pair<std::uint32_t, std::uint32_t> {
+  auto road_idx = static_cast<std::uint32_t>(road);
   if (road_idx >= road_ref_line_first_idx_.size()) {
     return {0, 0};
   }
   return {road_ref_line_first_idx_[road_idx], road_ref_line_count_[road_idx]};
 }
 
-auto ReferenceLine::GetSegmentSStart(uint32_t seg_idx) const noexcept -> double { return s_offset_[seg_idx]; }
+auto ReferenceLine::GetSegmentSStart(std::uint32_t seg_idx) const noexcept -> double { return s_offset_[seg_idx]; }
 
-auto ReferenceLine::GetSegmentLength(uint32_t seg_idx) const noexcept -> double { return length_[seg_idx]; }
+auto ReferenceLine::GetSegmentLength(std::uint32_t seg_idx) const noexcept -> double { return length_[seg_idx]; }
 
-auto ReferenceLine::ComputeSegmentAabb(uint32_t seg_idx, double inflation) const noexcept -> Aabb {
+auto ReferenceLine::ComputeSegmentAabb(std::uint32_t seg_idx, double inflation) const noexcept -> Aabb {
   double min_x = std::numeric_limits<double>::max();
   double min_y = std::numeric_limits<double>::max();
   double max_x = -std::numeric_limits<double>::max();

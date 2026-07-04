@@ -43,14 +43,14 @@ struct BoundingVolumeHierarchyAabb {
   }
 };
 
-auto MakeLeafNode(std::vector<BoundingVolumeHierarchy::Node>& nodes, uint32_t node_idx,
+auto MakeLeafNode(std::vector<BoundingVolumeHierarchy::Node>& nodes, std::uint32_t node_idx,
                   const BoundingVolumeHierarchyAabb& bounds,
                   std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& final_primitives,
-                  const std::vector<uint32_t>& prim_indices,
-                  std::span<const BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives, uint32_t start_idx,
-                  uint32_t count) noexcept -> uint32_t {
-  auto prim_start = static_cast<uint32_t>(final_primitives.size());
-  for (uint32_t idx = 0; idx < count; ++idx) {
+                  const std::vector<std::uint32_t>& prim_indices,
+                  std::span<const BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives, std::uint32_t start_idx,
+                  std::uint32_t count) noexcept -> std::uint32_t {
+  auto prim_start = static_cast<std::uint32_t>(final_primitives.size());
+  for (std::uint32_t idx = 0; idx < count; ++idx) {
     final_primitives.push_back(temp_primitives[prim_indices[start_idx + idx]]);
   }
 
@@ -66,25 +66,25 @@ auto MakeLeafNode(std::vector<BoundingVolumeHierarchy::Node>& nodes, uint32_t no
 
 auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::Node>& nodes,
                                            std::vector<BoundingVolumeHierarchy::PrimitiveInfo>& final_primitives,
-                                           std::vector<uint32_t>& prim_indices,
+                                           std::vector<std::uint32_t>& prim_indices,
                                            std::span<const BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives,
-                                           std::span<const Aabb> temp_aabbs, uint32_t start_idx,
-                                           uint32_t end_idx) noexcept -> uint32_t {
-  auto node_idx = static_cast<uint32_t>(nodes.size());
+                                           std::span<const Aabb> temp_aabbs, std::uint32_t start_idx,
+                                           std::uint32_t end_idx) noexcept -> std::uint32_t {
+  auto node_idx = static_cast<std::uint32_t>(nodes.size());
   nodes.push_back(BoundingVolumeHierarchy::Node{});
 
   BoundingVolumeHierarchyAabb bounds;
   BoundingVolumeHierarchyAabb centroid_bounds;
-  for (uint32_t idx = start_idx; idx < end_idx; ++idx) {
-    const uint32_t prim_idx = prim_indices[idx];
+  for (std::uint32_t idx = start_idx; idx < end_idx; ++idx) {
+    const std::uint32_t prim_idx = prim_indices[idx];
     bounds.Grow(temp_aabbs[prim_idx]);
     const double cx = 0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x);
     const double cy = 0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y);
     centroid_bounds.Grow(cx, cy);
   }
 
-  const uint32_t count = end_idx - start_idx;
-  constexpr uint32_t kLeafThreshold = 4;
+  const std::uint32_t count = end_idx - start_idx;
+  constexpr std::uint32_t kLeafThreshold = 4;
 
   if (count <= kLeafThreshold) {
     return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
@@ -103,14 +103,14 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
 
   constexpr int kNumBins = 16;
   struct Bin {
-    uint32_t count{0};
+    std::uint32_t count{0};
     BoundingVolumeHierarchyAabb bounds;
   };
   std::array<Bin, kNumBins> bins{};
 
   double scale = kNumBins / (max_coord - min_coord);
-  for (uint32_t idx = start_idx; idx < end_idx; ++idx) {
-    const uint32_t prim_idx = prim_indices[idx];
+  for (std::uint32_t idx = start_idx; idx < end_idx; ++idx) {
+    const std::uint32_t prim_idx = prim_indices[idx];
     const double centroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
                                         : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
     int bin_idx = static_cast<int>((centroid - min_coord) * scale);
@@ -123,9 +123,9 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   int best_split_bin = -1;
 
   std::array<BoundingVolumeHierarchyAabb, kNumBins - 1> left_bounds{};
-  std::array<uint32_t, kNumBins - 1> left_counts{};
+  std::array<std::uint32_t, kNumBins - 1> left_counts{};
   BoundingVolumeHierarchyAabb left_accum;
-  uint32_t left_cnt = 0;
+  std::uint32_t left_cnt = 0;
   for (int idx = 0; idx < kNumBins - 1; ++idx) {
     left_accum.Grow(bins[idx].bounds);
     left_cnt += bins[idx].count;
@@ -134,9 +134,9 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   }
 
   std::array<BoundingVolumeHierarchyAabb, kNumBins - 1> right_bounds{};
-  std::array<uint32_t, kNumBins - 1> right_counts{};
+  std::array<std::uint32_t, kNumBins - 1> right_counts{};
   BoundingVolumeHierarchyAabb right_accum;
-  uint32_t right_cnt = 0;
+  std::uint32_t right_cnt = 0;
   for (int idx = kNumBins - 1; idx > 0; --idx) {
     right_accum.Grow(bins[idx].bounds);
     right_cnt += bins[idx].count;
@@ -169,7 +169,7 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   }
 
   auto split_it = std::stable_partition(
-      prim_indices.begin() + start_idx, prim_indices.begin() + end_idx, [&](uint32_t prim_idx) -> bool {
+      prim_indices.begin() + start_idx, prim_indices.begin() + end_idx, [&](std::uint32_t prim_idx) -> bool {
         const double centroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
                                             : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
         int bin_idx = static_cast<int>((centroid - min_coord) * scale);
@@ -177,16 +177,16 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
         return bin_idx <= best_split_bin;
       });
 
-  auto mid_idx = static_cast<uint32_t>(std::distance(prim_indices.begin(), split_it));
+  auto mid_idx = static_cast<std::uint32_t>(std::distance(prim_indices.begin(), split_it));
 
   if (mid_idx == start_idx || mid_idx == end_idx) {
     mid_idx = start_idx + (count / 2);
   }
 
-  const uint32_t left_child = BuildBoundingVolumeHierarchyRecursive(nodes, final_primitives, prim_indices,
-                                                                    temp_primitives, temp_aabbs, start_idx, mid_idx);
-  const uint32_t right_child = BuildBoundingVolumeHierarchyRecursive(nodes, final_primitives, prim_indices,
-                                                                     temp_primitives, temp_aabbs, mid_idx, end_idx);
+  const std::uint32_t left_child = BuildBoundingVolumeHierarchyRecursive(
+      nodes, final_primitives, prim_indices, temp_primitives, temp_aabbs, start_idx, mid_idx);
+  const std::uint32_t right_child = BuildBoundingVolumeHierarchyRecursive(
+      nodes, final_primitives, prim_indices, temp_primitives, temp_aabbs, mid_idx, end_idx);
 
   nodes[node_idx].min_x = bounds.min_x;
   nodes[node_idx].min_y = bounds.min_y;
@@ -200,15 +200,16 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
 
 }  // namespace
 
-auto BoundingVolumeHierarchy::Build(std::vector<uint32_t>& prim_indices, std::span<const PrimitiveInfo> temp_primitives,
-                                    std::span<const Aabb> temp_aabbs) -> BoundingVolumeHierarchy {
+auto BoundingVolumeHierarchy::Build(std::vector<std::uint32_t>& prim_indices,
+                                    std::span<const PrimitiveInfo> temp_primitives, std::span<const Aabb> temp_aabbs)
+    -> BoundingVolumeHierarchy {
   BoundingVolumeHierarchy bounding_volume_hierarchy;
   if (temp_primitives.empty()) {
     return bounding_volume_hierarchy;
   }
   BuildBoundingVolumeHierarchyRecursive(bounding_volume_hierarchy.nodes_, bounding_volume_hierarchy.primitives_,
                                         prim_indices, temp_primitives, temp_aabbs, 0,
-                                        static_cast<uint32_t>(temp_primitives.size()));
+                                        static_cast<std::uint32_t>(temp_primitives.size()));
   return bounding_volume_hierarchy;
 }
 
