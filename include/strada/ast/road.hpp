@@ -6,6 +6,7 @@
 #include <strada/ast/extensions.hpp>
 #include <strada/ast/geometry.hpp>
 #include <strada/ast/lanes.hpp>
+#include <strada/ast/objects.hpp>
 #include <strada/ast/profiles.hpp>
 #include <string>
 #include <vector>
@@ -29,6 +30,8 @@ struct Road {
   ElevationProfile elevation_profile;     ///< Vertical elevation profile.
   LateralProfile lateral_profile;         ///< Superelevation and lateral shapes.
   Lanes lanes;                            ///< Lanes structure (width, offset, section groups).
+  std::vector<Bridge> bridges;            ///< Bridges along the road.
+  std::vector<Tunnel> tunnels;            ///< Tunnels along the road.
   Extensions extensions;                  ///< Non-schema and custom user data extensions.
 };
 

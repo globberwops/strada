@@ -3,6 +3,7 @@
 #include <map>
 #include <pugixml.hpp>
 #include <sstream>
+#include <strada/ast/objects.hpp>
 #include <strada/parser/errors.hpp>
 #include <strada/parser/parser.hpp>
 #include <string>
@@ -417,6 +418,97 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
   return junction;
 }
 
+auto ParseBridge(pugi::xml_node bridge_node) -> ast::Bridge {
+  if (!bridge_node.attribute("id")) {
+    throw MissingElementError("<bridge> element is missing mandatory 'id' attribute");
+  }
+  std::string bridge_id = bridge_node.attribute("id").as_string();
+  if (!bridge_node.attribute("s")) {
+    throw MissingElementError("<bridge id=\"" + bridge_id + "\"> is missing mandatory 's' attribute");
+  }
+  if (!bridge_node.attribute("length")) {
+    throw MissingElementError("<bridge id=\"" + bridge_id + "\"> is missing mandatory 'length' attribute");
+  }
+
+  double s = bridge_node.attribute("s").as_double();
+  if (s < 0.0) {
+    throw InvalidAttributeError("<bridge id=\"" + bridge_id + "\"> has invalid negative 's' attribute");
+  }
+  double length = bridge_node.attribute("length").as_double();
+  if (length < 0.0) {
+    throw InvalidAttributeError("<bridge id=\"" + bridge_id + "\"> has invalid negative 'length' attribute");
+  }
+
+  ast::Bridge bridge;
+  bridge.id = bridge_id;
+  bridge.s = s;
+  bridge.length = length;
+  bridge.name = bridge_node.attribute("name").as_string("");
+  bridge.type = bridge_node.attribute("type").as_string("");
+
+  pugi::xml_node valid_node = bridge_node.child("valid");
+  while (!valid_node.empty()) {
+    ast::LaneValidity validity;
+    validity.from_lane = valid_node.attribute("fromLane").as_int(0);
+    validity.to_lane = valid_node.attribute("toLane").as_int(0);
+    validity.layer = valid_node.attribute("layer").as_string("");
+    bridge.validities.push_back(validity);
+    valid_node = valid_node.next_sibling("valid");
+  }
+
+  static const std::unordered_set<std::string> kKnownBridgeAttrs = {"id", "s", "length", "name", "type"};
+  bridge.extensions = ParseExtensions(bridge_node, kKnownBridgeAttrs);
+
+  return bridge;
+}
+
+auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
+  if (!tunnel_node.attribute("id")) {
+    throw MissingElementError("<tunnel> element is missing mandatory 'id' attribute");
+  }
+  std::string tunnel_id = tunnel_node.attribute("id").as_string();
+  if (!tunnel_node.attribute("s")) {
+    throw MissingElementError("<tunnel id=\"" + tunnel_id + "\"> is missing mandatory 's' attribute");
+  }
+  if (!tunnel_node.attribute("length")) {
+    throw MissingElementError("<tunnel id=\"" + tunnel_id + "\"> is missing mandatory 'length' attribute");
+  }
+
+  double s = tunnel_node.attribute("s").as_double();
+  if (s < 0.0) {
+    throw InvalidAttributeError("<tunnel id=\"" + tunnel_id + "\"> has invalid negative 's' attribute");
+  }
+  double length = tunnel_node.attribute("length").as_double();
+  if (length < 0.0) {
+    throw InvalidAttributeError("<tunnel id=\"" + tunnel_id + "\"> has invalid negative 'length' attribute");
+  }
+
+  ast::Tunnel tunnel;
+  tunnel.id = tunnel_id;
+  tunnel.s = s;
+  tunnel.length = length;
+  tunnel.name = tunnel_node.attribute("name").as_string("");
+  tunnel.type = tunnel_node.attribute("type").as_string("");
+  tunnel.lighting = tunnel_node.attribute("lighting").as_double(0.0);
+  tunnel.daylight = tunnel_node.attribute("daylight").as_double(0.0);
+
+  pugi::xml_node valid_node = tunnel_node.child("valid");
+  while (!valid_node.empty()) {
+    ast::LaneValidity validity;
+    validity.from_lane = valid_node.attribute("fromLane").as_int(0);
+    validity.to_lane = valid_node.attribute("toLane").as_int(0);
+    validity.layer = valid_node.attribute("layer").as_string("");
+    tunnel.validities.push_back(validity);
+    valid_node = valid_node.next_sibling("valid");
+  }
+
+  static const std::unordered_set<std::string> kKnownTunnelAttrs = {"id",   "s",        "length",  "name",
+                                                                    "type", "lighting", "daylight"};
+  tunnel.extensions = ParseExtensions(tunnel_node, kKnownTunnelAttrs);
+
+  return tunnel;
+}
+
 auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
   const pugi::xml_node kRoot = doc.child("OpenDRIVE");
   if (!kRoot) {
@@ -473,6 +565,24 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     road.lanes = ParseLanes(road_node.child("lanes"));
     std::ranges::sort(road.lanes.sections,
                       [](const ast::LaneSection& lhs, const ast::LaneSection& rhs) -> bool { return lhs.s < rhs.s; });
+
+    // Bridges
+    pugi::xml_node bridge_node = road_node.child("bridge");
+    while (!bridge_node.empty()) {
+      road.bridges.push_back(ParseBridge(bridge_node));
+      bridge_node = bridge_node.next_sibling("bridge");
+    }
+    std::ranges::sort(road.bridges,
+                      [](const ast::Bridge& lhs, const ast::Bridge& rhs) -> bool { return lhs.s < rhs.s; });
+
+    // Tunnels
+    pugi::xml_node tunnel_node = road_node.child("tunnel");
+    while (!tunnel_node.empty()) {
+      road.tunnels.push_back(ParseTunnel(tunnel_node));
+      tunnel_node = tunnel_node.next_sibling("tunnel");
+    }
+    std::ranges::sort(road.tunnels,
+                      [](const ast::Tunnel& lhs, const ast::Tunnel& rhs) -> bool { return lhs.s < rhs.s; });
 
     // Extensions
     static const std::unordered_set<std::string> kNownRoadAttrs = {"id", "length", "junction", "rule", "name"};

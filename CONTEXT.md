@@ -65,6 +65,14 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
 * **Junction**: An intersection where multiple roads connect via specific incoming/outgoing road links.
 * **Cross Section Surface**: A representation of the road's lateral profile (mutually exclusive with superelevation and road shape profiles) defined by lateral strips. The height of the road surface at any point within a strip is defined by a polynomial in the lateral coordinate $t$, whose coefficients are themselves piecewise polynomials in the longitudinal coordinate $s$.
 
+### Objects & Signals
+* **Object**: A physical obstacle, landmark, or structural feature on or beside the road (e.g., pole, tree, barrier, parking space). Positioned using road-relative track coordinates $(s, t)$ and a local height offset $zOffset$, with optional orientation, dimensions, repeats, and outlines.
+* **Signal**: A traffic control device, sign, or signalization element (e.g., speed limit sign, traffic light). Positioned using road-relative track coordinates $(s, t)$ and a local height offset $zOffset$, with optional dependencies on other signals.
+* **Bridge**: A structure carrying the road over an obstacle, defined by a start position $s$ and a longitudinal length.
+* **Tunnel**: An underground or enclosed passage for the road, defined by a start position $s$ and a longitudinal length.
+* **Object Reference**: A reference that places an existing object definition at another location.
+* **Signal Reference**: A reference that places an existing signal definition at another location.
+
 
 ### System Components
 * **AST (Abstract Syntax Tree)**: The strongly-typed C++ object hierarchy that mirrors the complete OpenDRIVE 1.9 XML schema exactly (represented by `ast::AbstractSyntaxTree`), including a `struct Extensions` member on every major node to hold custom/unknown data losslessly.
@@ -89,11 +97,11 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
 ```mermaid
 graph TD
     XODR[".xodr XML File"] -->|pugixml| AST["Logical C++ AST (Strongly Typed)"]
-    
+
     AST -->|Compile / Flatten| CPM["Compiled Physics Model (SoA, Aligned Vectors)"]
     AST -->|Build Routing Graph| RG["Logical Routing Graph (Lane Topology)"]
     AST -->|Tessellate Curves| TM["Tessellation & Mesh Generator"]
-    
+
     CPM -->|Vectorized SIMD API| VD["Vehicle Dynamics (1000Hz)"]
     RG -->|Logical Queries| DM["Driver Models (100Hz) & Scenario Engines"]
     TM -->|Vertex/Index Buffers| VS["Visualization Systems"]
