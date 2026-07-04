@@ -12,25 +12,7 @@
 
 namespace strada::cpm {
 
-namespace {
-
-auto EvaluateAstLaneWidth(const ast::Lane& lane, double s_local_to_section) noexcept -> double {
-  if (lane.widths.empty()) {
-    return 0.0;
-  }
-  const ast::LaneWidth* active = lane.widths.data();
-  for (const auto& width_poly : lane.widths) {
-    if (s_local_to_section >= width_poly.s_offset) {
-      active = &width_poly;
-    } else {
-      break;
-    }
-  }
-  const double kDs = s_local_to_section - active->s_offset;
-  return active->a + (active->b * kDs) + (active->c * kDs * kDs) + (active->d * kDs * kDs * kDs);
-}
-
-}  // namespace
+namespace {}  // namespace
 
 auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel {
   CompiledPhysicsModel model;
@@ -47,53 +29,10 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   std::vector<double> road_max_t;
   road_max_t.reserve(map.roads.size());
 
-  for (const auto& road : map.roads) {
-    double max_road_t = 0.0;
-    for (std::size_t sec_idx = 0; sec_idx < road.lanes.sections.size(); ++sec_idx) {
-      const auto& section = road.lanes.sections[sec_idx];
-      double sec_length = 0.0;
-      if (sec_idx + 1 < road.lanes.sections.size()) {
-        sec_length = road.lanes.sections[sec_idx + 1].s - section.s;
-      } else {
-        sec_length = road.length - section.s;
-      }
-
-      constexpr int kSecSamples = 10;
-      for (int i = 0; i <= kSecSamples; ++i) {
-        const double kSLocal = (static_cast<double>(i) / kSecSamples) * sec_length;
-        double left_width = 0.0;
-        double right_width = 0.0;
-
-        for (const auto& lane : section.left) {
-          left_width += EvaluateAstLaneWidth(lane, kSLocal);
-        }
-        for (const auto& lane : section.right) {
-          right_width += EvaluateAstLaneWidth(lane, kSLocal);
-        }
-
-        // Evaluate road laneOffset
-        double lane_offset_val = 0.0;
-        if (!road.lanes.offsets.empty()) {
-          const ast::LaneOffset* active = road.lanes.offsets.data();
-          const double kSRoad = section.s + kSLocal;
-          for (const auto& offset : road.lanes.offsets) {
-            if (kSRoad >= offset.s) {
-              active = &offset;
-            } else {
-              break;
-            }
-          }
-          const double kDsOffset = kSRoad - active->s;
-          lane_offset_val = active->a + (kDsOffset * (active->b + (kDsOffset * (active->c + (kDsOffset * active->d)))));
-        }
-
-        max_road_t = std::max(max_road_t, left_width + std::abs(lane_offset_val));
-        max_road_t = std::max(max_road_t, right_width + std::abs(lane_offset_val));
-      }
-    }
-    constexpr double kRoadWidthSafetyBuffer = 0.1;
-    max_road_t += kRoadWidthSafetyBuffer;
-    road_max_t.push_back(max_road_t);
+  for (std::size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {
+    const double kMaxRoadT =
+        model.lane_network_.GetMaxRoadWidth(static_cast<RoadId>(road_idx), model.road_lengths_[road_idx]);
+    road_max_t.push_back(kMaxRoadT);
   }
 
   std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives;

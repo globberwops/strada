@@ -649,4 +649,41 @@ auto LaneNetwork::FindLaneId(RoadId road_id, std::uint32_t relative_section_idx,
   return std::nullopt;
 }
 
+auto LaneNetwork::GetMaxRoadWidth(RoadId road_id, double road_length) const noexcept -> double {
+  double max_road_t = 0.0;
+  const auto kRoadIdx = static_cast<std::uint32_t>(road_id);
+  if (kRoadIdx >= lane_sections_.road_section_first_idx.size()) {
+    return 0.0;
+  }
+
+  const auto kRoadSecFirst = lane_sections_.road_section_first_idx[kRoadIdx];
+  const auto kRoadSecCount = lane_sections_.road_section_count[kRoadIdx];
+
+  for (std::uint32_t sec_idx = 0; sec_idx < kRoadSecCount; ++sec_idx) {
+    const std::uint32_t kCurSec = kRoadSecFirst + sec_idx;
+    const double kSecSStart = lane_sections_.section_s[kCurSec];
+    double sec_length = 0.0;
+    if (sec_idx + 1 < kRoadSecCount) {
+      sec_length = lane_sections_.section_s[kCurSec + 1] - kSecSStart;
+    } else {
+      sec_length = road_length - kSecSStart;
+    }
+
+    constexpr int kSecSamples = 10;
+    for (int i = 0; i <= kSecSamples; ++i) {
+      const double kSLocal = (static_cast<double>(i) / kSecSamples) * sec_length;
+      const double kS = kSecSStart + kSLocal;
+      double t_left = 0.0;
+      double t_right = 0.0;
+      GetRoadWidthLimits(road_id, kS, t_left, t_right);
+
+      max_road_t = std::max(max_road_t, std::abs(t_left));
+      max_road_t = std::max(max_road_t, std::abs(t_right));
+    }
+  }
+
+  constexpr double kRoadWidthSafetyBuffer = 0.1;
+  return max_road_t + kRoadWidthSafetyBuffer;
+}
+
 }  // namespace strada::cpm

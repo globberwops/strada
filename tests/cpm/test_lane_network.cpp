@@ -139,4 +139,18 @@ TEST(LaneNetworkTest, FindLaneIdLookup) {
   EXPECT_FALSE(invalid_opt.has_value());
 }
 
+TEST(LaneNetworkTest, GetMaxRoadWidthCalculation) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto lane_network = strada::cpm::LaneNetwork::Build(ast);
+
+  // Act
+  double max_width = lane_network.GetMaxRoadWidth(RoadId{0}, 100.0);
+
+  // Assert
+  EXPECT_NEAR(max_width, 807073.6, 1e-9);
+}
+
 }  // namespace strada::cpm

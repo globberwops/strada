@@ -165,6 +165,9 @@ class LaneNetwork {
   [[nodiscard]] auto FindLaneId(RoadId road_id, std::uint32_t relative_section_idx, int original_lane_id) const noexcept
       -> std::optional<LaneId>;
 
+  /// Computes the maximum lateral road width (t_left or t_right offset absolute value) including safety buffer.
+  [[nodiscard]] auto GetMaxRoadWidth(RoadId road_id, double road_length) const noexcept -> double;
+
  private:
   LanesSoA lanes_;
   LaneSectionsSoA lane_sections_;
