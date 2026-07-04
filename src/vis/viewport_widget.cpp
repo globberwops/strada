@@ -689,16 +689,41 @@ void ViewportWidget::RenderGrid() {
   const float kStartX = std::floor(kMinX / grid_spacing) * grid_spacing;
   const float kEndX = std::ceil(kMaxX / grid_spacing) * grid_spacing;
   for (float x = kStartX; x <= kEndX; x += grid_spacing) {
-    grid_vertices.push_back(Vertex{.x = x, .y = kMinY, .z = 0.0F, .r = kR, .g = kG, .b = kB});
-    grid_vertices.push_back(Vertex{.x = x, .y = kMaxY, .z = 0.0F, .r = kR, .g = kG, .b = kB});
+    const bool is_axis = std::abs(x) < 1e-4F;
+    const float r = is_axis ? 0.35F : kR;
+    const float g = is_axis ? 0.40F : kG;
+    const float b = is_axis ? 0.50F : kB;
+    grid_vertices.push_back(Vertex{.x = x, .y = kMinY, .z = 0.0F, .r = r, .g = g, .b = b});
+    grid_vertices.push_back(Vertex{.x = x, .y = kMaxY, .z = 0.0F, .r = r, .g = g, .b = b});
   }
 
   // Horizontal lines (constant y)
   const float kStartY = std::floor(kMinY / grid_spacing) * grid_spacing;
   const float kEndY = std::ceil(kMaxY / grid_spacing) * grid_spacing;
   for (float y = kStartY; y <= kEndY; y += grid_spacing) {
-    grid_vertices.push_back(Vertex{.x = kMinX, .y = y, .z = 0.0F, .r = kR, .g = kG, .b = kB});
-    grid_vertices.push_back(Vertex{.x = kMaxX, .y = y, .z = 0.0F, .r = kR, .g = kG, .b = kB});
+    const bool is_axis = std::abs(y) < 1e-4F;
+    const float r = is_axis ? 0.35F : kR;
+    const float g = is_axis ? 0.40F : kG;
+    const float b = is_axis ? 0.50F : kB;
+    grid_vertices.push_back(Vertex{.x = kMinX, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
+    grid_vertices.push_back(Vertex{.x = kMaxX, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
+  }
+
+  // Mark the origin (0, 0) with a prominent crosshair
+  if (kMinX <= 0.0F && 0.0F <= kMaxX && kMinY <= 0.0F && 0.0F <= kMaxY) {
+    const float kOriginR = 1.0F;
+    const float kOriginG = 0.6F;
+    const float kOriginB = 0.0F;
+    const float kCrossHalf = 0.15F * grid_spacing;
+
+    // Vertical segment
+    grid_vertices.push_back(
+        Vertex{.x = 0.0F, .y = -kCrossHalf, .z = 0.0F, .r = kOriginR, .g = kOriginG, .b = kOriginB});
+    grid_vertices.push_back(Vertex{.x = 0.0F, .y = kCrossHalf, .z = 0.0F, .r = kOriginR, .g = kOriginG, .b = kOriginB});
+    // Horizontal segment
+    grid_vertices.push_back(
+        Vertex{.x = -kCrossHalf, .y = 0.0F, .z = 0.0F, .r = kOriginR, .g = kOriginG, .b = kOriginB});
+    grid_vertices.push_back(Vertex{.x = kCrossHalf, .y = 0.0F, .z = 0.0F, .r = kOriginR, .g = kOriginG, .b = kOriginB});
   }
 
   if (grid_vertices.empty()) {
