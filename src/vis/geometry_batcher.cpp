@@ -23,7 +23,7 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
   // 1. Batch meshes for GL_TRIANGLES
   std::uint32_t vertex_offset = 0;
   for (const auto& mesh : tess.Meshes()) {
-    Color const lane_color = GetLaneColor(mesh.lane_type);
+    const Color lane_color = GetLaneColor(mesh.lane_type);
 
     auto index_start = static_cast<std::uint32_t>(batched.triangle_indices.size());
     auto index_count = static_cast<std::uint32_t>(mesh.indices.size());
@@ -33,7 +33,7 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
           Vertex{.x = v.x, .y = v.y, .z = v.z, .r = lane_color.r, .g = lane_color.g, .b = lane_color.b});
     }
 
-    for (std::uint32_t const idx : mesh.indices) {
+    for (const std::uint32_t idx : mesh.indices) {
       batched.triangle_indices.push_back(idx + vertex_offset);
     }
 
@@ -73,7 +73,7 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
       batched.boundary_triangle_vertices.push_back(
           Vertex{.x = v.x, .y = v.y, .z = v.z, .r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F});
     }
-    for (std::uint32_t const idx : boundary_geom.indices) {
+    for (const std::uint32_t idx : boundary_geom.indices) {
       batched.boundary_triangle_indices.push_back(idx + current_offset);
     }
   }

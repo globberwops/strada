@@ -23,14 +23,14 @@ auto EvaluatePolynomial(const PolynomialsSoA& poly, uint32_t first_idx, uint32_t
   }
   uint32_t active_idx = first_idx;
   for (uint32_t i = 0; i < count; ++i) {
-    uint32_t const idx = first_idx + i;
+    const uint32_t idx = first_idx + i;
     if (s_coord >= poly.s_start[idx]) {
       active_idx = idx;
     } else {
       break;
     }
   }
-  double const ds_val = s_coord - poly.s_start[active_idx];
+  const double ds_val = s_coord - poly.s_start[active_idx];
   return poly.a[active_idx] + (poly.b[active_idx] * ds_val) + (poly.c[active_idx] * ds_val * ds_val) +
          (poly.d[active_idx] * ds_val * ds_val * ds_val);
 }
@@ -50,10 +50,10 @@ void CompileCoefficients(const std::vector<ast::Coefficient>& coeffs, Polynomial
 
 auto EvaluateStripOwnHeight(const PolynomialsSoA& poly, const StripsSoA& strips, uint32_t strip_idx, double s_coord,
                             double dt_val) noexcept -> double {
-  double const coeff0 = EvaluatePolynomial(poly, strips.c0_first_idx[strip_idx], strips.c0_count[strip_idx], s_coord);
-  double const coeff1 = EvaluatePolynomial(poly, strips.c1_first_idx[strip_idx], strips.c1_count[strip_idx], s_coord);
-  double const coeff2 = EvaluatePolynomial(poly, strips.c2_first_idx[strip_idx], strips.c2_count[strip_idx], s_coord);
-  double const coeff3 = EvaluatePolynomial(poly, strips.c3_first_idx[strip_idx], strips.c3_count[strip_idx], s_coord);
+  const double coeff0 = EvaluatePolynomial(poly, strips.c0_first_idx[strip_idx], strips.c0_count[strip_idx], s_coord);
+  const double coeff1 = EvaluatePolynomial(poly, strips.c1_first_idx[strip_idx], strips.c1_count[strip_idx], s_coord);
+  const double coeff2 = EvaluatePolynomial(poly, strips.c2_first_idx[strip_idx], strips.c2_count[strip_idx], s_coord);
+  const double coeff3 = EvaluatePolynomial(poly, strips.c3_first_idx[strip_idx], strips.c3_count[strip_idx], s_coord);
   return coeff0 + (coeff1 * dt_val) + (coeff2 * dt_val * dt_val) + (coeff3 * dt_val * dt_val * dt_val);
 }
 
@@ -64,16 +64,16 @@ auto EvaluateStripHeight(const PolynomialsSoA& poly, const StripsSoA& strips, ui
   uint32_t curr_strip_idx = strip_idx;
 
   while (strips.is_relative[curr_strip_idx] != 0U) {
-    int32_t const id_val = strips.strip_id[curr_strip_idx];
-    int32_t const inner_id = (id_val > 0) ? (id_val - 1) : (id_val + 1);
+    const int32_t id_val = strips.strip_id[curr_strip_idx];
+    const int32_t inner_id = (id_val > 0) ? (id_val - 1) : (id_val + 1);
 
     bool found = false;
     for (uint32_t j = 0; j < strip_count; ++j) {
-      uint32_t const inner_idx = first_strip_idx + j;
+      const uint32_t inner_idx = first_strip_idx + j;
       if (strips.strip_id[inner_idx] == inner_id) {
-        double const inner_w =
+        const double inner_w =
             EvaluatePolynomial(poly, strips.width_first_idx[inner_idx], strips.width_count[inner_idx], s_coord);
-        double const inner_dt = (inner_id > 0) ? inner_w : -inner_w;
+        const double inner_dt = (inner_id > 0) ? inner_w : -inner_w;
         h_accum += EvaluateStripOwnHeight(poly, strips, inner_idx, s_coord, inner_dt);
         curr_strip_idx = inner_idx;
         found = true;
@@ -91,33 +91,33 @@ void EvaluateCrossSectionSurfaceOffset(const PolynomialsSoA& polynomials, const 
                                        const RoadCrossSectionSurfaceSoA& road_css, uint32_t road_idx, double s_coord,
                                        double t_coord, double& h_surf) noexcept {
   h_surf = 0.0;
-  uint32_t const css_strip_count = road_css.strip_count.empty() ? 0 : road_css.strip_count[road_idx];
+  const uint32_t css_strip_count = road_css.strip_count.empty() ? 0 : road_css.strip_count[road_idx];
   if (css_strip_count > 0) {
-    double const t_offset = EvaluatePolynomial(polynomials, road_css.t_offset_first_idx[road_idx],
+    const double t_offset = EvaluatePolynomial(polynomials, road_css.t_offset_first_idx[road_idx],
                                                road_css.t_offset_count[road_idx], s_coord);
 
-    double const t_surf = t_coord - t_offset;
-    bool const is_left = (t_surf >= 0.0);
-    double const t_target = is_left ? t_surf : std::abs(t_surf);
+    const double t_surf = t_coord - t_offset;
+    const bool is_left = (t_surf >= 0.0);
+    const double t_target = is_left ? t_surf : std::abs(t_surf);
 
-    uint32_t const first_strip_idx = road_css.first_strip_idx[road_idx];
+    const uint32_t first_strip_idx = road_css.first_strip_idx[road_idx];
     double t_accum = 0.0;
 
     for (uint32_t i = 0; i < css_strip_count; ++i) {
-      uint32_t const strip_idx = first_strip_idx + i;
-      int32_t const id_val = strips.strip_id[strip_idx];
-      bool const strip_is_left = (id_val > 0);
+      const uint32_t strip_idx = first_strip_idx + i;
+      const int32_t id_val = strips.strip_id[strip_idx];
+      const bool strip_is_left = (id_val > 0);
 
       if (strip_is_left == is_left) {
         double width_val = std::numeric_limits<double>::infinity();
-        uint32_t const w_count = strips.width_count[strip_idx];
+        const uint32_t w_count = strips.width_count[strip_idx];
         if (w_count > 0) {
           width_val = EvaluatePolynomial(polynomials, strips.width_first_idx[strip_idx], w_count, s_coord);
         }
 
         if (t_target >= t_accum && t_target < t_accum + width_val) {
-          double const t_strip = t_target - t_accum;
-          double const dt_val = strip_is_left ? t_strip : -t_strip;
+          const double t_strip = t_target - t_accum;
+          const double dt_val = strip_is_left ? t_strip : -t_strip;
 
           h_surf =
               EvaluateStripHeight(polynomials, strips, strip_idx, first_strip_idx, css_strip_count, s_coord, dt_val);
@@ -313,14 +313,14 @@ auto LaneNetwork::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept ->
         break;
       }
     }
-    double const ds_lo = pose.s - lane_offsets_.lane_offset_s_start[active_lo];
+    const double ds_lo = pose.s - lane_offsets_.lane_offset_s_start[active_lo];
     lane_offset_val =
         lane_offsets_.lane_offset_a[active_lo] +
         (ds_lo * (lane_offsets_.lane_offset_b[active_lo] +
                   ds_lo * (lane_offsets_.lane_offset_c[active_lo] + ds_lo * lane_offsets_.lane_offset_d[active_lo])));
   }
 
-  double const t_relative = pose.t - lane_offset_val;
+  const double t_relative = pose.t - lane_offset_val;
 
   uint32_t matched_lane_idx = 0;
   bool found = false;
@@ -332,13 +332,13 @@ auto LaneNetwork::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept ->
     // Left lanes: IDs > 0, sorted ascending (e.g. 1, 2, 3...)
     double t_inner = 0.0;
     for (uint32_t i = 0; i < lane_cnt_in_sec; ++i) {
-      uint32_t const lane_idx = first_lane_in_sec + i;
-      int const lane_id = lanes_.lane_original_id[lane_idx];
+      const uint32_t lane_idx = first_lane_in_sec + i;
+      const int lane_id = lanes_.lane_original_id[lane_idx];
       if (lane_id <= 0) {
         continue;
       }
-      double const w = LaneWidth(static_cast<LaneId>(lane_idx), pose.s);
-      double const t_outer = t_inner + w;
+      const double w = LaneWidth(static_cast<LaneId>(lane_idx), pose.s);
+      const double t_outer = t_inner + w;
       if (w > 0.0 && t_relative >= t_inner && t_relative <= t_outer) {
         matched_lane_idx = lane_idx;
         t_center = t_inner + (0.5 * w);
@@ -354,13 +354,13 @@ auto LaneNetwork::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept ->
     // Walk them in reverse order (from -1 down to -3) to go from inside to outside.
     double t_inner = 0.0;
     for (int i = static_cast<int>(lane_cnt_in_sec) - 1; i >= 0; --i) {
-      uint32_t const lane_idx = first_lane_in_sec + static_cast<uint32_t>(i);
-      int const lane_id = lanes_.lane_original_id[lane_idx];
+      const uint32_t lane_idx = first_lane_in_sec + static_cast<uint32_t>(i);
+      const int lane_id = lanes_.lane_original_id[lane_idx];
       if (lane_id >= 0) {
         continue;
       }
-      double const w = LaneWidth(static_cast<LaneId>(lane_idx), pose.s);
-      double const t_outer = t_inner - w;
+      const double w = LaneWidth(static_cast<LaneId>(lane_idx), pose.s);
+      const double t_outer = t_inner - w;
       if (w > 0.0 && t_relative <= t_inner && t_relative >= t_outer) {
         matched_lane_idx = lane_idx;
         t_center = t_inner - (0.5 * w);
@@ -380,12 +380,12 @@ auto LaneNetwork::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept ->
   // Evaluate lane height offset
   double h_inner = 0.0;
   double h_outer = 0.0;
-  uint32_t const h_first = lanes_.lane_first_height_idx[matched_lane_idx];
-  uint32_t const h_count = lanes_.lane_height_count[matched_lane_idx];
+  const uint32_t h_first = lanes_.lane_first_height_idx[matched_lane_idx];
+  const uint32_t h_count = lanes_.lane_height_count[matched_lane_idx];
   if (h_count > 0) {
     uint32_t active_h = h_first;
     for (uint32_t i = 0; i < h_count; ++i) {
-      uint32_t const cur_h = h_first + i;
+      const uint32_t cur_h = h_first + i;
       if (pose.s >= lane_heights_.lane_height_s_start[cur_h]) {
         active_h = cur_h;
       } else {
@@ -396,7 +396,7 @@ auto LaneNetwork::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept ->
     h_outer = lane_heights_.lane_height_outer[active_h];
   }
 
-  double const t_lane = t_relative - t_center;
+  const double t_lane = t_relative - t_center;
   double f = 0.0;
   if (w_target > 0.0) {
     if (target_id > 0) {
@@ -406,7 +406,7 @@ auto LaneNetwork::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept ->
     }
   }
   f = std::clamp(f, 0.0, 1.0);
-  double const h_offset = h_inner + (f * (h_outer - h_inner));
+  const double h_offset = h_inner + (f * (h_outer - h_inner));
 
   LanePose lane_pose;
   lane_pose.s = pose.s;
@@ -430,20 +430,20 @@ auto LaneNetwork::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) const noexcep
     return RoadPose{};
   }
 
-  double const s = pose.s;
-  int const target_id = lanes_.lane_original_id[lane_idx];
-  RoadId const road_id = lanes_.lane_road_id[lane_idx];
+  const double s = pose.s;
+  const int target_id = lanes_.lane_original_id[lane_idx];
+  const RoadId road_id = lanes_.lane_road_id[lane_idx];
   auto road_idx = static_cast<uint32_t>(road_id);
-  uint32_t const sec_idx = lanes_.lane_section_idx[lane_idx];
+  const uint32_t sec_idx = lanes_.lane_section_idx[lane_idx];
 
   // 1. Compute cumulative inner boundary width
   double inner_boundary_t = 0.0;
-  uint32_t const first_lane_in_sec = lane_sections_.section_first_lane_idx[sec_idx];
-  uint32_t const lane_cnt_in_sec = lane_sections_.section_lane_count[sec_idx];
+  const uint32_t first_lane_in_sec = lane_sections_.section_first_lane_idx[sec_idx];
+  const uint32_t lane_cnt_in_sec = lane_sections_.section_lane_count[sec_idx];
 
   for (uint32_t i = 0; i < lane_cnt_in_sec; ++i) {
-    uint32_t const other_idx = first_lane_in_sec + i;
-    int const other_id = lanes_.lane_original_id[other_idx];
+    const uint32_t other_idx = first_lane_in_sec + i;
+    const int other_id = lanes_.lane_original_id[other_idx];
     if (target_id > 0) {
       if (other_id > 0 && other_id < target_id) {
         inner_boundary_t += LaneWidth(static_cast<LaneId>(other_idx), s);
@@ -460,7 +460,7 @@ auto LaneNetwork::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) const noexcep
   }
 
   // 2. Target lane width
-  double const w_target = LaneWidth(pose.lane, s);
+  const double w_target = LaneWidth(pose.lane, s);
 
   // 3. Center line t of the lane
   double t_center = 0.0;
@@ -474,19 +474,19 @@ auto LaneNetwork::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) const noexcep
 
   // 4. Add road-level laneOffset
   double lane_offset_val = 0.0;
-  uint32_t const lo_first = lane_offsets_.road_lane_offset_first_idx[road_idx];
-  uint32_t const lo_count = lane_offsets_.road_lane_offset_count[road_idx];
+  const uint32_t lo_first = lane_offsets_.road_lane_offset_first_idx[road_idx];
+  const uint32_t lo_count = lane_offsets_.road_lane_offset_count[road_idx];
   if (lo_count > 0) {
     uint32_t active_lo = lo_first;
     for (uint32_t i = 0; i < lo_count; ++i) {
-      uint32_t const cur_lo = lo_first + i;
+      const uint32_t cur_lo = lo_first + i;
       if (s >= lane_offsets_.lane_offset_s_start[cur_lo]) {
         active_lo = cur_lo;
       } else {
         break;
       }
     }
-    double const ds_lo = s - lane_offsets_.lane_offset_s_start[active_lo];
+    const double ds_lo = s - lane_offsets_.lane_offset_s_start[active_lo];
     lane_offset_val = lane_offsets_.lane_offset_a[active_lo] + (lane_offsets_.lane_offset_b[active_lo] * ds_lo) +
                       (lane_offsets_.lane_offset_c[active_lo] * ds_lo * ds_lo) +
                       (lane_offsets_.lane_offset_d[active_lo] * ds_lo * ds_lo * ds_lo);
@@ -496,12 +496,12 @@ auto LaneNetwork::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) const noexcep
   // 5. Evaluate lane height offset
   double h_inner = 0.0;
   double h_outer = 0.0;
-  uint32_t const h_first = lanes_.lane_first_height_idx[lane_idx];
-  uint32_t const h_count = lanes_.lane_height_count[lane_idx];
+  const uint32_t h_first = lanes_.lane_first_height_idx[lane_idx];
+  const uint32_t h_count = lanes_.lane_height_count[lane_idx];
   if (h_count > 0) {
     uint32_t active_h = h_first;
     for (uint32_t i = 0; i < h_count; ++i) {
-      uint32_t const cur_h = h_first + i;
+      const uint32_t cur_h = h_first + i;
       if (s >= lane_heights_.lane_height_s_start[cur_h]) {
         active_h = cur_h;
       } else {
@@ -521,8 +521,8 @@ auto LaneNetwork::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) const noexcep
     }
   }
   f = std::clamp(f, 0.0, 1.0);
-  double const h_offset = h_inner + (f * (h_outer - h_inner));
-  double const road_h = pose.h + h_offset;
+  const double h_offset = h_inner + (f * (h_outer - h_inner));
+  const double road_h = pose.h + h_offset;
 
   RoadPose road_pose;
   road_pose.s = s;
@@ -558,15 +558,15 @@ auto LaneNetwork::LaneWidth(LaneId lane_id, double s_coord) const noexcept -> do
   if (idx >= lanes_.lane_original_id.size()) {
     return 0.0;
   }
-  uint32_t const w_first = lanes_.lane_first_width_idx[idx];
-  uint32_t const w_count = lanes_.lane_width_count[idx];
+  const uint32_t w_first = lanes_.lane_first_width_idx[idx];
+  const uint32_t w_count = lanes_.lane_width_count[idx];
   if (w_count == 0) {
     return 0.0;
   }
 
   uint32_t active_idx = w_first;
   for (uint32_t i = 0; i < w_count; ++i) {
-    uint32_t const cur_idx = w_first + i;
+    const uint32_t cur_idx = w_first + i;
     if (s_coord >= lane_widths_.lane_width_s_start[cur_idx]) {
       active_idx = cur_idx;
     } else {
@@ -574,7 +574,7 @@ auto LaneNetwork::LaneWidth(LaneId lane_id, double s_coord) const noexcept -> do
     }
   }
 
-  double const ds = s_coord - lane_widths_.lane_width_s_start[active_idx];
+  const double ds = s_coord - lane_widths_.lane_width_s_start[active_idx];
   return lane_widths_.lane_width_a[active_idx] + (lane_widths_.lane_width_b[active_idx] * ds) +
          (lane_widths_.lane_width_c[active_idx] * ds * ds) + (lane_widths_.lane_width_d[active_idx] * ds * ds * ds);
 }
@@ -621,7 +621,7 @@ void LaneNetwork::GetRoadWidthLimits(RoadId road, double s_coord, double& t_left
   for (uint32_t i = 0; i < lane_cnt_in_sec; ++i) {
     auto lane_idx = first_lane_in_sec + i;
     auto lane_id = lanes_.lane_original_id[lane_idx];
-    double const w = LaneWidth(static_cast<LaneId>(lane_idx), s_coord);
+    const double w = LaneWidth(static_cast<LaneId>(lane_idx), s_coord);
     if (lane_id > 0) {
       t_left += w;
     } else if (lane_id < 0) {
@@ -642,7 +642,7 @@ void LaneNetwork::GetRoadWidthLimits(RoadId road, double s_coord, double& t_left
         break;
       }
     }
-    double const ds_lo = s_coord - lane_offsets_.lane_offset_s_start[active_lo];
+    const double ds_lo = s_coord - lane_offsets_.lane_offset_s_start[active_lo];
     lane_offset_val =
         lane_offsets_.lane_offset_a[active_lo] +
         (ds_lo * (lane_offsets_.lane_offset_b[active_lo] +

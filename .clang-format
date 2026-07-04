@@ -8,6 +8,7 @@ ColumnLimit: 120
 EnumTrailingComma: Remove
 InsertNewlineAtEOF: true
 InsertBraces: true
+QualifierAlignment: Left
 
 # Includes sorting
 SortIncludes: CaseSensitive

@@ -60,12 +60,12 @@ class Rotation {
   using Matrix3x3 = std::array<std::array<double, 3>, 3>;
 
   static auto EulerToMatrix(double heading, double pitch, double roll) noexcept -> Matrix3x3 {
-    double const cos_heading = std::cos(heading);
-    double const sin_heading = std::sin(heading);
-    double const cos_pitch = std::cos(pitch);
-    double const sin_pitch = std::sin(pitch);
-    double const cos_roll = std::cos(roll);
-    double const sin_roll = std::sin(roll);
+    const double cos_heading = std::cos(heading);
+    const double sin_heading = std::sin(heading);
+    const double cos_pitch = std::cos(pitch);
+    const double sin_pitch = std::sin(pitch);
+    const double cos_roll = std::cos(roll);
+    const double sin_roll = std::sin(roll);
 
     Matrix3x3 rot_matrix;
     rot_matrix[0][0] = cos_heading * cos_pitch;
@@ -85,7 +85,7 @@ class Rotation {
 
   static auto MatrixToEuler(const Matrix3x3& rot_matrix) noexcept -> EulerAngles {
     EulerAngles euler;
-    double const sin_pitch = -rot_matrix[2][0];
+    const double sin_pitch = -rot_matrix[2][0];
     constexpr double kPiDiv2 = 0.5 * std::numbers::pi;
     constexpr double kClipLimit = 1.0;
     constexpr double kGimbalLockThreshold = 0.9999999;

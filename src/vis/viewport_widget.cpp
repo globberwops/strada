@@ -68,9 +68,9 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, cpm::CompiledP
     camera_.camera_x = 0.5F * (min_x + max_x);
     camera_.camera_y = 0.5F * (min_y + max_y);
 
-    float const dx = max_x - min_x;
-    float const dy = max_y - min_y;
-    float const max_dim = std::max(dx, dy);
+    const float dx = max_x - min_x;
+    const float dy = max_y - min_y;
+    const float max_dim = std::max(dx, dy);
     if (max_dim > 0.0F) {
       camera_.zoom = 300.0F / max_dim;
     } else {
@@ -236,7 +236,7 @@ void ViewportWidget::paintGL() {
     // Draw Lane Inspector HUD card if hovered
     if (has_model_ && hovered_pose_) {
       // Draw dark glassmorphic card container in the top-left corner
-      QRect const rect(20, 20, 260, 110);
+      const QRect rect(20, 20, 260, 110);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(rect, 8.0, 8.0);
@@ -246,9 +246,9 @@ void ViewportWidget::paintGL() {
       painter.setFont(font);
 
       // Draw details
-      int const x_offset = 35;
+      const int x_offset = 35;
       int y_offset = 45;
-      int const line_height = 22;
+      const int line_height = 22;
 
       // Header / Title
       font.setBold(true);
@@ -278,14 +278,14 @@ void ViewportWidget::paintGL() {
       painter.setPen(QColor(160, 170, 184));
       painter.drawText(x_offset, y_offset, "Track (s, t):");
       painter.setPen(QColor(100, 181, 246));  // Light blue for values
-      QString const coords = QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
+      const QString coords = QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
       painter.drawText(x_offset + 85, y_offset, coords);
     }
 
     // 5. Draw Compass Gizmo in the top-right corner
     {
-      int const cx = width() - 50;
-      int const cy = 50;
+      const int cx = width() - 50;
+      const int cy = 50;
 
       // Draw dark glassmorphic circular background
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
@@ -306,7 +306,7 @@ void ViewportWidget::paintGL() {
       painter.drawLine(0, 0, 0, -20);
 
       // Draw Labels E and N
-      QFont const font("Segoe UI", 9, QFont::Bold);
+      const QFont font("Segoe UI", 9, QFont::Bold);
       painter.setFont(font);
 
       // E Label
@@ -322,14 +322,14 @@ void ViewportWidget::paintGL() {
 
     // 6. Draw Geographical Scale Bar in the bottom-right corner
     {
-      double const scale_length = CalculateScaleLength(camera_.zoom);
-      double const s = scale_length * camera_.zoom;  // Width on screen
+      const double scale_length = CalculateScaleLength(camera_.zoom);
+      const double s = scale_length * camera_.zoom;  // Width on screen
 
-      int const num_segments = 4;
-      double const seg_w = s / num_segments;
-      double const x0 = width() - 20.0 - s;
+      const int num_segments = 4;
+      const double seg_w = s / num_segments;
+      const double x0 = width() - 20.0 - s;
       for (int i = 0; i < num_segments; ++i) {
-        QRectF const seg_rect(x0 + (i * seg_w), height() - 35, seg_w, 8);
+        const QRectF seg_rect(x0 + (i * seg_w), height() - 35, seg_w, 8);
         if (i % 2 == 0) {
           painter.setBrush(QBrush(QColor(26, 29, 36)));  // Filled dark
         } else {
@@ -341,7 +341,7 @@ void ViewportWidget::paintGL() {
 
       // Draw text label centered above the scale bar
       painter.setPen(QColor(240, 240, 240));
-      QFont const font("Segoe UI", 9, QFont::Bold);
+      const QFont font("Segoe UI", 9, QFont::Bold);
       painter.setFont(font);
       QString label;
       if (scale_length >= 1000.0) {
@@ -354,7 +354,7 @@ void ViewportWidget::paintGL() {
 
     // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
     {
-      QRect const rect(20, height() - 170, 310, 150);
+      const QRect rect(20, height() - 170, 310, 150);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(rect, 8.0, 8.0);
@@ -363,9 +363,9 @@ void ViewportWidget::paintGL() {
       QFont font("Segoe UI", 9);
       painter.setFont(font);
 
-      int const x_offset = 35;
+      const int x_offset = 35;
       int y_offset = height() - 145;
-      int const line_height = 20;
+      const int line_height = 20;
 
       // Header
       font.setBold(true);
@@ -381,7 +381,7 @@ void ViewportWidget::paintGL() {
         QString key;
         QString desc;
       };
-      std::vector<ShortcutItem> const items = {{"L-Click + Drag", "Pan Map"},
+      const std::vector<ShortcutItem> items = {{"L-Click + Drag", "Pan Map"},
                                                {"R-Click + Drag", "Rotate Map"},
                                                {"Scroll Wheel", "Zoom Map"},
                                                {"R", "Reset View / Auto-fit"},
@@ -472,7 +472,7 @@ void ViewportWidget::mousePressEvent(QMouseEvent* event) {
 }
 
 void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
-  QPoint const delta = event->pos() - last_mouse_pos_;
+  const QPoint delta = event->pos() - last_mouse_pos_;
   last_mouse_pos_ = event->pos();
 
   if ((event->buttons() & Qt::LeftButton) != 0) {
@@ -483,7 +483,7 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
 
   // Hover picking detection (CPU-side via CPM)
   if (has_model_) {
-    QPointF const world_pos =
+    const QPointF world_pos =
         camera_.ScreenToWorld(static_cast<float>(event->position().x()), static_cast<float>(event->position().y()));
 
     cpm::InertialPose pose{};
@@ -495,9 +495,9 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
     if (!geometry_.triangle_vertices.empty()) {
       float min_dist_sq = std::numeric_limits<float>::max();
       for (const auto& v : geometry_.triangle_vertices) {
-        float const dx = static_cast<float>(world_pos.x()) - v.x;
-        float const dy = static_cast<float>(world_pos.y()) - v.y;
-        float const dist_sq = (dx * dx) + (dy * dy);
+        const float dx = static_cast<float>(world_pos.x()) - v.x;
+        const float dy = static_cast<float>(world_pos.y()) - v.y;
+        const float dist_sq = (dx * dx) + (dy * dy);
         if (dist_sq < min_dist_sq) {
           min_dist_sq = dist_sq;
           best_z = v.z;
@@ -527,15 +527,15 @@ void ViewportWidget::wheelEvent(QWheelEvent* event) {
   // If the Ctrl modifier is NOT pressed and pixelDelta is populated,
   // we interpret this as a high-resolution touchpad two-finger scroll panning gesture.
   if (!(event->modifiers() & Qt::ControlModifier) && !event->pixelDelta().isNull()) {
-    QPoint const delta = event->pixelDelta();
+    const QPoint delta = event->pixelDelta();
     camera_.Pan(static_cast<float>(delta.x()), static_cast<float>(delta.y()));
     update();
     return;
   }
 
   // Otherwise, it is a zoom event (mouse wheel or touchpad pinch Ctrl+scroll)
-  QPoint const num_pixels = event->pixelDelta();
-  QPoint const num_degrees = event->angleDelta() / 8;
+  const QPoint num_pixels = event->pixelDelta();
+  const QPoint num_degrees = event->angleDelta() / 8;
 
   float factor = 1.0F;
   if (!num_pixels.isNull()) {
@@ -570,9 +570,9 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     if (max_x >= min_x && max_y >= min_y) {
       camera_.camera_x = 0.5F * (min_x + max_x);
       camera_.camera_y = 0.5F * (min_y + max_y);
-      float const dx = max_x - min_x;
-      float const dy = max_y - min_y;
-      float const max_dim = std::max(dx, dy);
+      const float dx = max_x - min_x;
+      const float dy = max_y - min_y;
+      const float max_dim = std::max(dx, dy);
       if (max_dim > 0.0F) {
         camera_.zoom = 300.0F / max_dim;
       }
@@ -588,14 +588,14 @@ auto ViewportWidget::event(QEvent* event) -> bool {
   if (event->type() == QEvent::NativeGesture) {
     auto* gesture_event = dynamic_cast<QNativeGestureEvent*>(event);
     if (gesture_event->gestureType() == Qt::ZoomNativeGesture) {
-      qreal const val = gesture_event->value();
-      QPointF const pos = gesture_event->position();
+      const qreal val = gesture_event->value();
+      const QPointF pos = gesture_event->position();
       camera_.ZoomAt(static_cast<float>(pos.x()), static_cast<float>(pos.y()), static_cast<float>(1.0 + val));
       update();
       return true;
     }
     if (gesture_event->gestureType() == Qt::RotateNativeGesture) {
-      qreal const val = gesture_event->value();
+      const qreal val = gesture_event->value();
       camera_.Rotate(-static_cast<float>(val));
       update();
       return true;
@@ -605,7 +605,7 @@ auto ViewportWidget::event(QEvent* event) -> bool {
 }
 
 void ViewportWidget::RenderGrid() {
-  double const scale_length = CalculateScaleLength(camera_.zoom);
+  const double scale_length = CalculateScaleLength(camera_.zoom);
   if (scale_length <= 0.0) {
     return;
   }
@@ -613,34 +613,34 @@ void ViewportWidget::RenderGrid() {
   // Calculate maximum visible bounds in world coordinates
   auto w = static_cast<float>(width());
   auto h = static_cast<float>(height());
-  float const r_screen = std::sqrt((w * w) + (h * h)) / 2.0F;
-  float const r_world = r_screen / camera_.zoom;
+  const float r_screen = std::sqrt((w * w) + (h * h)) / 2.0F;
+  const float r_world = r_screen / camera_.zoom;
 
-  float const min_x = camera_.camera_x - r_world;
-  float const max_x = camera_.camera_x + r_world;
-  float const min_y = camera_.camera_y - r_world;
-  float const max_y = camera_.camera_y + r_world;
+  const float min_x = camera_.camera_x - r_world;
+  const float max_x = camera_.camera_x + r_world;
+  const float min_y = camera_.camera_y - r_world;
+  const float max_y = camera_.camera_y + r_world;
 
   auto grid_spacing = static_cast<float>(scale_length);
 
   std::vector<Vertex> grid_vertices;
 
   // Grid line color: subtle dark grey-blue
-  float const r = 0.16F;
-  float const g = 0.18F;
-  float const b = 0.22F;
+  const float r = 0.16F;
+  const float g = 0.18F;
+  const float b = 0.22F;
 
   // Vertical lines (constant x)
-  float const start_x = std::floor(min_x / grid_spacing) * grid_spacing;
-  float const end_x = std::ceil(max_x / grid_spacing) * grid_spacing;
+  const float start_x = std::floor(min_x / grid_spacing) * grid_spacing;
+  const float end_x = std::ceil(max_x / grid_spacing) * grid_spacing;
   for (float x = start_x; x <= end_x; x += grid_spacing) {
     grid_vertices.push_back(Vertex{.x = x, .y = min_y, .z = 0.0F, .r = r, .g = g, .b = b});
     grid_vertices.push_back(Vertex{.x = x, .y = max_y, .z = 0.0F, .r = r, .g = g, .b = b});
   }
 
   // Horizontal lines (constant y)
-  float const start_y = std::floor(min_y / grid_spacing) * grid_spacing;
-  float const end_y = std::ceil(max_y / grid_spacing) * grid_spacing;
+  const float start_y = std::floor(min_y / grid_spacing) * grid_spacing;
+  const float end_y = std::ceil(max_y / grid_spacing) * grid_spacing;
   for (float y = start_y; y <= end_y; y += grid_spacing) {
     grid_vertices.push_back(Vertex{.x = min_x, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
     grid_vertices.push_back(Vertex{.x = max_x, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});

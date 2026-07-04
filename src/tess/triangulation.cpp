@@ -10,7 +10,7 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     return indices;
   }
 
-  size_t const n = vertices.size();
+  const size_t n = vertices.size();
   std::vector<std::uint32_t> v(n);
 
   // Compute signed area to determine winding order
@@ -34,16 +34,16 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
 
   // Helper functions inside TriangulatePolygon
   auto inside_triangle = [](float ax, float ay, float bx, float by, float cx, float cy, float px, float py) -> bool {
-    float const ax_px = ax - px;
-    float const ay_py = ay - py;
-    float const bx_px = bx - px;
-    float const by_py = by - py;
-    float const cx_px = cx - px;
-    float const cy_py = cy - py;
+    const float ax_px = ax - px;
+    const float ay_py = ay - py;
+    const float bx_px = bx - px;
+    const float by_py = by - py;
+    const float cx_px = cx - px;
+    const float cy_py = cy - py;
 
-    float const ccw_ab = (ax_px * by_py) - (ay_py * bx_px);
-    float const ccw_bc = (bx_px * cy_py) - (by_py * cx_px);
-    float const ccw_ca = (cx_px * ay_py) - (cy_py * ax_px);
+    const float ccw_ab = (ax_px * by_py) - (ay_py * bx_px);
+    const float ccw_bc = (bx_px * cy_py) - (by_py * cx_px);
+    const float ccw_ca = (cx_px * ay_py) - (cy_py * ax_px);
 
     return (ccw_ab >= 0.0F && ccw_bc >= 0.0F && ccw_ca >= 0.0F) || (ccw_ab <= 0.0F && ccw_bc <= 0.0F && ccw_ca <= 0.0F);
   };
@@ -54,7 +54,7 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     const auto& c = vertices[v_indices[cv]];
 
     // Check if triangle is convex (CCW)
-    float const cross_product = ((b.x - a.x) * (c.y - b.y)) - ((b.y - a.y) * (c.x - b.x));
+    const float cross_product = ((b.x - a.x) * (c.y - b.y)) - ((b.y - a.y) * (c.x - b.x));
     if (cross_product <= 0.0F) {
       return false;
     }
@@ -87,9 +87,9 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     count--;
 
     for (size_t i = 0; i < nv; ++i) {
-      size_t const u = (i == 0) ? (nv - 1) : (i - 1);
-      size_t const w = i;
-      size_t const cv = (i + 1 == nv) ? 0 : (i + 1);
+      const size_t u = (i == 0) ? (nv - 1) : (i - 1);
+      const size_t w = i;
+      const size_t cv = (i + 1 == nv) ? 0 : (i + 1);
 
       if (is_ear(u, w, cv, v)) {
         indices.push_back(v[u]);

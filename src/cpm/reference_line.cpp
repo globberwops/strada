@@ -79,7 +79,7 @@ auto ReferenceLine::Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine {
         rl.spiral_curv_start_.push_back(0.0);
         rl.spiral_curv_end_.push_back(0.0);
         const auto& poly = std::get<ast::Poly3>(geom.shape);
-        ast::ParamPoly3 const param = ConvertPoly3ToParamPoly3(geom.length, poly.a, poly.b, poly.c, poly.d);
+        const ast::ParamPoly3 param = ConvertPoly3ToParamPoly3(geom.length, poly.a, poly.b, poly.c, poly.d);
         rl.pp3_a_u_.push_back(param.a_u);
         rl.pp3_b_u_.push_back(param.b_u);
         rl.pp3_c_u_.push_back(param.c_u);
@@ -112,20 +112,20 @@ auto ReferenceLine::Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine {
 }
 
 auto ReferenceLine::Evaluate(uint32_t seg_idx, double road_s) const noexcept -> ReferenceLinePoint {
-  double const ds_val = road_s - s_offset_[seg_idx];
+  const double ds_val = road_s - s_offset_[seg_idx];
   double ref_x = x_[seg_idx];
   double ref_y = y_[seg_idx];
-  double const ref_hdg = hdg_[seg_idx];
+  const double ref_hdg = hdg_[seg_idx];
   double tangent_hdg = ref_hdg;
 
-  GeometryType const type = type_[seg_idx];
-  uint32_t const type_idx = type_index_[seg_idx];
+  const GeometryType type = type_[seg_idx];
+  const uint32_t type_idx = type_index_[seg_idx];
 
   if (type == GeometryType::kLine) {
     ref_x += ds_val * std::cos(ref_hdg);
     ref_y += ds_val * std::sin(ref_hdg);
   } else if (type == GeometryType::kArc) {
-    double const curvature = arc_curvature_[type_idx];
+    const double curvature = arc_curvature_[type_idx];
     if (std::abs(curvature) > kCurvatureThreshold) {
       tangent_hdg += curvature * ds_val;
       ref_x += (1.0 / curvature) * (std::sin(tangent_hdg) - std::sin(ref_hdg));
@@ -135,44 +135,44 @@ auto ReferenceLine::Evaluate(uint32_t seg_idx, double road_s) const noexcept -> 
       ref_y += ds_val * std::sin(ref_hdg);
     }
   } else if (type == GeometryType::kSpiral) {
-    double const curv_start = spiral_curv_start_[seg_idx];
-    double const curv_end = spiral_curv_end_[seg_idx];
-    double const length = length_[seg_idx];
-    double const lambda = (length > 0.0) ? ((curv_end - curv_start) / length) : 0.0;
+    const double curv_start = spiral_curv_start_[seg_idx];
+    const double curv_end = spiral_curv_end_[seg_idx];
+    const double length = length_[seg_idx];
+    const double lambda = (length > 0.0) ? ((curv_end - curv_start) / length) : 0.0;
 
     tangent_hdg += (curv_start * ds_val) + (0.5 * (lambda * (ds_val * ds_val)));
 
-    double const param_a = lambda * ds_val * ds_val;
-    double const param_b = curv_start * ds_val;
+    const double param_a = lambda * ds_val * ds_val;
+    const double param_b = curv_start * ds_val;
     auto [local_x, local_y] = EvaluateClothoidIntegrals(param_a, param_b);
 
     ref_x += ds_val * (std::cos(ref_hdg) * local_x - std::sin(ref_hdg) * local_y);
     ref_y += ds_val * (std::sin(ref_hdg) * local_x + std::cos(ref_hdg) * local_y);
   } else if (type == GeometryType::kParamPoly3) {
-    double const a_u = pp3_a_u_[seg_idx];
-    double const b_u = pp3_b_u_[seg_idx];
-    double const c_u = pp3_c_u_[seg_idx];
-    double const d_u = pp3_d_u_[seg_idx];
-    double const a_v = pp3_a_v_[seg_idx];
-    double const b_v = pp3_b_v_[seg_idx];
-    double const c_v = pp3_c_v_[seg_idx];
-    double const d_v = pp3_d_v_[seg_idx];
-    uint8_t const p_range = pp3_p_range_[seg_idx];
+    const double a_u = pp3_a_u_[seg_idx];
+    const double b_u = pp3_b_u_[seg_idx];
+    const double c_u = pp3_c_u_[seg_idx];
+    const double d_u = pp3_d_u_[seg_idx];
+    const double a_v = pp3_a_v_[seg_idx];
+    const double b_v = pp3_b_v_[seg_idx];
+    const double c_v = pp3_c_v_[seg_idx];
+    const double d_v = pp3_d_v_[seg_idx];
+    const uint8_t p_range = pp3_p_range_[seg_idx];
 
-    double const length = length_[seg_idx];
+    const double length = length_[seg_idx];
     double p_val = ds_val;
     if (p_range == 0U) {
       p_val = (length > 0.0) ? (ds_val / length) : 0.0;
     }
 
-    double const u_p = a_u + (p_val * (b_u + (p_val * (c_u + (d_u * p_val)))));
-    double const v_p = a_v + (p_val * (b_v + (p_val * (c_v + (d_v * p_val)))));
+    const double u_p = a_u + (p_val * (b_u + (p_val * (c_u + (d_u * p_val)))));
+    const double v_p = a_v + (p_val * (b_v + (p_val * (c_v + (d_v * p_val)))));
 
-    double const du_dp = b_u + (p_val * ((kPolyCoeff2 * c_u) + (kPolyCoeff3 * d_u * p_val)));
-    double const dv_dp = b_v + (p_val * ((kPolyCoeff2 * c_v) + (kPolyCoeff3 * d_v * p_val)));
+    const double du_dp = b_u + (p_val * ((kPolyCoeff2 * c_u) + (kPolyCoeff3 * d_u * p_val)));
+    const double dv_dp = b_v + (p_val * ((kPolyCoeff2 * c_v) + (kPolyCoeff3 * d_v * p_val)));
 
-    double const cos_hdg = std::cos(ref_hdg);
-    double const sin_hdg = std::sin(ref_hdg);
+    const double cos_hdg = std::cos(ref_hdg);
+    const double sin_hdg = std::sin(ref_hdg);
 
     ref_x += (u_p * cos_hdg) - (v_p * sin_hdg);
     ref_y += (u_p * sin_hdg) + (v_p * cos_hdg);
@@ -183,36 +183,36 @@ auto ReferenceLine::Evaluate(uint32_t seg_idx, double road_s) const noexcept -> 
 }
 
 auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexcept -> double {
-  double const s_start = s_offset_[seg_idx];
-  double const seg_length = length_[seg_idx];
-  GeometryType const type = type_[seg_idx];
-  uint32_t const type_idx = type_index_[seg_idx];
+  const double s_start = s_offset_[seg_idx];
+  const double seg_length = length_[seg_idx];
+  const GeometryType type = type_[seg_idx];
+  const uint32_t type_idx = type_index_[seg_idx];
 
   if (type == GeometryType::kLine) {
-    double const dx = px - x_[seg_idx];
-    double const dy = py - y_[seg_idx];
-    double const hdg = hdg_[seg_idx];
-    double const ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
-    double const s_local = std::clamp(ds, 0.0, seg_length);
+    const double dx = px - x_[seg_idx];
+    const double dy = py - y_[seg_idx];
+    const double hdg = hdg_[seg_idx];
+    const double ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
+    const double s_local = std::clamp(ds, 0.0, seg_length);
     return s_start + s_local;
   }
   if (type == GeometryType::kArc) {
-    double const dx = px - x_[seg_idx];
-    double const dy = py - y_[seg_idx];
-    double const hdg = hdg_[seg_idx];
-    double const curvature = arc_curvature_[type_idx];
+    const double dx = px - x_[seg_idx];
+    const double dy = py - y_[seg_idx];
+    const double hdg = hdg_[seg_idx];
+    const double curvature = arc_curvature_[type_idx];
     if (std::abs(curvature) < kCurvatureThreshold) {
-      double const ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
-      double const s_local = std::clamp(ds, 0.0, seg_length);
+      const double ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
+      const double s_local = std::clamp(ds, 0.0, seg_length);
       return s_start + s_local;
     }
-    double const radius = 1.0 / curvature;
-    double const center_x = x_[seg_idx] - (radius * std::sin(hdg));
-    double const center_y = y_[seg_idx] + (radius * std::cos(hdg));
-    double const qdx = px - center_x;
-    double const qdy = py - center_y;
-    double const angle_query = std::atan2(qdy, qdx);
-    double const angle_start = std::atan2(y_[seg_idx] - center_y, x_[seg_idx] - center_x);
+    const double radius = 1.0 / curvature;
+    const double center_x = x_[seg_idx] - (radius * std::sin(hdg));
+    const double center_y = y_[seg_idx] + (radius * std::cos(hdg));
+    const double qdx = px - center_x;
+    const double qdy = py - center_y;
+    const double angle_query = std::atan2(qdy, qdx);
+    const double angle_start = std::atan2(y_[seg_idx] - center_y, x_[seg_idx] - center_x);
     double delta_angle = angle_query - angle_start;
     constexpr double kTwoPi = 2.0 * std::numbers::pi;
     if (curvature > 0.0) {
@@ -230,7 +230,7 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
         delta_angle += kTwoPi;
       }
     }
-    double const s_local = std::clamp(delta_angle / curvature, 0.0, seg_length);
+    const double s_local = std::clamp(delta_angle / curvature, 0.0, seg_length);
     return s_start + s_local;
   }
 
@@ -240,11 +240,11 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
   double min_dist_sq = std::numeric_limits<double>::max();
 
   for (int i = 0; i <= kNumIntervals; ++i) {
-    double const s_test = (static_cast<double>(i) / kNumIntervals) * seg_length;
+    const double s_test = (static_cast<double>(i) / kNumIntervals) * seg_length;
     auto pt = Evaluate(seg_idx, s_start + s_test);
-    double const dx = px - pt.x;
-    double const dy = py - pt.y;
-    double const dist_sq = (dx * dx) + (dy * dy);
+    const double dx = px - pt.x;
+    const double dy = py - pt.y;
+    const double dist_sq = (dx * dx) + (dy * dy);
     if (dist_sq < min_dist_sq) {
       min_dist_sq = dist_sq;
       best_s = s_test;
@@ -254,12 +254,12 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
   double left_s = std::max(0.0, best_s - (seg_length / kNumIntervals));
   double right_s = std::min(seg_length, best_s + (seg_length / kNumIntervals));
   for (int iter = 0; iter < 30; ++iter) {
-    double const m1 = left_s + ((right_s - left_s) / 3.0);
-    double const m2 = right_s - ((right_s - left_s) / 3.0);
+    const double m1 = left_s + ((right_s - left_s) / 3.0);
+    const double m2 = right_s - ((right_s - left_s) / 3.0);
     auto pt1 = Evaluate(seg_idx, s_start + m1);
     auto pt2 = Evaluate(seg_idx, s_start + m2);
-    double const dist1 = ((px - pt1.x) * (px - pt1.x)) + ((py - pt1.y) * (py - pt1.y));
-    double const dist2 = ((px - pt2.x) * (px - pt2.x)) + ((py - pt2.y) * (py - pt2.y));
+    const double dist1 = ((px - pt1.x) * (px - pt1.x)) + ((py - pt1.y) * (py - pt1.y));
+    const double dist2 = ((px - pt2.x) * (px - pt2.x)) + ((py - pt2.y) * (py - pt2.y));
     if (dist1 < dist2) {
       right_s = m2;
     } else {
@@ -272,17 +272,17 @@ auto ReferenceLine::Project(uint32_t seg_idx, double px, double py) const noexce
 
 auto ReferenceLine::FindSegmentIndex(RoadId road, double s_coord, QueryContext& ctx) const noexcept -> uint32_t {
   auto road_idx = static_cast<uint32_t>(road);
-  uint32_t const first_seg = road_ref_line_first_idx_[road_idx];
-  uint32_t const seg_count = road_ref_line_count_[road_idx];
+  const uint32_t first_seg = road_ref_line_first_idx_[road_idx];
+  const uint32_t seg_count = road_ref_line_count_[road_idx];
 
   uint32_t seg_idx = first_seg;
   bool hit = false;
 
   if (ctx.last_road == road && ctx.last_segment_idx.has_value()) {
-    uint32_t const last_idx = *ctx.last_segment_idx;
+    const uint32_t last_idx = *ctx.last_segment_idx;
     if (last_idx >= first_seg && last_idx < first_seg + seg_count) {
-      double const s_start = s_offset_[last_idx];
-      double const s_end = s_start + length_[last_idx];
+      const double s_start = s_offset_[last_idx];
+      const double s_end = s_start + length_[last_idx];
       if (s_coord >= s_start && s_coord < s_end) [[likely]] {
         seg_idx = last_idx;
         hit = true;
@@ -292,7 +292,7 @@ auto ReferenceLine::FindSegmentIndex(RoadId road, double s_coord, QueryContext& 
 
   if (!hit) [[unlikely]] {
     for (uint32_t i = 0; i < seg_count; ++i) {
-      uint32_t const idx = first_seg + i;
+      const uint32_t idx = first_seg + i;
       if (s_coord >= s_offset_[idx]) {
         seg_idx = idx;
       } else {
@@ -323,8 +323,8 @@ auto ReferenceLine::ComputeSegmentAabb(uint32_t seg_idx, double inflation) const
   double max_x = -std::numeric_limits<double>::max();
   double max_y = -std::numeric_limits<double>::max();
 
-  double const length = length_[seg_idx];
-  double const s_start = s_offset_[seg_idx];
+  const double length = length_[seg_idx];
+  const double s_start = s_offset_[seg_idx];
 
   int num_samples = 1;
   if (type_[seg_idx] != GeometryType::kLine) {
@@ -332,7 +332,7 @@ auto ReferenceLine::ComputeSegmentAabb(uint32_t seg_idx, double inflation) const
   }
 
   for (int idx = 0; idx <= num_samples; ++idx) {
-    double const s_local = (static_cast<double>(idx) / num_samples) * length;
+    const double s_local = (static_cast<double>(idx) / num_samples) * length;
     auto pt = Evaluate(seg_idx, s_start + s_local);
     min_x = std::min(min_x, pt.x);
     min_y = std::min(min_y, pt.y);
