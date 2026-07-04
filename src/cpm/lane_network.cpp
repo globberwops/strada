@@ -616,4 +616,37 @@ void LaneNetwork::GetRoadWidthLimits(RoadId road, double s_coord, double& t_left
   t_right += lane_offset_val;
 }
 
+auto LaneNetwork::FindLaneId(RoadId road_id, std::uint32_t relative_section_idx, int original_lane_id) const noexcept
+    -> std::optional<LaneId> {
+  const auto kRoadIdx = static_cast<std::uint32_t>(road_id);
+  if (kRoadIdx >= lane_sections_.road_section_first_idx.size()) {
+    return std::nullopt;
+  }
+
+  const auto kRoadSecFirst = lane_sections_.road_section_first_idx[kRoadIdx];
+  const auto kRoadSecCount = lane_sections_.road_section_count[kRoadIdx];
+  if (relative_section_idx >= kRoadSecCount) {
+    return std::nullopt;
+  }
+
+  const std::uint32_t kAbsSecIdx = kRoadSecFirst + relative_section_idx;
+  if (kAbsSecIdx >= lane_sections_.section_first_lane_idx.size()) {
+    return std::nullopt;
+  }
+
+  const std::uint32_t kFirstLaneIdx = lane_sections_.section_first_lane_idx[kAbsSecIdx];
+  const std::uint32_t kLaneCount = lane_sections_.section_lane_count[kAbsSecIdx];
+
+  for (std::uint32_t i = 0; i < kLaneCount; ++i) {
+    const std::uint32_t kLaneIdx = kFirstLaneIdx + i;
+    if (kLaneIdx < lanes_.lane_original_id.size()) {
+      if (lanes_.lane_original_id[kLaneIdx] == original_lane_id) {
+        return static_cast<LaneId>(kLaneIdx);
+      }
+    }
+  }
+
+  return std::nullopt;
+}
+
 }  // namespace strada::cpm

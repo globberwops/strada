@@ -27,47 +27,6 @@ Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error)
   TessellateJunctionBoundaries(map, model, ctx, chord_error);
 }
 
-auto Tessellator::ResolveLaneId(const ast::AbstractSyntaxTree& map, cpm::RoadId road_idx, std::size_t section_idx,
-                                int original_lane_id) -> cpm::LaneId {
-  std::size_t absolute_lane_idx = 0;
-  bool found = false;
-  for (std::size_t r_i = 0; r_i < map.roads.size(); ++r_i) {
-    const auto& r = map.roads[r_i];
-    for (std::size_t s_i = 0; s_i < r.lanes.sections.size(); ++s_i) {
-      const auto& sec = r.lanes.sections[s_i];
-      std::vector<int> sorted_ids;
-      sorted_ids.reserve(sec.right.size());
-      for (const auto& l : sec.right) {
-        sorted_ids.push_back(l.id);
-      }
-      for (const auto& l : sec.center) {
-        sorted_ids.push_back(l.id);
-      }
-      for (const auto& l : sec.left) {
-        sorted_ids.push_back(l.id);
-      }
-      std::ranges::sort(sorted_ids);
-
-      for (const int kId : sorted_ids) {
-        if (static_cast<cpm::RoadId>(r_i) == road_idx && s_i == section_idx && kId == original_lane_id) {
-          found = true;
-          break;
-        }
-        if (!found) {
-          absolute_lane_idx++;
-        }
-      }
-      if (found) {
-        break;
-      }
-    }
-    if (found) {
-      break;
-    }
-  }
-  return static_cast<cpm::LaneId>(absolute_lane_idx);
-}
-
 auto Tessellator::ComputeSamplingStations(const ast::Road& road, double chord_error) -> std::vector<double> {
   std::vector<double> stations;
   const double kRoadLen = road.length;
@@ -172,7 +131,7 @@ void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road
     // Generate mesh surfaces and outer boundary polylines for each lane
     for (const auto* lane_ptr : section_lanes) {
       const auto& lane = *lane_ptr;
-      auto lane_id = ResolveLaneId(map, road_id, sec_idx, lane.id);
+      auto lane_id = model.FindLaneId(road_id, sec_idx, lane.id).value();
 
       Mesh mesh;
       mesh.road_id = road_id;
@@ -356,7 +315,7 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
             }
           }
 
-          auto lane_id = ResolveLaneId(map, road_id, s_idx, kBl);
+          auto lane_id = model.FindLaneId(road_id, s_idx, kBl).value();
           const double kW = model.LaneWidth(lane_id, kS);
 
           const cpm::LanePose kLp = {.s = kS,
@@ -403,7 +362,7 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
           if (lane_id_val == 0) {
             return 0.0;
           }
-          auto l_id = ResolveLaneId(map, road_id, s_idx, lane_id_val);
+          auto l_id = model.FindLaneId(road_id, s_idx, lane_id_val).value();
           const double kW = model.LaneWidth(l_id, s);
           const cpm::LanePose kLp = {.s = s,
                                      .t = (lane_id_val > 0) ? (0.5 * kW) : (-0.5 * kW),

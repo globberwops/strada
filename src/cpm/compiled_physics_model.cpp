@@ -346,4 +346,9 @@ auto CompiledPhysicsModel::LaneWidth(LaneId lane_id, double s_coord) const noexc
   return lane_network_.LaneWidth(lane_id, s_coord);
 }
 
+auto CompiledPhysicsModel::FindLaneId(RoadId road_id, std::uint32_t relative_section_idx,
+                                      int original_lane_id) const noexcept -> std::optional<LaneId> {
+  return lane_network_.FindLaneId(road_id, relative_section_idx, original_lane_id);
+}
+
 }  // namespace strada::cpm

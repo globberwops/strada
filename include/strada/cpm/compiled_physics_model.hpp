@@ -131,6 +131,10 @@ class CompiledPhysicsModel {
   /// \return The computed lane width.
   [[nodiscard]] auto LaneWidth(LaneId lane_id, double s_coord) const noexcept -> double;
 
+  /// Resolves the compiled LaneId for a given road, section, and original ID.
+  [[nodiscard]] auto FindLaneId(RoadId road_id, std::uint32_t relative_section_idx, int original_lane_id) const noexcept
+      -> std::optional<LaneId>;
+
   /// Returns a reference to the flat vector of nodes in the spatial bounding volume hierarchy.
   ///
   /// \return The contiguous array of hierarchy nodes.

@@ -161,6 +161,10 @@ class LaneNetwork {
   /// \param t_right Output right lateral limit.
   void GetRoadWidthLimits(RoadId road, double s_coord, double& t_left, double& t_right) const noexcept;
 
+  /// Resolves the compiled LaneId for a given road, section, and original ID.
+  [[nodiscard]] auto FindLaneId(RoadId road_id, std::uint32_t relative_section_idx, int original_lane_id) const noexcept
+      -> std::optional<LaneId>;
+
  private:
   LanesSoA lanes_;
   LaneSectionsSoA lane_sections_;

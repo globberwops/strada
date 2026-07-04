@@ -113,4 +113,30 @@ TEST(LaneNetworkTest, LaneTransforms) {
   }
 }
 
+TEST(LaneNetworkTest, FindLaneIdLookup) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
+  auto ast = strada::parser::ParseFile(file_path);
+  auto lane_network = strada::cpm::LaneNetwork::Build(ast);
+
+  // Act
+  auto lane0_opt = lane_network.FindLaneId(RoadId{0}, 0, -1);
+  auto lane1_opt = lane_network.FindLaneId(RoadId{0}, 0, 0);
+  auto lane2_opt = lane_network.FindLaneId(RoadId{0}, 0, 1);
+  auto invalid_opt = lane_network.FindLaneId(RoadId{0}, 0, 99);
+
+  // Assert
+  ASSERT_TRUE(lane0_opt.has_value());
+  EXPECT_EQ(*lane0_opt, LaneId{0});
+
+  ASSERT_TRUE(lane1_opt.has_value());
+  EXPECT_EQ(*lane1_opt, LaneId{1});
+
+  ASSERT_TRUE(lane2_opt.has_value());
+  EXPECT_EQ(*lane2_opt, LaneId{2});
+
+  EXPECT_FALSE(invalid_opt.has_value());
+}
+
 }  // namespace strada::cpm
