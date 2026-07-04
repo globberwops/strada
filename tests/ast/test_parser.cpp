@@ -487,7 +487,9 @@ TEST(ParserTest, ParseCrossSectionSurface) {
   EXPECT_DOUBLE_EQ(strip.constant[0].b, 0.0);
 }
 
-TEST(ParserTest, ParseBridgesAndTunnels) {
+class BridgesAndTunnelsParserTest : public ::testing::Test {};
+
+TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnels) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -540,7 +542,7 @@ TEST(ParserTest, ParseBridgesAndTunnels) {
   EXPECT_DOUBLE_EQ(tunnel.daylight, 0.2);
 }
 
-TEST(ParserTest, ParseBridgesAndTunnelsWithValiditiesAndExtensions) {
+TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExtensions) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -561,14 +563,14 @@ TEST(ParserTest, ParseBridgesAndTunnelsWithValiditiesAndExtensions) {
       </laneSection>
     </lanes>
     <bridge id="b1" s="10.0" length="30.0" name="test_bridge" type="concrete" customBridgeAttr="bridgeExtra">
-      <valid fromLane="-2" toLane="-1" layer="layer1"/>
-      <valid fromLane="1" toLane="2"/>
+      <validity fromLane="-2" toLane="-1" layer="layer1"/>
+      <validity fromLane="1" toLane="2"/>
       <userData>
         <bridgeVendorTag>val</bridgeVendorTag>
       </userData>
     </bridge>
     <tunnel id="t1" s="50.0" length="40.0" name="test_tunnel" type="rock" lighting="0.8" daylight="0.2" customTunnelAttr="tunnelExtra">
-      <valid fromLane="-3" toLane="-1"/>
+      <validity fromLane="-3" toLane="-1"/>
       <userData>
         <tunnelVendorTag>val2</tunnelVendorTag>
       </userData>
@@ -611,7 +613,7 @@ TEST(ParserTest, ParseBridgesAndTunnelsWithValiditiesAndExtensions) {
   EXPECT_NE(tunnel.extensions.user_data[0].find("tunnelVendorTag"), std::string::npos);
 }
 
-TEST(ParserTest, ThrowsMissingElementErrorOnMissingBridgeId) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeId) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -627,7 +629,7 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingBridgeId) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
 
-TEST(ParserTest, ThrowsMissingElementErrorOnMissingBridgeS) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeS) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -643,7 +645,7 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingBridgeS) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
 
-TEST(ParserTest, ThrowsMissingElementErrorOnMissingBridgeLength) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeLength) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -659,7 +661,7 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingBridgeLength) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
 
-TEST(ParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeS) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeS) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -675,7 +677,7 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeS) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
 }
 
-TEST(ParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeLength) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeLength) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -691,7 +693,7 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeLength) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
 }
 
-TEST(ParserTest, ThrowsMissingElementErrorOnMissingTunnelId) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelId) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -707,7 +709,7 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingTunnelId) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
 
-TEST(ParserTest, ThrowsMissingElementErrorOnMissingTunnelS) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelS) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -723,7 +725,7 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingTunnelS) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
 
-TEST(ParserTest, ThrowsMissingElementErrorOnMissingTunnelLength) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelLength) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -739,7 +741,7 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingTunnelLength) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
 
-TEST(ParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelS) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelS) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -755,7 +757,7 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelS) {
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
 }
 
-TEST(ParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelLength) {
+TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelLength) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>

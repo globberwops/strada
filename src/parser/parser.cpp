@@ -418,6 +418,20 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
   return junction;
 }
 
+auto ParseLaneValidities(pugi::xml_node parent_node) -> std::vector<ast::LaneValidity> {
+  std::vector<ast::LaneValidity> validities;
+  pugi::xml_node validity_node = parent_node.child("validity");
+  while (!validity_node.empty()) {
+    ast::LaneValidity validity;
+    validity.from_lane = validity_node.attribute("fromLane").as_int(0);
+    validity.to_lane = validity_node.attribute("toLane").as_int(0);
+    validity.layer = validity_node.attribute("layer").as_string("");
+    validities.push_back(validity);
+    validity_node = validity_node.next_sibling("validity");
+  }
+  return validities;
+}
+
 auto ParseBridge(pugi::xml_node bridge_node) -> ast::Bridge {
   if (!bridge_node.attribute("id")) {
     throw MissingElementError("<bridge> element is missing mandatory 'id' attribute");
@@ -430,11 +444,11 @@ auto ParseBridge(pugi::xml_node bridge_node) -> ast::Bridge {
     throw MissingElementError("<bridge id=\"" + bridge_id + "\"> is missing mandatory 'length' attribute");
   }
 
-  double s = bridge_node.attribute("s").as_double();
+  double s{bridge_node.attribute("s").as_double()};
   if (s < 0.0) {
     throw InvalidAttributeError("<bridge id=\"" + bridge_id + "\"> has invalid negative 's' attribute");
   }
-  double length = bridge_node.attribute("length").as_double();
+  double length{bridge_node.attribute("length").as_double()};
   if (length < 0.0) {
     throw InvalidAttributeError("<bridge id=\"" + bridge_id + "\"> has invalid negative 'length' attribute");
   }
@@ -445,16 +459,7 @@ auto ParseBridge(pugi::xml_node bridge_node) -> ast::Bridge {
   bridge.length = length;
   bridge.name = bridge_node.attribute("name").as_string("");
   bridge.type = bridge_node.attribute("type").as_string("");
-
-  pugi::xml_node valid_node = bridge_node.child("valid");
-  while (!valid_node.empty()) {
-    ast::LaneValidity validity;
-    validity.from_lane = valid_node.attribute("fromLane").as_int(0);
-    validity.to_lane = valid_node.attribute("toLane").as_int(0);
-    validity.layer = valid_node.attribute("layer").as_string("");
-    bridge.validities.push_back(validity);
-    valid_node = valid_node.next_sibling("valid");
-  }
+  bridge.validities = ParseLaneValidities(bridge_node);
 
   static const std::unordered_set<std::string> kKnownBridgeAttrs = {"id", "s", "length", "name", "type"};
   bridge.extensions = ParseExtensions(bridge_node, kKnownBridgeAttrs);
@@ -474,11 +479,11 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
     throw MissingElementError("<tunnel id=\"" + tunnel_id + "\"> is missing mandatory 'length' attribute");
   }
 
-  double s = tunnel_node.attribute("s").as_double();
+  double s{tunnel_node.attribute("s").as_double()};
   if (s < 0.0) {
     throw InvalidAttributeError("<tunnel id=\"" + tunnel_id + "\"> has invalid negative 's' attribute");
   }
-  double length = tunnel_node.attribute("length").as_double();
+  double length{tunnel_node.attribute("length").as_double()};
   if (length < 0.0) {
     throw InvalidAttributeError("<tunnel id=\"" + tunnel_id + "\"> has invalid negative 'length' attribute");
   }
@@ -491,16 +496,7 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
   tunnel.type = tunnel_node.attribute("type").as_string("");
   tunnel.lighting = tunnel_node.attribute("lighting").as_double(0.0);
   tunnel.daylight = tunnel_node.attribute("daylight").as_double(0.0);
-
-  pugi::xml_node valid_node = tunnel_node.child("valid");
-  while (!valid_node.empty()) {
-    ast::LaneValidity validity;
-    validity.from_lane = valid_node.attribute("fromLane").as_int(0);
-    validity.to_lane = valid_node.attribute("toLane").as_int(0);
-    validity.layer = valid_node.attribute("layer").as_string("");
-    tunnel.validities.push_back(validity);
-    valid_node = valid_node.next_sibling("valid");
-  }
+  tunnel.validities = ParseLaneValidities(tunnel_node);
 
   static const std::unordered_set<std::string> kKnownTunnelAttrs = {"id",   "s",        "length",  "name",
                                                                     "type", "lighting", "daylight"};

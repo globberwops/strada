@@ -164,6 +164,7 @@ struct PolylineVertexLocal {
   std::uint32_t id{};
 };
 
+/// Road-relative vertex definition for skeleton polyline (t_road_objects_object_skeleton_polyline_vertexRoad).
 struct PolylineVertexRoad {
   double s{};
   double t{};
