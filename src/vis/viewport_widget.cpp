@@ -235,7 +235,7 @@ void ViewportWidget::paintGL() {
 
     if (has_model_ && hovered_pose_) {
       // Draw dark glassmorphic card container in the top-left corner
-      const QRect kRect(20, 20, 260, 135);
+      const QRect kRect(20, 20, 270, 160);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(kRect, 8.0, 8.0);
@@ -273,16 +273,17 @@ void ViewportWidget::paintGL() {
       painter.drawText(kXOffset + 70, y_offset, QString::number(hovered_lane_original_id_));
       y_offset += kLineHeight;
 
-      // Obtain road-level coordinates from LanePose
+      // Obtain road-level and inertial-level coordinates from LanePose
       cpm::QueryContext temp_ctx;
       const cpm::RoadPose kRp = cpm_model_.LaneToRoad(*hovered_pose_, temp_ctx);
+      const cpm::InertialPose kIp = cpm_model_.LaneToInertial(*hovered_pose_, temp_ctx);
 
       // Track Coordinates (s, t)
       painter.setPen(QColor(160, 170, 184));
       painter.drawText(kXOffset, y_offset, "Track (s, t):");
       painter.setPen(QColor(100, 181, 246));  // Light blue for values
       const QString kTrackCoords = QString("%1 m, %2 m").arg(kRp.s, 0, 'f', 3).arg(kRp.t, 0, 'f', 3);
-      painter.drawText(kXOffset + 85, y_offset, kTrackCoords);
+      painter.drawText(kXOffset + 95, y_offset, kTrackCoords);
       y_offset += kLineHeight;
 
       // Lane Coordinates (s, t)
@@ -291,7 +292,15 @@ void ViewportWidget::paintGL() {
       painter.setPen(QColor(100, 181, 246));  // Light blue for values
       const QString kLaneCoords =
           QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
-      painter.drawText(kXOffset + 85, y_offset, kLaneCoords);
+      painter.drawText(kXOffset + 95, y_offset, kLaneCoords);
+      y_offset += kLineHeight;
+
+      // Inertial Coordinates (x, y)
+      painter.setPen(QColor(160, 170, 184));
+      painter.drawText(kXOffset, y_offset, "Inertial (x, y):");
+      painter.setPen(QColor(100, 181, 246));  // Light blue for values
+      const QString kInertialCoords = QString("%1 m, %2 m").arg(kIp.x, 0, 'f', 3).arg(kIp.y, 0, 'f', 3);
+      painter.drawText(kXOffset + 95, y_offset, kInertialCoords);
     }
 
     // 5. Draw Compass Gizmo in the top-right corner
