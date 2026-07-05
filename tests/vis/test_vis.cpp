@@ -386,9 +386,9 @@ TEST(VisTest, FindActiveRoadType) {
   EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 5.0), ast::RoadType::kUnknown);
 
   // Set up types
-  road.types.push_back(ast::RoadTypeRecord{0.0, ast::RoadType::kTownLocal});
-  road.types.push_back(ast::RoadTypeRecord{2.0, ast::RoadType::kBicycle});
-  road.types.push_back(ast::RoadTypeRecord{5.0, ast::RoadType::kTownExpressway});
+  road.types.push_back(ast::RoadTypeRecord{.s = 0.0, .type = ast::RoadType::kTownLocal});
+  road.types.push_back(ast::RoadTypeRecord{.s = 2.0, .type = ast::RoadType::kBicycle});
+  road.types.push_back(ast::RoadTypeRecord{.s = 5.0, .type = ast::RoadType::kTownExpressway});
 
   // Case 2: Before first record (s < 0.0) -> returns kUnknown per our logic
   EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, -1.0), ast::RoadType::kUnknown);

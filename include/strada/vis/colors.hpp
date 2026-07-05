@@ -14,32 +14,32 @@ struct Color {
 };
 
 // Premium dark-mode palette colors
-constexpr Color kLaneDrivingLeft{239.0F / 255.0F, 215.0F / 255.0F, 171.0F / 255.0F};
-constexpr Color kLaneDrivingRight{205.0F / 255.0F, 216.0F / 255.0F, 232.0F / 255.0F};
-constexpr Color kLaneBiking{207.0F / 255.0F, 16.0F / 255.0F, 45.0F / 255.0F};
-constexpr Color kLaneBorder{165.0F / 255.0F, 94.0F / 255.0F, 55.0F / 255.0F};
-constexpr Color kLaneConnectingRamp{168.0F / 255.0F, 211.0F / 255.0F, 0.0F / 255.0F};
-constexpr Color kLaneCurb{151.0F / 255.0F, 120.0F / 255.0F, 211.0F / 255.0F};
-constexpr Color kLaneEntry{234.0F / 255.0F, 217.0F / 255.0F, 96.0F / 255.0F};
-constexpr Color kLaneExit{103.0F / 255.0F, 153.0F / 255.0F, 204.0F / 255.0F};
-constexpr Color kLaneMedian{124.0F / 255.0F, 84.0F / 255.0F, 71.0F / 255.0F};
-constexpr Color kLaneNone{147.0F / 255.0F, 149.0F / 255.0F, 152.0F / 255.0F};
-constexpr Color kLaneOffRamp{35.0F / 255.0F, 121.0F / 255.0F, 185.0F / 255.0F};
-constexpr Color kLaneOnRamp{255.0F / 255.0F, 212.0F / 255.0F, 2.0F / 255.0F};
-constexpr Color kLaneParking{98.0F / 255.0F, 38.0F / 255.0F, 158.0F / 255.0F};
-constexpr Color kLaneRail{56.0F / 255.0F, 43.0F / 255.0F, 178.0F / 255.0F};
-constexpr Color kLaneRestricted{255.0F / 255.0F, 103.0F / 255.0F, 27.0F / 255.0F};
-constexpr Color kLaneShoulder{0.0F / 255.0F, 98.0F / 255.0F, 65.0F / 255.0F};
-constexpr Color kLaneSidewalk{121.0F / 255.0F, 36.0F / 255.0F, 47.0F / 255.0F};
-constexpr Color kLaneSlipLane{0.0F / 255.0F, 148.0F / 255.0F, 94.0F / 255.0F};
-constexpr Color kLaneStop{146.0F / 255.0F, 213.0F / 255.0F, 172.0F / 255.0F};
-constexpr Color kLaneTram{109.0F / 255.0F, 109.0F / 255.0F, 226.0F / 255.0F};
+constexpr Color kLaneDrivingLeft{.r = 239.0F / 255.0F, .g = 215.0F / 255.0F, .b = 171.0F / 255.0F};
+constexpr Color kLaneDrivingRight{.r = 205.0F / 255.0F, .g = 216.0F / 255.0F, .b = 232.0F / 255.0F};
+constexpr Color kLaneBiking{.r = 207.0F / 255.0F, .g = 16.0F / 255.0F, .b = 45.0F / 255.0F};
+constexpr Color kLaneBorder{.r = 165.0F / 255.0F, .g = 94.0F / 255.0F, .b = 55.0F / 255.0F};
+constexpr Color kLaneConnectingRamp{.r = 168.0F / 255.0F, .g = 211.0F / 255.0F, .b = 0.0F / 255.0F};
+constexpr Color kLaneCurb{.r = 151.0F / 255.0F, .g = 120.0F / 255.0F, .b = 211.0F / 255.0F};
+constexpr Color kLaneEntry{.r = 234.0F / 255.0F, .g = 217.0F / 255.0F, .b = 96.0F / 255.0F};
+constexpr Color kLaneExit{.r = 103.0F / 255.0F, .g = 153.0F / 255.0F, .b = 204.0F / 255.0F};
+constexpr Color kLaneMedian{.r = 124.0F / 255.0F, .g = 84.0F / 255.0F, .b = 71.0F / 255.0F};
+constexpr Color kLaneNone{.r = 147.0F / 255.0F, .g = 149.0F / 255.0F, .b = 152.0F / 255.0F};
+constexpr Color kLaneOffRamp{.r = 35.0F / 255.0F, .g = 121.0F / 255.0F, .b = 185.0F / 255.0F};
+constexpr Color kLaneOnRamp{.r = 255.0F / 255.0F, .g = 212.0F / 255.0F, .b = 2.0F / 255.0F};
+constexpr Color kLaneParking{.r = 98.0F / 255.0F, .g = 38.0F / 255.0F, .b = 158.0F / 255.0F};
+constexpr Color kLaneRail{.r = 56.0F / 255.0F, .g = 43.0F / 255.0F, .b = 178.0F / 255.0F};
+constexpr Color kLaneRestricted{.r = 255.0F / 255.0F, .g = 103.0F / 255.0F, .b = 27.0F / 255.0F};
+constexpr Color kLaneShoulder{.r = 0.0F / 255.0F, .g = 98.0F / 255.0F, .b = 65.0F / 255.0F};
+constexpr Color kLaneSidewalk{.r = 121.0F / 255.0F, .g = 36.0F / 255.0F, .b = 47.0F / 255.0F};
+constexpr Color kLaneSlipLane{.r = 0.0F / 255.0F, .g = 148.0F / 255.0F, .b = 94.0F / 255.0F};
+constexpr Color kLaneStop{.r = 146.0F / 255.0F, .g = 213.0F / 255.0F, .b = 172.0F / 255.0F};
+constexpr Color kLaneTram{.r = 109.0F / 255.0F, .g = 109.0F / 255.0F, .b = 226.0F / 255.0F};
 
 // Feature specific colors
-constexpr Color kReferenceLineColor{1.0F, 0.0F, 0.0F};
-constexpr Color kJunctionBoundaryColor{245.0F / 255.0F, 197.0F / 255.0F, 61.0F / 255.0F};
-constexpr Color kObjectColor{1.0F, 145.0F / 255.0F, 0.0F};
-constexpr Color kSignalColor{0.0F, 229.0F / 255.0F, 1.0F};
+constexpr Color kReferenceLineColor{.r = 1.0F, .g = 0.0F, .b = 0.0F};
+constexpr Color kJunctionBoundaryColor{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F};
+constexpr Color kObjectColor{.r = 1.0F, .g = 145.0F / 255.0F, .b = 0.0F};
+constexpr Color kSignalColor{.r = 0.0F, .g = 229.0F / 255.0F, .b = 1.0F};
 
 /// Color lookup helper based on lane type and original lane ID.
 constexpr auto GetLaneColor(ast::LaneType lane_type, int original_lane_id) noexcept -> Color {
