@@ -42,7 +42,8 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
  private:
   BatchedGeometry geometry_;
   bool geometry_dirty_{false};
-  bool show_junction_boundaries_{true};
+  bool show_junction_boundaries_{false};
+  bool show_border_lanes_{false};
 
   QOpenGLShaderProgram shader_program_;
 

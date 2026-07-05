@@ -197,10 +197,20 @@ void ViewportWidget::paintGL() {
     glDisable(GL_BLEND);
   }
 
-  // 1. Draw Road Surface Meshes in a Single batched call
+  // 1. Draw Road Surface Meshes
   if (!geometry_.triangle_indices.empty()) {
     triangles_vao_.bind();
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(geometry_.triangle_indices.size()), GL_UNSIGNED_INT, nullptr);
+    for (const auto& range : geometry_.mesh_ranges) {
+      if (!show_border_lanes_ &&
+          (range.lane_type == ast::LaneType::kBorder || range.lane_type == ast::LaneType::kNone)) {
+        continue;
+      }
+      if (range.index_count > 0) {
+        const void* offset =
+            reinterpret_cast<const void*>(static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
+      }
+    }
     triangles_vao_.release();
   }
 
@@ -218,6 +228,10 @@ void ViewportWidget::paintGL() {
   if (has_model_ && hovered_pose_) {
     for (const auto& range : geometry_.mesh_ranges) {
       if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
+        if (!show_border_lanes_ &&
+            (range.lane_type == ast::LaneType::kBorder || range.lane_type == ast::LaneType::kNone)) {
+          break;
+        }
         if (range.index_count > 0) {
           glDisable(GL_DEPTH_TEST);
           glEnable(GL_BLEND);
@@ -458,7 +472,7 @@ void ViewportWidget::paintGL() {
 
     // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
     {
-      const QRect kRect(20, height() - 170, 310, 150);
+      const QRect kRect(20, height() - 190, 310, 170);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(kRect, 8.0, 8.0);
@@ -468,7 +482,7 @@ void ViewportWidget::paintGL() {
       painter.setFont(font);
 
       const int kXOffset = 35;
-      int y_offset = height() - 145;
+      int y_offset = height() - 165;
       const int kLineHeight = 20;
 
       // Header
@@ -485,11 +499,9 @@ void ViewportWidget::paintGL() {
         QString key;
         QString desc;
       };
-      const std::vector<ShortcutItem> kItems = {{"L-Click + Drag", "Pan Map"},
-                                                {"R-Click + Drag", "Rotate Map"},
-                                                {"Scroll Wheel", "Zoom Map"},
-                                                {"R", "Reset View / Auto-fit"},
-                                                {"J", "Toggle Junction Boundaries"}};
+      const std::vector<ShortcutItem> kItems = {{"L-Click + Drag", "Pan Map"},       {"R-Click + Drag", "Rotate Map"},
+                                                {"Scroll Wheel", "Zoom Map"},        {"R", "Reset View / Auto-fit"},
+                                                {"J", "Toggle Junction Boundaries"}, {"B", "Toggle Border Lanes"}};
 
       for (const auto& item : kItems) {
         // Shortcut key
@@ -687,6 +699,9 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     update();
   } else if (event->key() == Qt::Key_J) {
     show_junction_boundaries_ = !show_junction_boundaries_;
+    update();
+  } else if (event->key() == Qt::Key_B) {
+    show_border_lanes_ = !show_border_lanes_;
     update();
   }
 }
