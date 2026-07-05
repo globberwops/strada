@@ -4,6 +4,7 @@
 #include <cmath>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/cpm/query_context.hpp>
+#include <strada/parser/conversions.hpp>
 #include <strada/tess/tessellator.hpp>
 #include <variant>
 
@@ -136,7 +137,7 @@ void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road
       Mesh mesh;
       mesh.road_id = road_id;
       mesh.lane_id = lane_id;
-      mesh.lane_type = std::string(ast::ToString(lane.type));
+      mesh.lane_type = std::string(parser::ToString(lane.type));
 
       Polyline boundary;
       boundary.road_id = road_id;

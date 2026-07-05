@@ -248,103 +248,6 @@ auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile {
   return profile;
 }
 
-auto ParseLaneType(std::string_view type_str) -> std::optional<ast::LaneType> {
-  if (type_str == "hov") {
-    return ast::LaneType::kHov;
-  }
-  if (type_str == "bidirectional") {
-    return ast::LaneType::kBidirectional;
-  }
-  if (type_str == "biking") {
-    return ast::LaneType::kBiking;
-  }
-  if (type_str == "border") {
-    return ast::LaneType::kBorder;
-  }
-  if (type_str == "bus") {
-    return ast::LaneType::kBus;
-  }
-  if (type_str == "connectingRamp") {
-    return ast::LaneType::kConnectingRamp;
-  }
-  if (type_str == "curb") {
-    return ast::LaneType::kCurb;
-  }
-  if (type_str == "driving") {
-    return ast::LaneType::kDriving;
-  }
-  if (type_str == "entry") {
-    return ast::LaneType::kEntry;
-  }
-  if (type_str == "exit") {
-    return ast::LaneType::kExit;
-  }
-  if (type_str == "median") {
-    return ast::LaneType::kMedian;
-  }
-  if (type_str == "mwyEntry") {
-    return ast::LaneType::kMwyEntry;
-  }
-  if (type_str == "mwyExit") {
-    return ast::LaneType::kMwyExit;
-  }
-  if (type_str == "none") {
-    return ast::LaneType::kNone;
-  }
-  if (type_str == "offRamp") {
-    return ast::LaneType::kOffRamp;
-  }
-  if (type_str == "onRamp") {
-    return ast::LaneType::kOnRamp;
-  }
-  if (type_str == "parking") {
-    return ast::LaneType::kParking;
-  }
-  if (type_str == "rail") {
-    return ast::LaneType::kRail;
-  }
-  if (type_str == "restricted") {
-    return ast::LaneType::kRestricted;
-  }
-  if (type_str == "roadWorks") {
-    return ast::LaneType::kRoadWorks;
-  }
-  if (type_str == "shared") {
-    return ast::LaneType::kShared;
-  }
-  if (type_str == "shoulder") {
-    return ast::LaneType::kShoulder;
-  }
-  if (type_str == "sidewalk") {
-    return ast::LaneType::kSidewalk;
-  }
-  if (type_str == "slipLane") {
-    return ast::LaneType::kSlipLane;
-  }
-  if (type_str == "special1") {
-    return ast::LaneType::kSpecial1;
-  }
-  if (type_str == "special2") {
-    return ast::LaneType::kSpecial2;
-  }
-  if (type_str == "special3") {
-    return ast::LaneType::kSpecial3;
-  }
-  if (type_str == "stop") {
-    return ast::LaneType::kStop;
-  }
-  if (type_str == "taxi") {
-    return ast::LaneType::kTaxi;
-  }
-  if (type_str == "tram") {
-    return ast::LaneType::kTram;
-  }
-  if (type_str == "walking") {
-    return ast::LaneType::kWalking;
-  }
-  return std::nullopt;
-}
-
 auto ParseLane(pugi::xml_node lane_node) -> ast::Lane {
   ast::Lane lane;
   lane.id = lane_node.attribute("id").as_int(0);
@@ -354,7 +257,7 @@ auto ParseLane(pugi::xml_node lane_node) -> ast::Lane {
     throw MissingElementError("<lane> element is missing mandatory 'type' attribute");
   }
   const std::string_view kTypeStr = kTypeAttr.value();
-  const auto kLaneType = ParseLaneType(kTypeStr);
+  const auto kLaneType = FromString<ast::LaneType>(kTypeStr);
   if (!kLaneType) {
     throw InvalidAttributeError("<lane id=\"" + std::to_string(lane.id) + "\"> has invalid type=\"" +
                                 std::string(kTypeStr) + "\"");
@@ -526,17 +429,11 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
   }
 
   if (junction_node.attribute("type")) {
-    const std::string type_str = junction_node.attribute("type").as_string();
-    if (type_str == "default") {
-      junction.type = ast::JunctionType::kCommon;
-    } else if (type_str == "crossing") {
-      junction.type = ast::JunctionType::kCrossing;
-    } else if (type_str == "direct") {
-      junction.type = ast::JunctionType::kDirect;
-    } else if (type_str == "virtual") {
-      junction.type = ast::JunctionType::kVirtual;
+    const std::string_view type_str = junction_node.attribute("type").value();
+    if (const auto type_opt = FromString<ast::JunctionType>(type_str)) {
+      junction.type = *type_opt;
     } else {
-      throw InvalidAttributeError("Invalid junction type: " + type_str);
+      throw InvalidAttributeError("Invalid junction type: " + std::string(type_str));
     }
   } else {
     junction.type = ast::JunctionType::kCommon;
@@ -606,14 +503,12 @@ auto ParseLaneValidities(pugi::xml_node parent_node) -> std::vector<ast::LaneVal
     }
 
     if (validity_node.attribute("layer")) {
-      std::string layer_str = validity_node.attribute("layer").as_string();
-      if (layer_str == "permanent") {
-        validity.layer = ast::LayerType::kPermanent;
-      } else if (layer_str == "temporary") {
-        validity.layer = ast::LayerType::kTemporary;
+      const std::string_view layer_str = validity_node.attribute("layer").value();
+      if (const auto layer_opt = FromString<ast::LayerType>(layer_str)) {
+        validity.layer = *layer_opt;
       } else {
         throw InvalidAttributeError("<validity> element under <" + parent_name + " id=\"" + parent_id +
-                                    "\"> has invalid layer=\"" + layer_str + "\"");
+                                    "\"> has invalid layer=\"" + std::string(layer_str) + "\"");
       }
     } else {
       validity.layer = ast::LayerType::kPermanent;
@@ -659,17 +554,11 @@ auto ParseBridge(pugi::xml_node bridge_node) -> ast::Bridge {
     bridge.name = std::nullopt;
   }
 
-  std::string type_str = bridge_node.attribute("type").as_string();
-  if (type_str == "brick") {
-    bridge.type = ast::BridgeType::kBrick;
-  } else if (type_str == "concrete") {
-    bridge.type = ast::BridgeType::kConcrete;
-  } else if (type_str == "steel") {
-    bridge.type = ast::BridgeType::kSteel;
-  } else if (type_str == "wood") {
-    bridge.type = ast::BridgeType::kWood;
+  const std::string_view type_str = bridge_node.attribute("type").value();
+  if (const auto type_opt = FromString<ast::BridgeType>(type_str)) {
+    bridge.type = *type_opt;
   } else {
-    throw InvalidAttributeError("<bridge id=\"" + bridge_id + "\"> has invalid type=\"" + type_str + "\"");
+    throw InvalidAttributeError("<bridge id=\"" + bridge_id + "\"> has invalid type=\"" + std::string(type_str) + "\"");
   }
 
   bridge.validities = ParseLaneValidities(bridge_node);
@@ -714,13 +603,11 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
     tunnel.name = std::nullopt;
   }
 
-  std::string type_str = tunnel_node.attribute("type").as_string();
-  if (type_str == "standard") {
-    tunnel.type = ast::TunnelType::kStandard;
-  } else if (type_str == "underpass") {
-    tunnel.type = ast::TunnelType::kUnderpass;
+  const std::string_view type_str = tunnel_node.attribute("type").value();
+  if (const auto type_opt = FromString<ast::TunnelType>(type_str)) {
+    tunnel.type = *type_opt;
   } else {
-    throw InvalidAttributeError("<tunnel id=\"" + tunnel_id + "\"> has invalid type=\"" + type_str + "\"");
+    throw InvalidAttributeError("<tunnel id=\"" + tunnel_id + "\"> has invalid type=\"" + std::string(type_str) + "\"");
   }
 
   if (tunnel_node.attribute("lighting")) {

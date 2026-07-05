@@ -1425,3 +1425,183 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionConnectionContactPo
   // Act & Assert
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
 }
+
+TEST(ParserConversionsTest, JunctionTypeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::JunctionType>("default"), strada::ast::JunctionType::kCommon);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::JunctionType>("crossing"), strada::ast::JunctionType::kCrossing);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::JunctionType>("direct"), strada::ast::JunctionType::kDirect);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::JunctionType>("virtual"), strada::ast::JunctionType::kVirtual);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::JunctionType>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::JunctionType::kCommon), "default");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::JunctionType::kCrossing), "crossing");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::JunctionType::kDirect), "direct");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::JunctionType::kVirtual), "virtual");
+}
+
+TEST(ParserConversionsTest, LayerTypeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LayerType>("permanent"), strada::ast::LayerType::kPermanent);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LayerType>("temporary"), strada::ast::LayerType::kTemporary);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LayerType>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LayerType::kPermanent), "permanent");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LayerType::kTemporary), "temporary");
+}
+
+TEST(ParserConversionsTest, TunnelTypeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::TunnelType>("standard"), strada::ast::TunnelType::kStandard);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::TunnelType>("underpass"), strada::ast::TunnelType::kUnderpass);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::TunnelType>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::TunnelType::kStandard), "standard");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::TunnelType::kUnderpass), "underpass");
+}
+
+TEST(ParserConversionsTest, BridgeTypeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::BridgeType>("brick"), strada::ast::BridgeType::kBrick);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::BridgeType>("concrete"), strada::ast::BridgeType::kConcrete);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::BridgeType>("steel"), strada::ast::BridgeType::kSteel);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::BridgeType>("wood"), strada::ast::BridgeType::kWood);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::BridgeType>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::BridgeType::kBrick), "brick");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::BridgeType::kConcrete), "concrete");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::BridgeType::kSteel), "steel");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::BridgeType::kWood), "wood");
+}
+
+TEST(ParserConversionsTest, LaneTypeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("hov"), strada::ast::LaneType::kHov);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("bidirectional"), strada::ast::LaneType::kBidirectional);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("biking"), strada::ast::LaneType::kBiking);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("border"), strada::ast::LaneType::kBorder);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("bus"), strada::ast::LaneType::kBus);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("connectingRamp"),
+            strada::ast::LaneType::kConnectingRamp);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("curb"), strada::ast::LaneType::kCurb);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("driving"), strada::ast::LaneType::kDriving);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("entry"), strada::ast::LaneType::kEntry);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("exit"), strada::ast::LaneType::kExit);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("median"), strada::ast::LaneType::kMedian);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("mwyEntry"), strada::ast::LaneType::kMwyEntry);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("mwyExit"), strada::ast::LaneType::kMwyExit);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("none"), strada::ast::LaneType::kNone);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("offRamp"), strada::ast::LaneType::kOffRamp);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("onRamp"), strada::ast::LaneType::kOnRamp);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("parking"), strada::ast::LaneType::kParking);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("rail"), strada::ast::LaneType::kRail);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("restricted"), strada::ast::LaneType::kRestricted);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("roadWorks"), strada::ast::LaneType::kRoadWorks);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("shared"), strada::ast::LaneType::kShared);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("shoulder"), strada::ast::LaneType::kShoulder);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("sidewalk"), strada::ast::LaneType::kSidewalk);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("slipLane"), strada::ast::LaneType::kSlipLane);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("special1"), strada::ast::LaneType::kSpecial1);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("special2"), strada::ast::LaneType::kSpecial2);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("special3"), strada::ast::LaneType::kSpecial3);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("stop"), strada::ast::LaneType::kStop);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("taxi"), strada::ast::LaneType::kTaxi);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("tram"), strada::ast::LaneType::kTram);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("walking"), strada::ast::LaneType::kWalking);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::LaneType>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kHov), "hov");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kBidirectional), "bidirectional");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kBiking), "biking");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kBorder), "border");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kBus), "bus");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kConnectingRamp), "connectingRamp");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kCurb), "curb");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kDriving), "driving");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kEntry), "entry");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kExit), "exit");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kMedian), "median");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kMwyEntry), "mwyEntry");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kMwyExit), "mwyExit");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kNone), "none");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kOffRamp), "offRamp");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kOnRamp), "onRamp");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kParking), "parking");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kRail), "rail");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kRestricted), "restricted");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kRoadWorks), "roadWorks");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kShared), "shared");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kShoulder), "shoulder");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kSidewalk), "sidewalk");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kSlipLane), "slipLane");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kSpecial1), "special1");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kSpecial2), "special2");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kSpecial3), "special3");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kStop), "stop");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kTaxi), "taxi");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kTram), "tram");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::LaneType::kWalking), "walking");
+}
+
+TEST(ParserConversionsTest, ObjectTypeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("none"), strada::ast::ObjectType::kNone);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("obstacle"), strada::ast::ObjectType::kObstacle);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("car"), strada::ast::ObjectType::kCar);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("pole"), strada::ast::ObjectType::kPole);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("tree"), strada::ast::ObjectType::kTree);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("vegetation"), strada::ast::ObjectType::kVegetation);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("barrier"), strada::ast::ObjectType::kBarrier);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("building"), strada::ast::ObjectType::kBuilding);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("parkingSpace"),
+            strada::ast::ObjectType::kParkingSpace);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("patch"), strada::ast::ObjectType::kPatch);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("railing"), strada::ast::ObjectType::kRailing);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("trafficIsland"),
+            strada::ast::ObjectType::kTrafficIsland);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("crosswalk"), strada::ast::ObjectType::kCrosswalk);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("streetLamp"), strada::ast::ObjectType::kStreetLamp);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("gantry"), strada::ast::ObjectType::kGantry);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("soundBarrier"),
+            strada::ast::ObjectType::kSoundBarrier);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("van"), strada::ast::ObjectType::kVan);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("bus"), strada::ast::ObjectType::kBus);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("trailer"), strada::ast::ObjectType::kTrailer);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("bike"), strada::ast::ObjectType::kBike);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("motorbike"), strada::ast::ObjectType::kMotorbike);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("tram"), strada::ast::ObjectType::kTram);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("train"), strada::ast::ObjectType::kTrain);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("pedestrian"), strada::ast::ObjectType::kPedestrian);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("wind"), strada::ast::ObjectType::kWind);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("roadMark"), strada::ast::ObjectType::kRoadMark);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("roadSurface"), strada::ast::ObjectType::kRoadSurface);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ObjectType>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kNone), "none");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kObstacle), "obstacle");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kCar), "car");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kPole), "pole");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kTree), "tree");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kVegetation), "vegetation");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kBarrier), "barrier");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kBuilding), "building");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kParkingSpace), "parkingSpace");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kPatch), "patch");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kRailing), "railing");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kTrafficIsland), "trafficIsland");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kCrosswalk), "crosswalk");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kStreetLamp), "streetLamp");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kGantry), "gantry");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kSoundBarrier), "soundBarrier");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kVan), "van");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kBus), "bus");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kTrailer), "trailer");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kBike), "bike");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kMotorbike), "motorbike");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kTram), "tram");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kTrain), "train");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kPedestrian), "pedestrian");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kWind), "wind");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kRoadMark), "roadMark");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kRoadSurface), "roadSurface");
+}
