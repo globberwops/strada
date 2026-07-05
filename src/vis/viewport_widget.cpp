@@ -792,13 +792,30 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     } else {
       show_reference_lines_ = !show_reference_lines_;
       update();
+      if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+        if (auto* status = main_win->statusBar()) {
+          status->showMessage(show_reference_lines_ ? "Toggled reference lines: ON" : "Toggled reference lines: OFF",
+                              2000);
+        }
+      }
     }
   } else if (event->key() == Qt::Key_J) {
     show_junction_boundaries_ = !show_junction_boundaries_;
     update();
+    if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+      if (auto* status = main_win->statusBar()) {
+        status->showMessage(
+            show_junction_boundaries_ ? "Toggled junction boundaries: ON" : "Toggled junction boundaries: OFF", 2000);
+      }
+    }
   } else if (event->key() == Qt::Key_B) {
     show_border_lanes_ = !show_border_lanes_;
     update();
+    if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+      if (auto* status = main_win->statusBar()) {
+        status->showMessage(show_border_lanes_ ? "Toggled border lanes: ON" : "Toggled border lanes: OFF", 2000);
+      }
+    }
   } else if (event->key() == Qt::Key_O) {
     show_objects_ = !show_objects_;
     update();
