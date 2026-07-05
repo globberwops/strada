@@ -192,7 +192,7 @@ TEST(ParserTest, ParseLanesAndProfiles) {
   // Left Lane
   ASSERT_EQ(section.left.size(), 1);
   EXPECT_EQ(section.left[0].id, 1);
-  EXPECT_EQ(section.left[0].type, "driving");
+  EXPECT_EQ(section.left[0].type, strada::ast::LaneType::kDriving);
   EXPECT_TRUE(section.left[0].level);
   ASSERT_TRUE(section.left[0].predecessor.has_value());
   EXPECT_EQ(section.left[0].predecessor.value_or(0), 2);
@@ -208,13 +208,13 @@ TEST(ParserTest, ParseLanesAndProfiles) {
   // Center Lane
   ASSERT_EQ(section.center.size(), 1);
   EXPECT_EQ(section.center[0].id, 0);
-  EXPECT_EQ(section.center[0].type, "border");
+  EXPECT_EQ(section.center[0].type, strada::ast::LaneType::kBorder);
   EXPECT_FALSE(section.center[0].level);
 
   // Right Lane
   ASSERT_EQ(section.right.size(), 1);
   EXPECT_EQ(section.right[0].id, -1);
-  EXPECT_EQ(section.right[0].type, "driving");
+  EXPECT_EQ(section.right[0].type, strada::ast::LaneType::kDriving);
   EXPECT_FALSE(section.right[0].level);
   ASSERT_TRUE(section.right[0].predecessor.has_value());
   EXPECT_EQ(section.right[0].predecessor.value_or(0), -2);
@@ -453,7 +453,7 @@ TEST(ParserTest, ParseCrossSectionSurface) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -506,7 +506,7 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnels) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -563,7 +563,7 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExten
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -625,7 +625,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeId) 
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge s="10.0" length="30.0"/>
   </road>
 </OpenDRIVE>)";
@@ -641,7 +641,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeS) {
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" length="30.0"/>
   </road>
 </OpenDRIVE>)";
@@ -657,7 +657,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeLeng
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="10.0"/>
   </road>
 </OpenDRIVE>)";
@@ -673,7 +673,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeS
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="-10.0" length="30.0" type="concrete"/>
   </road>
 </OpenDRIVE>)";
@@ -689,7 +689,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeL
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="10.0" length="-30.0" type="concrete"/>
   </road>
 </OpenDRIVE>)";
@@ -705,7 +705,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelId) 
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <tunnel s="10.0" length="30.0"/>
   </road>
 </OpenDRIVE>)";
@@ -721,7 +721,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelS) {
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <tunnel id="t1" length="30.0"/>
   </road>
 </OpenDRIVE>)";
@@ -737,7 +737,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelLeng
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <tunnel id="t1" s="10.0"/>
   </road>
 </OpenDRIVE>)";
@@ -753,7 +753,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelS
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <tunnel id="t1" s="-10.0" length="30.0" type="standard"/>
   </road>
 </OpenDRIVE>)";
@@ -769,7 +769,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelL
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <tunnel id="t1" s="10.0" length="-30.0" type="standard"/>
   </road>
 </OpenDRIVE>)";
@@ -785,7 +785,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeType
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="10.0" length="30.0"/>
   </road>
 </OpenDRIVE>)";
@@ -801,7 +801,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelType
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <tunnel id="t1" s="10.0" length="30.0"/>
   </road>
 </OpenDRIVE>)";
@@ -817,7 +817,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingLaneValidi
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="10.0" length="30.0" type="concrete">
       <validity toLane="-1"/>
     </bridge>
@@ -835,7 +835,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingLaneValidi
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="10.0" length="30.0" type="concrete">
       <validity fromLane="-2"/>
     </bridge>
@@ -853,7 +853,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnLaneValidityFro
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="10.0" length="30.0" type="concrete">
       <validity fromLane="-1" toLane="-2"/>
     </bridge>
@@ -871,7 +871,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidBridgeTy
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="10.0" length="30.0" type="invalid_type"/>
   </road>
 </OpenDRIVE>)";
@@ -887,7 +887,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidTunnelTy
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <tunnel id="t1" s="10.0" length="30.0" type="invalid_type"/>
   </road>
 </OpenDRIVE>)";
@@ -903,7 +903,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidLaneVali
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
-    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <lanes><laneSection s="0.0"><center><lane id="0" type="none"/></center></laneSection></lanes>
     <bridge id="b1" s="10.0" length="30.0" type="concrete">
       <validity fromLane="-2" toLane="-1" layer="invalid_layer"/>
     </bridge>
@@ -962,4 +962,142 @@ TEST(ParserTest, MissingRoadNameIsNullopt) {
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
   EXPECT_EQ(ast_tree.roads[0].name, std::nullopt);
+}
+
+TEST(ParserTest, ParseLaneTypesToEnum) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none"/>
+        </center>
+        <left>
+          <lane id="1" type="driving"/>
+          <lane id="2" type="hov"/>
+        </left>
+        <right>
+          <lane id="-1" type="sidewalk"/>
+          <lane id="-2" type="shoulder"/>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+  ASSERT_EQ(road.lanes.sections.size(), 1);
+  const auto& section = road.lanes.sections[0];
+  EXPECT_EQ(section.center[0].type, strada::ast::LaneType::kNone);
+  EXPECT_EQ(section.left[0].type, strada::ast::LaneType::kDriving);
+  EXPECT_EQ(section.left[1].type, strada::ast::LaneType::kHov);
+  EXPECT_EQ(section.right[0].type, strada::ast::LaneType::kSidewalk);
+  EXPECT_EQ(section.right[1].type, strada::ast::LaneType::kShoulder);
+}
+
+TEST(ParserTest, ThrowsMissingElementErrorOnMissingLaneType) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0"/>
+        </center>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidLaneType) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="invalid_type"/>
+        </center>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, ThrowsMissingElementErrorOnMissingPredecessorId) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none"/>
+        </center>
+        <left>
+          <lane id="1" type="driving">
+            <link>
+              <predecessor/>
+            </link>
+          </lane>
+        </left>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, ThrowsMissingElementErrorOnMissingSuccessorId) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none"/>
+        </center>
+        <left>
+          <lane id="1" type="driving">
+            <link>
+              <successor/>
+            </link>
+          </lane>
+        </left>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }

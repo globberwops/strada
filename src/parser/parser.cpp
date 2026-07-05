@@ -236,21 +236,136 @@ auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile {
   return profile;
 }
 
+auto ParseLaneType(std::string_view type_str) -> std::optional<ast::LaneType> {
+  if (type_str == "hov") {
+    return ast::LaneType::kHov;
+  }
+  if (type_str == "bidirectional") {
+    return ast::LaneType::kBidirectional;
+  }
+  if (type_str == "biking") {
+    return ast::LaneType::kBiking;
+  }
+  if (type_str == "border") {
+    return ast::LaneType::kBorder;
+  }
+  if (type_str == "bus") {
+    return ast::LaneType::kBus;
+  }
+  if (type_str == "connectingRamp") {
+    return ast::LaneType::kConnectingRamp;
+  }
+  if (type_str == "curb") {
+    return ast::LaneType::kCurb;
+  }
+  if (type_str == "driving") {
+    return ast::LaneType::kDriving;
+  }
+  if (type_str == "entry") {
+    return ast::LaneType::kEntry;
+  }
+  if (type_str == "exit") {
+    return ast::LaneType::kExit;
+  }
+  if (type_str == "median") {
+    return ast::LaneType::kMedian;
+  }
+  if (type_str == "mwyEntry") {
+    return ast::LaneType::kMwyEntry;
+  }
+  if (type_str == "mwyExit") {
+    return ast::LaneType::kMwyExit;
+  }
+  if (type_str == "none") {
+    return ast::LaneType::kNone;
+  }
+  if (type_str == "offRamp") {
+    return ast::LaneType::kOffRamp;
+  }
+  if (type_str == "onRamp") {
+    return ast::LaneType::kOnRamp;
+  }
+  if (type_str == "parking") {
+    return ast::LaneType::kParking;
+  }
+  if (type_str == "rail") {
+    return ast::LaneType::kRail;
+  }
+  if (type_str == "restricted") {
+    return ast::LaneType::kRestricted;
+  }
+  if (type_str == "roadWorks") {
+    return ast::LaneType::kRoadWorks;
+  }
+  if (type_str == "shared") {
+    return ast::LaneType::kShared;
+  }
+  if (type_str == "shoulder") {
+    return ast::LaneType::kShoulder;
+  }
+  if (type_str == "sidewalk") {
+    return ast::LaneType::kSidewalk;
+  }
+  if (type_str == "slipLane") {
+    return ast::LaneType::kSlipLane;
+  }
+  if (type_str == "special1") {
+    return ast::LaneType::kSpecial1;
+  }
+  if (type_str == "special2") {
+    return ast::LaneType::kSpecial2;
+  }
+  if (type_str == "special3") {
+    return ast::LaneType::kSpecial3;
+  }
+  if (type_str == "stop") {
+    return ast::LaneType::kStop;
+  }
+  if (type_str == "taxi") {
+    return ast::LaneType::kTaxi;
+  }
+  if (type_str == "tram") {
+    return ast::LaneType::kTram;
+  }
+  if (type_str == "walking") {
+    return ast::LaneType::kWalking;
+  }
+  return std::nullopt;
+}
+
 auto ParseLane(pugi::xml_node lane_node) -> ast::Lane {
   ast::Lane lane;
   lane.id = lane_node.attribute("id").as_int(0);
-  lane.type = lane_node.attribute("type").as_string("");
+
+  const auto kTypeAttr = lane_node.attribute("type");
+  if (!kTypeAttr) {
+    throw MissingElementError("<lane> element is missing mandatory 'type' attribute");
+  }
+  const std::string_view kTypeStr = kTypeAttr.value();
+  const auto kLaneType = ParseLaneType(kTypeStr);
+  if (!kLaneType) {
+    throw InvalidAttributeError("<lane id=\"" + std::to_string(lane.id) + "\"> has invalid type=\"" +
+                                std::string(kTypeStr) + "\"");
+  }
+  lane.type = *kLaneType;
+
   lane.level = lane_node.attribute("level").as_bool(false);
 
   const pugi::xml_node kLinkNode = lane_node.child("link");
   if (!kLinkNode.empty()) {
     const pugi::xml_node kPredNode = kLinkNode.child("predecessor");
     if (!kPredNode.empty()) {
-      lane.predecessor = kPredNode.attribute("id").as_int(0);
+      if (!kPredNode.attribute("id")) {
+        throw MissingElementError("<predecessor> element inside lane link is missing mandatory 'id' attribute");
+      }
+      lane.predecessor = kPredNode.attribute("id").as_int();
     }
     const pugi::xml_node kSuccNode = kLinkNode.child("successor");
     if (!kSuccNode.empty()) {
-      lane.successor = kSuccNode.attribute("id").as_int(0);
+      if (!kSuccNode.attribute("id")) {
+        throw MissingElementError("<successor> element inside lane link is missing mandatory 'id' attribute");
+      }
+      lane.successor = kSuccNode.attribute("id").as_int();
     }
   }
 

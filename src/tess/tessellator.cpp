@@ -136,7 +136,7 @@ void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road
       Mesh mesh;
       mesh.road_id = road_id;
       mesh.lane_id = lane_id;
-      mesh.lane_type = lane.type;
+      mesh.lane_type = std::string(ast::ToString(lane.type));
 
       Polyline boundary;
       boundary.road_id = road_id;

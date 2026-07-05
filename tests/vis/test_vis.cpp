@@ -48,7 +48,7 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
 
   ast::Lane lane1;
   lane1.id = 1;
-  lane1.type = "driving";
+  lane1.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w1;
   w1.s_offset = 0.0;
   w1.a = 3.0;
@@ -57,7 +57,7 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
 
   ast::Lane lane0;
   lane0.id = 0;
-  lane0.type = "border";
+  lane0.type = strada::ast::LaneType::kBorder;
   section.center.push_back(lane0);
 
   road.lanes.sections.push_back(section);
@@ -110,7 +110,7 @@ TEST(VisTest, BatchMapGeometryLines) {
 
   ast::Lane lane1;
   lane1.id = 1;
-  lane1.type = "driving";
+  lane1.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w1;
   w1.s_offset = 0.0;
   w1.a = 3.0;
@@ -119,7 +119,7 @@ TEST(VisTest, BatchMapGeometryLines) {
 
   ast::Lane lane0;
   lane0.id = 0;
-  lane0.type = "border";
+  lane0.type = strada::ast::LaneType::kBorder;
   section.center.push_back(lane0);
 
   road.lanes.sections.push_back(section);
@@ -187,7 +187,7 @@ TEST(VisTest, MeshRangeTracking) {
 
   ast::Lane lane1;
   lane1.id = 1;
-  lane1.type = "driving";
+  lane1.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w1;
   w1.s_offset = 0.0;
   w1.a = 3.0;
@@ -196,7 +196,7 @@ TEST(VisTest, MeshRangeTracking) {
 
   ast::Lane lane0;
   lane0.id = 0;
-  lane0.type = "border";
+  lane0.type = strada::ast::LaneType::kBorder;
   section.center.push_back(lane0);
 
   road.lanes.sections.push_back(section);

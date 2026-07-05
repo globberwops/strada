@@ -146,7 +146,7 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
   // Left lane 1
   ast::Lane lane1;
   lane1.id = 1;
-  lane1.type = "driving";
+  lane1.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w1;
   w1.s_offset = 0.0;
   w1.a = 3.0;
@@ -156,7 +156,7 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
   // Left lane 2
   ast::Lane lane2;
   lane2.id = 2;
-  lane2.type = "driving";
+  lane2.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w2;
   w2.s_offset = 0.0;
   w2.a = 3.5;
@@ -166,7 +166,7 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
   // Center lane 0
   ast::Lane lane0;
   lane0.id = 0;
-  lane0.type = "border";
+  lane0.type = strada::ast::LaneType::kBorder;
   section.center.push_back(lane0);
 
   road.lanes.sections.push_back(section);
@@ -282,12 +282,12 @@ TEST(TessellatorTest, JunctionJointBoundaryTessellation) {
 
   ast::Lane lane0;
   lane0.id = 0;
-  lane0.type = "border";
+  lane0.type = strada::ast::LaneType::kBorder;
   section.center.push_back(lane0);
 
   ast::Lane lane_r1;
   lane_r1.id = -1;
-  lane_r1.type = "driving";
+  lane_r1.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w_r1;
   w_r1.s_offset = 0.0;
   w_r1.a = 3.0;
@@ -296,7 +296,7 @@ TEST(TessellatorTest, JunctionJointBoundaryTessellation) {
 
   ast::Lane lane_r2;
   lane_r2.id = -2;
-  lane_r2.type = "driving";
+  lane_r2.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w_r2;
   w_r2.s_offset = 0.0;
   w_r2.a = 4.0;
@@ -305,7 +305,7 @@ TEST(TessellatorTest, JunctionJointBoundaryTessellation) {
 
   ast::Lane lane_l1;
   lane_l1.id = 1;
-  lane_l1.type = "driving";
+  lane_l1.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w_l1;
   w_l1.s_offset = 0.0;
   w_l1.a = 3.0;
@@ -374,12 +374,12 @@ TEST(TessellatorTest, JunctionBoundaryFallbackWithoutBoundaryTag) {
 
   ast::Lane lane0;
   lane0.id = 0;
-  lane0.type = "border";
+  lane0.type = strada::ast::LaneType::kBorder;
   section.center.push_back(lane0);
 
   ast::Lane lane_r1;
   lane_r1.id = -1;
-  lane_r1.type = "driving";
+  lane_r1.type = strada::ast::LaneType::kDriving;
   ast::LaneWidth w_r1;
   w_r1.s_offset = 0.0;
   w_r1.a = 3.0;

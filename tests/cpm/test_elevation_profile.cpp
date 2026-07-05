@@ -30,7 +30,7 @@ TEST(ElevationProfileTest, CompileAndEvaluateElevationAndSuperelevation) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -82,7 +82,7 @@ TEST(ElevationProfileTest, SuperelevationIsZeroIfCrossSectionSurfacePresent) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -119,7 +119,7 @@ TEST(ElevationProfileTest, ShapeProfileEvaluation) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>

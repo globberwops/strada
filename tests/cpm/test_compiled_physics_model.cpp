@@ -34,7 +34,7 @@ TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -203,7 +203,7 @@ TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -528,7 +528,7 @@ TEST(CompiledPhysicsModelTest, BuildStaticFactory) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>

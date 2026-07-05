@@ -108,7 +108,7 @@
           </lane>
         </left>
         <center>
-          <lane id="0">
+          <lane id="0" type="none">
             <link>
             </link>
           </lane>
@@ -212,7 +212,7 @@
           </lane>
         </left>
         <center>
-          <lane id="0" level="true">
+          <lane id="0" type="none" level="true">
             <link>
             </link>
           </lane>

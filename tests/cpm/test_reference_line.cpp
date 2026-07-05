@@ -20,7 +20,7 @@ TEST(ReferenceLineTest, CompileAndEvaluateSimpleLine) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -72,7 +72,7 @@ TEST(ReferenceLineTest, CompileAndProjectLineAndArc) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -129,7 +129,7 @@ TEST(ReferenceLineTest, ComputeSegmentAabb) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>
@@ -166,7 +166,7 @@ TEST(ReferenceLineTest, FindSegmentIndexAndCoherence) {
     <lanes>
       <laneSection s="0.0">
         <center>
-          <lane id="0"/>
+          <lane id="0" type="none"/>
         </center>
       </laneSection>
     </lanes>

@@ -37,7 +37,7 @@
                     </lane>
                 </left>
                 <center>
-                    <lane id="0">
+                    <lane id="0" type="none">
                         <link>
                         </link>
                         <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.2000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
