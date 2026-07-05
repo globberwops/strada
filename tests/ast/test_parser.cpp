@@ -1184,7 +1184,7 @@ TEST(ParserTest, ParseLaneTypesToEnum) {
   EXPECT_EQ(section.right[1].type, strada::ast::LaneType::kShoulder);
 }
 
-TEST(ParserTest, ThrowsMissingElementErrorOnMissingLaneType) {
+TEST(ParserTest, ParsesLaneMissingTypeAsNone) {
   // Arrange
   const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -1201,8 +1201,14 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingLaneType) {
   </road>
 </OpenDRIVE>)";
 
-  // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  // Act
+  auto map = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(map.roads.size(), 1);
+  ASSERT_EQ(map.roads[0].lanes.sections.size(), 1);
+  ASSERT_EQ(map.roads[0].lanes.sections[0].center.size(), 1);
+  EXPECT_EQ(map.roads[0].lanes.sections[0].center[0].type, strada::ast::LaneType::kNone);
 }
 
 TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidLaneType) {

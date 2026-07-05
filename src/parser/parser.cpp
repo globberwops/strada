@@ -253,16 +253,17 @@ auto ParseLane(pugi::xml_node lane_node) -> ast::Lane {
   lane.id = lane_node.attribute("id").as_int(0);
 
   const auto kTypeAttr = lane_node.attribute("type");
-  if (!kTypeAttr) {
-    throw MissingElementError("<lane> element is missing mandatory 'type' attribute");
+  if (kTypeAttr) {
+    const std::string_view kTypeStr = kTypeAttr.value();
+    const auto kLaneType = FromString<ast::LaneType>(kTypeStr);
+    if (!kLaneType) {
+      throw InvalidAttributeError("<lane id=\"" + std::to_string(lane.id) + "\"> has invalid type=\"" +
+                                  std::string(kTypeStr) + "\"");
+    }
+    lane.type = *kLaneType;
+  } else {
+    lane.type = ast::LaneType::kNone;
   }
-  const std::string_view kTypeStr = kTypeAttr.value();
-  const auto kLaneType = FromString<ast::LaneType>(kTypeStr);
-  if (!kLaneType) {
-    throw InvalidAttributeError("<lane id=\"" + std::to_string(lane.id) + "\"> has invalid type=\"" +
-                                std::string(kTypeStr) + "\"");
-  }
-  lane.type = *kLaneType;
 
   lane.level = lane_node.attribute("level").as_bool(false);
 
