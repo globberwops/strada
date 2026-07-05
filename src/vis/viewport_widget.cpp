@@ -215,7 +215,7 @@ void ViewportWidget::paintGL() {
   }
 
   // 2. Draw Boundaries/Markings in a Single batched call
-  if (!geometry_.line_vertices.empty()) {
+  if (show_reference_lines_ && !geometry_.line_vertices.empty()) {
     glDisable(GL_DEPTH_TEST);
     lines_vao_.bind();
     glLineWidth(2.0F);
@@ -238,7 +238,7 @@ void ViewportWidget::paintGL() {
           glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
           shader_program_.setUniformValue("useOverrideColor", 1);
-          shader_program_.setUniformValue("overrideColor", QVector4D(1.0F, 0.75F, 0.0F, 0.4F));
+          shader_program_.setUniformValue("overrideColor", QVector4D(1.0F, 0.0F, 0.0F, 0.4F));
 
           triangles_vao_.bind();
           const void* offset =
@@ -472,7 +472,7 @@ void ViewportWidget::paintGL() {
 
     // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
     {
-      const QRect kRect(20, height() - 190, 310, 170);
+      const QRect kRect(20, height() - 210, 310, 190);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(kRect, 8.0, 8.0);
@@ -482,7 +482,7 @@ void ViewportWidget::paintGL() {
       painter.setFont(font);
 
       const int kXOffset = 35;
-      int y_offset = height() - 165;
+      int y_offset = height() - 185;
       const int kLineHeight = 20;
 
       // Header
@@ -499,9 +499,10 @@ void ViewportWidget::paintGL() {
         QString key;
         QString desc;
       };
-      const std::vector<ShortcutItem> kItems = {{"L-Click + Drag", "Pan Map"},       {"R-Click + Drag", "Rotate Map"},
-                                                {"Scroll Wheel", "Zoom Map"},        {"R", "Reset View / Auto-fit"},
-                                                {"J", "Toggle Junction Boundaries"}, {"B", "Toggle Border Lanes"}};
+      const std::vector<ShortcutItem> kItems = {{"L-Click + Drag", "Pan Map"},  {"R-Click + Drag", "Rotate Map"},
+                                                {"Scroll Wheel", "Zoom Map"},   {"Ctrl+R", "Reset View / Auto-fit"},
+                                                {"R", "Toggle Reference Line"}, {"J", "Toggle Junction Boundaries"},
+                                                {"B", "Toggle Border Lanes"}};
 
       for (const auto& item : kItems) {
         // Shortcut key
@@ -669,34 +670,39 @@ void ViewportWidget::wheelEvent(QWheelEvent* event) {
 
 void ViewportWidget::keyPressEvent(QKeyEvent* event) {
   if (event->key() == Qt::Key_R) {
-    camera_.Reset();
-    float min_x = std::numeric_limits<float>::max();
-    float max_x = std::numeric_limits<float>::lowest();
-    float min_y = std::numeric_limits<float>::max();
-    float max_y = std::numeric_limits<float>::lowest();
-    for (const auto& v : geometry_.triangle_vertices) {
-      min_x = std::min(min_x, v.x);
-      max_x = std::max(max_x, v.x);
-      min_y = std::min(min_y, v.y);
-      max_y = std::max(max_y, v.y);
-    }
-    for (const auto& v : geometry_.line_vertices) {
-      min_x = std::min(min_x, v.x);
-      max_x = std::max(max_x, v.x);
-      min_y = std::min(min_y, v.y);
-      max_y = std::max(max_y, v.y);
-    }
-    if (max_x >= min_x && max_y >= min_y) {
-      camera_.camera_x = 0.5F * (min_x + max_x);
-      camera_.camera_y = 0.5F * (min_y + max_y);
-      const float kDx = max_x - min_x;
-      const float kDy = max_y - min_y;
-      const float kMaxDim = std::max(kDx, kDy);
-      if (kMaxDim > 0.0F) {
-        camera_.zoom = 300.0F / kMaxDim;
+    if (event->modifiers() & Qt::ControlModifier) {
+      camera_.Reset();
+      float min_x = std::numeric_limits<float>::max();
+      float max_x = std::numeric_limits<float>::lowest();
+      float min_y = std::numeric_limits<float>::max();
+      float max_y = std::numeric_limits<float>::lowest();
+      for (const auto& v : geometry_.triangle_vertices) {
+        min_x = std::min(min_x, v.x);
+        max_x = std::max(max_x, v.x);
+        min_y = std::min(min_y, v.y);
+        max_y = std::max(max_y, v.y);
       }
+      for (const auto& v : geometry_.line_vertices) {
+        min_x = std::min(min_x, v.x);
+        max_x = std::max(max_x, v.x);
+        min_y = std::min(min_y, v.y);
+        max_y = std::max(max_y, v.y);
+      }
+      if (max_x >= min_x && max_y >= min_y) {
+        camera_.camera_x = 0.5F * (min_x + max_x);
+        camera_.camera_y = 0.5F * (min_y + max_y);
+        const float kDx = max_x - min_x;
+        const float kDy = max_y - min_y;
+        const float kMaxDim = std::max(kDx, kDy);
+        if (kMaxDim > 0.0F) {
+          camera_.zoom = 300.0F / kMaxDim;
+        }
+      }
+      update();
+    } else {
+      show_reference_lines_ = !show_reference_lines_;
+      update();
     }
-    update();
   } else if (event->key() == Qt::Key_J) {
     show_junction_boundaries_ = !show_junction_boundaries_;
     update();

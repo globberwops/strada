@@ -189,10 +189,10 @@ TEST(VisTest, BatchMapGeometryLines) {
       EXPECT_NEAR(v_start.x, poly.vertices[i].x, 1e-4F);
       EXPECT_NEAR(v_end.x, poly.vertices[i + 1].x, 1e-4F);
 
-      // Yellow color
-      EXPECT_NEAR(v_start.r, 245.0F / 255.0F, 1e-2F);
-      EXPECT_NEAR(v_start.g, 197.0F / 255.0F, 1e-2F);
-      EXPECT_NEAR(v_start.b, 61.0F / 255.0F, 1e-2F);
+      // Red color
+      EXPECT_NEAR(v_start.r, 1.0F, 1e-4F);
+      EXPECT_NEAR(v_start.g, 0.0F, 1e-4F);
+      EXPECT_NEAR(v_start.b, 0.0F, 1e-4F);
     }
   }
 }

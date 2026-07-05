@@ -99,7 +99,7 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
       continue;
     }
 
-    auto line_color = Color{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F};
+    auto line_color = Color{.r = 1.0F, .g = 0.0F, .b = 0.0F};
 
     if (poly.vertices.size() < 2) {
       continue;
