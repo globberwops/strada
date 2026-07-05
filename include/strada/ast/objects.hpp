@@ -43,9 +43,9 @@ enum class ObjectType : std::uint8_t {
 
 /// Validity direction of an object or signal relative to reference line (e_orientation).
 enum class Orientation : std::uint8_t {
-  kPlus = 0,  ///< "+" - Valid in the direction of the reference line
-  kMinus,     ///< "-" - Valid in the opposite direction
-  kNone       ///< "none" - Valid in both directions / no direction restriction
+  kNone = 0,  ///< "none" - Valid in both directions / no direction restriction
+  kPlus,      ///< "+" - Valid in the direction of the reference line
+  kMinus      ///< "-" - Valid in the opposite direction
 };
 
 /// ASAM OpenDRIVE layer types (e_layerType).

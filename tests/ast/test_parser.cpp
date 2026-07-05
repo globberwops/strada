@@ -1280,3 +1280,17 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingSuccessorId) {
   // Act & Assert
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
 }
+
+TEST(ParserTest, DefaultObjectFields) {
+  // Arrange & Act
+  strada::ast::Object obj;
+  strada::ast::ObjectReference obj_ref;
+
+  // Assert
+  EXPECT_EQ(obj.type, strada::ast::ObjectType::kNone);
+  EXPECT_EQ(obj.orientation, strada::ast::Orientation::kNone);
+  EXPECT_EQ(static_cast<std::uint8_t>(obj.orientation), 0);
+
+  EXPECT_EQ(obj_ref.orientation, strada::ast::Orientation::kNone);
+  EXPECT_EQ(static_cast<std::uint8_t>(obj_ref.orientation), 0);
+}
