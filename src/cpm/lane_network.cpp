@@ -119,7 +119,7 @@ auto LaneNetwork::Build(const ast::AbstractSyntaxTree& map) -> LaneNetwork {
 
       for (const auto& strip : sorted_strips) {
         network.strips_.strip_id.push_back(strip.id);
-        network.strips_.is_relative.push_back(static_cast<std::uint8_t>(strip.mode == "relative"));
+        network.strips_.is_relative.push_back(static_cast<std::uint8_t>(strip.mode == ast::StripMode::kRelative));
 
         auto [w_first, w_count] = network.polynomials_.Compile(strip.width);
         network.strips_.width_first_idx.push_back(w_first);

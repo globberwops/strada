@@ -184,7 +184,20 @@ auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile {
       while (!strip_node.empty()) {
         ast::CrossSectionSurfaceStrip strip;
         strip.id = strip_node.attribute("id").as_int(0);
-        strip.mode = strip_node.attribute("mode").as_string("independent");
+        const pugi::xml_attribute kModeAttr = strip_node.attribute("mode");
+        if (kModeAttr.empty()) {
+          strip.mode = ast::StripMode::kIndependent;
+        } else {
+          const std::string_view kModeStr = kModeAttr.as_string();
+          if (kModeStr == "independent") {
+            strip.mode = ast::StripMode::kIndependent;
+          } else if (kModeStr == "relative") {
+            strip.mode = ast::StripMode::kRelative;
+          } else {
+            throw InvalidAttributeError("<strip id=\"" + std::to_string(strip.id) + "\"> has invalid mode=\"" +
+                                        std::string(kModeStr) + "\"");
+          }
+        }
 
         const pugi::xml_node kWidthNode = strip_node.child("width");
         if (!kWidthNode.empty()) {

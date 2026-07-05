@@ -45,15 +45,21 @@ struct Coefficient {
   double d{};  ///< Cubic coefficient (d).
 };
 
+/// Mode of height evaluation for cross-section surface strips.
+enum class StripMode : std::uint8_t {
+  kIndependent = 0,  ///< maps to XML string "independent"
+  kRelative          ///< maps to XML string "relative"
+};
+
 /// Represents a single strip in a cross-section surface profile.
 struct CrossSectionSurfaceStrip {
-  int id{};                            ///< Strip ID (positive on left, negative on right).
-  std::string mode{"independent"};     ///< Mode of height evaluation ("independent" or "relative").
-  std::vector<Coefficient> constant;   ///< Polynomial constant (c0) coefficients.
-  std::vector<Coefficient> linear;     ///< Polynomial linear (c1) coefficients.
-  std::vector<Coefficient> quadratic;  ///< Polynomial quadratic (c2) coefficients.
-  std::vector<Coefficient> cubic;      ///< Polynomial cubic (c3) coefficients.
-  std::vector<Coefficient> width;      ///< Width polynomial coefficients.
+  int id{};                                 ///< Strip ID (positive on left, negative on right).
+  StripMode mode{StripMode::kIndependent};  ///< Mode of height evaluation.
+  std::vector<Coefficient> constant;        ///< Polynomial constant (c0) coefficients.
+  std::vector<Coefficient> linear;          ///< Polynomial linear (c1) coefficients.
+  std::vector<Coefficient> quadratic;       ///< Polynomial quadratic (c2) coefficients.
+  std::vector<Coefficient> cubic;           ///< Polynomial cubic (c3) coefficients.
+  std::vector<Coefficient> width;           ///< Width polynomial coefficients.
 };
 
 /// Defines a road's cross-section surface (lateral elevation strips).

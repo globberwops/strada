@@ -479,13 +479,128 @@ TEST(ParserTest, ParseCrossSectionSurface) {
   ASSERT_EQ(css.strips.size(), 1);
   const auto& strip = css.strips[0];
   EXPECT_EQ(strip.id, 1);
-  EXPECT_EQ(strip.mode, "independent");
+  EXPECT_EQ(strip.mode, strada::ast::StripMode::kIndependent);
 
   // Verify constant coefficients
   ASSERT_EQ(strip.constant.size(), 1);
   EXPECT_DOUBLE_EQ(strip.constant[0].s, 0.0);
   EXPECT_DOUBLE_EQ(strip.constant[0].a, 0.45);
   EXPECT_DOUBLE_EQ(strip.constant[0].b, 0.0);
+}
+
+TEST(ParserTest, ParseCrossSectionSurfaceWithRelativeMode) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <elevationProfile/>
+    <lateralProfile>
+      <crossSectionSurface>
+        <surfaceStrips>
+          <strip id="1" mode="relative"/>
+        </surfaceStrips>
+      </crossSectionSurface>
+    </lateralProfile>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none"/>
+        </center>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+  ASSERT_TRUE(road.lateral_profile.cross_section_surface.has_value());
+  const auto& css = *road.lateral_profile.cross_section_surface;
+  ASSERT_EQ(css.strips.size(), 1);
+  EXPECT_EQ(css.strips[0].mode, strada::ast::StripMode::kRelative);
+}
+
+TEST(ParserTest, ParseCrossSectionSurfaceWithMissingMode) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <elevationProfile/>
+    <lateralProfile>
+      <crossSectionSurface>
+        <surfaceStrips>
+          <strip id="1"/>
+        </surfaceStrips>
+      </crossSectionSurface>
+    </lateralProfile>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none"/>
+        </center>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+  ASSERT_TRUE(road.lateral_profile.cross_section_surface.has_value());
+  const auto& css = *road.lateral_profile.cross_section_surface;
+  ASSERT_EQ(css.strips.size(), 1);
+  EXPECT_EQ(css.strips[0].mode, strada::ast::StripMode::kIndependent);
+}
+
+TEST(ParserTest, ParseCrossSectionSurfaceThrowsOnInvalidMode) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <elevationProfile/>
+    <lateralProfile>
+      <crossSectionSurface>
+        <surfaceStrips>
+          <strip id="1" mode="invalid_mode"/>
+        </surfaceStrips>
+      </crossSectionSurface>
+    </lateralProfile>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none"/>
+        </center>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
 }
 
 class BridgesAndTunnelsParserTest : public ::testing::Test {};
