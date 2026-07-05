@@ -339,7 +339,7 @@ constexpr auto FromString<ast::ObjectType>(std::string_view str) -> std::optiona
 }
 
 /// Converts ast::TrafficRule to its string representation.
-inline constexpr auto ToString(ast::TrafficRule val) noexcept -> std::string_view {
+constexpr auto ToString(ast::TrafficRule val) noexcept -> std::string_view {
   switch (val) {
     case ast::TrafficRule::kRht:
       return "RHT";
@@ -350,7 +350,7 @@ inline constexpr auto ToString(ast::TrafficRule val) noexcept -> std::string_vie
 }
 
 /// Converts ast::Orientation to its string representation.
-inline constexpr auto ToString(ast::Orientation val) noexcept -> std::string_view {
+constexpr auto ToString(ast::Orientation val) noexcept -> std::string_view {
   switch (val) {
     case ast::Orientation::kNone:
       return "none";
@@ -363,7 +363,7 @@ inline constexpr auto ToString(ast::Orientation val) noexcept -> std::string_vie
 }
 
 /// Converts ast::PRange to its string representation.
-inline constexpr auto ToString(ast::PRange val) noexcept -> std::string_view {
+constexpr auto ToString(ast::PRange val) noexcept -> std::string_view {
   switch (val) {
     case ast::PRange::kNormalized:
       return "normalized";
@@ -374,7 +374,7 @@ inline constexpr auto ToString(ast::PRange val) noexcept -> std::string_view {
 }
 
 /// Converts ast::ContactPoint to its string representation.
-inline constexpr auto ToString(ast::ContactPoint val) noexcept -> std::string_view {
+constexpr auto ToString(ast::ContactPoint val) noexcept -> std::string_view {
   switch (val) {
     case ast::ContactPoint::kStart:
       return "start";
@@ -385,7 +385,7 @@ inline constexpr auto ToString(ast::ContactPoint val) noexcept -> std::string_vi
 }
 
 /// Converts ast::JunctionSegmentType to its string representation.
-inline constexpr auto ToString(ast::JunctionSegmentType val) noexcept -> std::string_view {
+constexpr auto ToString(ast::JunctionSegmentType val) noexcept -> std::string_view {
   switch (val) {
     case ast::JunctionSegmentType::kLane:
       return "lane";
@@ -396,7 +396,7 @@ inline constexpr auto ToString(ast::JunctionSegmentType val) noexcept -> std::st
 }
 
 /// Converts ast::StripMode to its string representation.
-inline constexpr auto ToString(ast::StripMode val) noexcept -> std::string_view {
+constexpr auto ToString(ast::StripMode val) noexcept -> std::string_view {
   switch (val) {
     case ast::StripMode::kIndependent:
       return "independent";
@@ -407,7 +407,7 @@ inline constexpr auto ToString(ast::StripMode val) noexcept -> std::string_view 
 }
 
 /// Converts ast::JunctionType to its string representation.
-inline constexpr auto ToString(ast::JunctionType val) noexcept -> std::string_view {
+constexpr auto ToString(ast::JunctionType val) noexcept -> std::string_view {
   switch (val) {
     case ast::JunctionType::kCommon:
       return "default";
@@ -422,7 +422,7 @@ inline constexpr auto ToString(ast::JunctionType val) noexcept -> std::string_vi
 }
 
 /// Converts ast::LayerType to its string representation.
-inline constexpr auto ToString(ast::LayerType val) noexcept -> std::string_view {
+constexpr auto ToString(ast::LayerType val) noexcept -> std::string_view {
   switch (val) {
     case ast::LayerType::kPermanent:
       return "permanent";
@@ -433,7 +433,7 @@ inline constexpr auto ToString(ast::LayerType val) noexcept -> std::string_view 
 }
 
 /// Converts ast::TunnelType to its string representation.
-inline constexpr auto ToString(ast::TunnelType val) noexcept -> std::string_view {
+constexpr auto ToString(ast::TunnelType val) noexcept -> std::string_view {
   switch (val) {
     case ast::TunnelType::kStandard:
       return "standard";
@@ -444,7 +444,7 @@ inline constexpr auto ToString(ast::TunnelType val) noexcept -> std::string_view
 }
 
 /// Converts ast::BridgeType to its string representation.
-inline constexpr auto ToString(ast::BridgeType val) noexcept -> std::string_view {
+constexpr auto ToString(ast::BridgeType val) noexcept -> std::string_view {
   switch (val) {
     case ast::BridgeType::kBrick:
       return "brick";
@@ -459,7 +459,7 @@ inline constexpr auto ToString(ast::BridgeType val) noexcept -> std::string_view
 }
 
 /// Converts ast::LaneType to its string representation.
-inline constexpr auto ToString(ast::LaneType val) noexcept -> std::string_view {
+constexpr auto ToString(ast::LaneType val) noexcept -> std::string_view {
   switch (val) {
     case ast::LaneType::kHov:
       return "hov";
@@ -528,7 +528,7 @@ inline constexpr auto ToString(ast::LaneType val) noexcept -> std::string_view {
 }
 
 /// Converts ast::ObjectType to its string representation.
-inline constexpr auto ToString(ast::ObjectType val) noexcept -> std::string_view {
+constexpr auto ToString(ast::ObjectType val) noexcept -> std::string_view {
   switch (val) {
     case ast::ObjectType::kNone:
       return "none";
