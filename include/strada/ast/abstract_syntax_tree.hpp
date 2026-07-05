@@ -5,6 +5,7 @@
 #include <strada/ast/header.hpp>
 #include <strada/ast/junction.hpp>
 #include <strada/ast/road.hpp>
+#include <strada/ast/signals.hpp>
 #include <vector>
 
 namespace strada::ast {

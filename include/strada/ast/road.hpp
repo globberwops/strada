@@ -9,6 +9,7 @@
 #include <strada/ast/lanes.hpp>
 #include <strada/ast/objects.hpp>
 #include <strada/ast/profiles.hpp>
+#include <strada/ast/signals.hpp>
 #include <string>
 #include <vector>
 
@@ -59,6 +60,8 @@ struct Road {
   std::vector<Tunnel> tunnels;                     ///< Tunnels along the road.
   std::vector<Object> objects;                     ///< Objects along the road.
   std::vector<ObjectReference> object_references;  ///< Object references along the road.
+  std::vector<Signal> signals;                     ///< Traffic signals along the road.
+  std::vector<SignalReference> signal_references;  ///< Traffic signal references along the road.
   Extensions extensions;                           ///< Non-schema and custom user data extensions.
 };
 

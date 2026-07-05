@@ -2075,3 +2075,314 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
   }
 }
+
+TEST(ParserTest, ParseSignalsFromFixture) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::string xml = ReadFileToString(data_dir / "signal_dependency.xodr");
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(xml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+
+  ASSERT_EQ(road.signals.size(), 2);
+
+  // First signal: SpeedLimit60
+  const auto& sig1 = road.signals[0];
+  EXPECT_EQ(sig1.id, "1");
+  EXPECT_EQ(sig1.name, "SpeedLimit60");
+  EXPECT_DOUBLE_EQ(sig1.s, 50.0);
+  EXPECT_DOUBLE_EQ(sig1.t, -4.0);
+  EXPECT_DOUBLE_EQ(sig1.z_offset, 1.9);
+  EXPECT_DOUBLE_EQ(sig1.h_offset, 0.0);
+  EXPECT_DOUBLE_EQ(sig1.roll, 0.0);
+  EXPECT_DOUBLE_EQ(sig1.pitch, 0.0);
+  EXPECT_EQ(sig1.orientation, strada::ast::Orientation::kPlus);
+  EXPECT_FALSE(sig1.dynamic);
+  EXPECT_EQ(sig1.country, "DE");
+  EXPECT_EQ(sig1.country_revision, "2013");
+  EXPECT_EQ(sig1.type, "274");
+  EXPECT_EQ(sig1.subtype, "56");
+  EXPECT_DOUBLE_EQ(sig1.value, 60.0);
+  EXPECT_EQ(sig1.unit, "km/h");
+  EXPECT_DOUBLE_EQ(sig1.height, 0.61);
+  EXPECT_DOUBLE_EQ(sig1.width, 0.61);
+  EXPECT_FALSE(sig1.temporary);
+  EXPECT_FALSE(sig1.invalidated);
+
+  ASSERT_EQ(sig1.dependencies.size(), 1);
+  EXPECT_EQ(sig1.dependencies[0].id, "2");
+  EXPECT_EQ(sig1.dependencies[0].type, "");
+
+  // Second signal: LorriesOnly
+  const auto& sig2 = road.signals[1];
+  EXPECT_EQ(sig2.id, "2");
+  EXPECT_EQ(sig2.name, "LorriesOnly");
+  EXPECT_DOUBLE_EQ(sig2.s, 50.0);
+  EXPECT_DOUBLE_EQ(sig2.t, -4.0);
+  EXPECT_DOUBLE_EQ(sig2.z_offset, 1.57);
+  EXPECT_DOUBLE_EQ(sig2.h_offset, 0.0);
+  EXPECT_DOUBLE_EQ(sig2.roll, 0.0);
+  EXPECT_DOUBLE_EQ(sig2.pitch, 0.0);
+  EXPECT_EQ(sig2.orientation, strada::ast::Orientation::kPlus);
+  EXPECT_FALSE(sig2.dynamic);
+  EXPECT_EQ(sig2.country, "DE");
+  EXPECT_EQ(sig2.country_revision, "2013");
+  EXPECT_EQ(sig2.type, "1048");
+  EXPECT_EQ(sig2.subtype, "12");
+  EXPECT_DOUBLE_EQ(sig2.value, 0.0);
+  EXPECT_EQ(sig2.unit, "");
+  EXPECT_DOUBLE_EQ(sig2.height, 0.33);
+  EXPECT_DOUBLE_EQ(sig2.width, 0.60);
+  EXPECT_FALSE(sig2.temporary);
+  EXPECT_FALSE(sig2.invalidated);
+  EXPECT_TRUE(sig2.dependencies.empty());
+}
+
+TEST(ParserTest, ParseSignalsAndReferencesFull) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <signals>
+      <signal s="10.0" t="-2.0" id="sig_1" type="100" subtype="10" orientation="+" name="Signal1" zOffset="1.5" hOffset="0.1" roll="0.2" pitch="0.3" dynamic="yes" country="US" countryRevision="2020" value="45.0" unit="mph" height="1.0" width="0.8" text="Stop Here" temporary="yes" invalidated="no" custom_attr="hello">
+        <dependency id="sig_2" type="predecessor"/>
+        <reference elementType="junction" elementId="j_1"/>
+        <validity fromLane="-2" toLane="-1" layer="temporary"/>
+        <userData myval="123"/>
+      </signal>
+      <signalReference s="20.0" t="3.5" id="sig_1" orientation="-" zOffset="2.0" custom_ref_attr="world">
+        <validity fromLane="1" toLane="2" layer="permanent"/>
+        <userData myval="456"/>
+      </signalReference>
+    </signals>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+
+  // Verify signals
+  ASSERT_EQ(road.signals.size(), 1);
+  const auto& sig = road.signals[0];
+  EXPECT_EQ(sig.id, "sig_1");
+  EXPECT_EQ(sig.name, "Signal1");
+  EXPECT_DOUBLE_EQ(sig.s, 10.0);
+  EXPECT_DOUBLE_EQ(sig.t, -2.0);
+  EXPECT_DOUBLE_EQ(sig.z_offset, 1.5);
+  EXPECT_DOUBLE_EQ(sig.h_offset, 0.1);
+  EXPECT_DOUBLE_EQ(sig.roll, 0.2);
+  EXPECT_DOUBLE_EQ(sig.pitch, 0.3);
+  EXPECT_EQ(sig.orientation, strada::ast::Orientation::kPlus);
+  EXPECT_TRUE(sig.dynamic);
+  EXPECT_EQ(sig.country, "US");
+  EXPECT_EQ(sig.country_revision, "2020");
+  EXPECT_EQ(sig.type, "100");
+  EXPECT_EQ(sig.subtype, "10");
+  EXPECT_DOUBLE_EQ(sig.value, 45.0);
+  EXPECT_EQ(sig.unit, "mph");
+  EXPECT_DOUBLE_EQ(sig.height, 1.0);
+  EXPECT_DOUBLE_EQ(sig.width, 0.8);
+  EXPECT_EQ(sig.text, "Stop Here");
+  EXPECT_TRUE(sig.temporary);
+  EXPECT_FALSE(sig.invalidated);
+
+  // dependencies
+  ASSERT_EQ(sig.dependencies.size(), 1);
+  EXPECT_EQ(sig.dependencies[0].id, "sig_2");
+  EXPECT_EQ(sig.dependencies[0].type, "predecessor");
+
+  // references
+  ASSERT_EQ(sig.references.size(), 1);
+  EXPECT_EQ(sig.references[0].element_type, "junction");
+  EXPECT_EQ(sig.references[0].element_id, "j_1");
+
+  // validities
+  ASSERT_EQ(sig.validities.size(), 1);
+  EXPECT_EQ(sig.validities[0].from_lane, -2);
+  EXPECT_EQ(sig.validities[0].to_lane, -1);
+  EXPECT_EQ(sig.validities[0].layer, strada::ast::LayerType::kTemporary);
+
+  // extensions
+  EXPECT_EQ(sig.extensions.attributes.at("custom_attr"), "hello");
+  EXPECT_NE(sig.extensions.user_data[0].find("myval=\"123\""), std::string::npos);
+
+  // Verify signalReference
+  ASSERT_EQ(road.signal_references.size(), 1);
+  const auto& ref = road.signal_references[0];
+  EXPECT_EQ(ref.id, "sig_1");
+  EXPECT_DOUBLE_EQ(ref.s, 20.0);
+  EXPECT_DOUBLE_EQ(ref.t, 3.5);
+  EXPECT_DOUBLE_EQ(ref.z_offset, 2.0);
+  EXPECT_EQ(ref.orientation, strada::ast::Orientation::kMinus);
+
+  ASSERT_EQ(ref.validities.size(), 1);
+  EXPECT_EQ(ref.validities[0].from_lane, 1);
+  EXPECT_EQ(ref.validities[0].to_lane, 2);
+  EXPECT_EQ(ref.validities[0].layer, strada::ast::LayerType::kPermanent);
+
+  EXPECT_EQ(ref.extensions.attributes.at("custom_ref_attr"), "world");
+  EXPECT_NE(ref.extensions.user_data[0].find("myval=\"456\""), std::string::npos);
+}
+
+TEST(ParserTest, SignalMissingIdThrows) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <signals>
+      <signal s="10.0" t="-2.0" type="100" subtype="10" orientation="+"/>
+    </signals>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, SignalMissingSThrows) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <signals>
+      <signal id="s1" t="-2.0" type="100" subtype="10" orientation="+"/>
+    </signals>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, SignalNegativeSThrows) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <signals>
+      <signal id="s1" s="-1.0" t="-2.0" type="100" subtype="10" orientation="+"/>
+    </signals>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, SignalInvalidOrientationThrows) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <signals>
+      <signal id="s1" s="10.0" t="-2.0" type="100" subtype="10" orientation="invalid"/>
+    </signals>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, SignalDependencyMissingIdThrows) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <signals>
+      <signal id="s1" s="10.0" t="-2.0" type="100" subtype="10" orientation="+">
+        <dependency type="predecessor"/>
+      </signal>
+    </signals>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, SignalReferenceMissingIdThrows) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <signals>
+      <signalReference s="20.0" t="3.5" orientation="-"/>
+    </signals>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, SignalReferenceNegativeSThrows) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <signals>
+      <signalReference id="ref1" s="-1.0" t="3.5" orientation="-"/>
+    </signals>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}

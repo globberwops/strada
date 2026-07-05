@@ -630,6 +630,166 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
   return tunnel;
 }
 
+auto ParseSignalDependency(pugi::xml_node dep_node, const std::string& signal_id) -> ast::SignalDependency {
+  if (!dep_node.attribute("id")) {
+    throw MissingElementError("<dependency> element under <signal id=\"" + signal_id +
+                              "\"> is missing mandatory 'id' attribute");
+  }
+  ast::SignalDependency dep;
+  dep.id = dep_node.attribute("id").as_string();
+  dep.type = dep_node.attribute("type").as_string("");
+  return dep;
+}
+
+auto ParseSignalReferenceElement(pugi::xml_node ref_node, const std::string& signal_id) -> ast::SignalReferenceElement {
+  if (!ref_node.attribute("elementType")) {
+    throw MissingElementError("<reference> element under <signal id=\"" + signal_id +
+                              "\"> is missing mandatory 'elementType' attribute");
+  }
+  if (!ref_node.attribute("elementId")) {
+    throw MissingElementError("<reference> element under <signal id=\"" + signal_id +
+                              "\"> is missing mandatory 'elementId' attribute");
+  }
+  ast::SignalReferenceElement ref;
+  ref.element_type = ref_node.attribute("elementType").as_string();
+  ref.element_id = ref_node.attribute("elementId").as_string();
+  return ref;
+}
+
+auto ParseSignal(pugi::xml_node signal_node) -> ast::Signal {
+  if (!signal_node.attribute("id")) {
+    throw MissingElementError("<signal> element is missing mandatory 'id' attribute");
+  }
+  std::string signal_id = signal_node.attribute("id").as_string();
+
+  if (!signal_node.attribute("s")) {
+    throw MissingElementError("<signal id=\"" + signal_id + "\"> is missing mandatory 's' attribute");
+  }
+  if (!signal_node.attribute("t")) {
+    throw MissingElementError("<signal id=\"" + signal_id + "\"> is missing mandatory 't' attribute");
+  }
+  if (!signal_node.attribute("orientation")) {
+    throw MissingElementError("<signal id=\"" + signal_id + "\"> is missing mandatory 'orientation' attribute");
+  }
+  if (!signal_node.attribute("type")) {
+    throw MissingElementError("<signal id=\"" + signal_id + "\"> is missing mandatory 'type' attribute");
+  }
+  if (!signal_node.attribute("subtype")) {
+    throw MissingElementError("<signal id=\"" + signal_id + "\"> is missing mandatory 'subtype' attribute");
+  }
+
+  double s = signal_node.attribute("s").as_double();
+  if (s < 0.0) {
+    throw InvalidAttributeError("<signal id=\"" + signal_id + "\"> has invalid negative 's' attribute");
+  }
+  double t = signal_node.attribute("t").as_double();
+
+  ast::Signal signal;
+  signal.id = signal_id;
+  signal.name = signal_node.attribute("name").as_string("");
+  signal.s = s;
+  signal.t = t;
+  signal.z_offset = signal_node.attribute("zOffset").as_double(0.0);
+  signal.h_offset = signal_node.attribute("hOffset").as_double(0.0);
+  signal.roll = signal_node.attribute("roll").as_double(0.0);
+  signal.pitch = signal_node.attribute("pitch").as_double(0.0);
+
+  const std::string_view orientation_str = signal_node.attribute("orientation").value();
+  if (const auto orientation_opt = FromString<ast::Orientation>(orientation_str)) {
+    signal.orientation = *orientation_opt;
+  } else {
+    throw InvalidAttributeError("<signal id=\"" + signal_id + "\"> has invalid orientation=\"" +
+                                std::string(orientation_str) + "\"");
+  }
+
+  signal.dynamic = signal_node.attribute("dynamic").as_bool(false);
+  signal.country = signal_node.attribute("country").as_string("");
+  signal.country_revision = signal_node.attribute("countryRevision").as_string("");
+  signal.type = signal_node.attribute("type").as_string();
+  signal.subtype = signal_node.attribute("subtype").as_string();
+  signal.value = signal_node.attribute("value").as_double(0.0);
+  signal.unit = signal_node.attribute("unit").as_string("");
+  signal.height = signal_node.attribute("height").as_double(0.0);
+  signal.width = signal_node.attribute("width").as_double(0.0);
+  signal.text = signal_node.attribute("text").as_string("");
+  signal.temporary = signal_node.attribute("temporary").as_bool(false);
+  signal.invalidated = signal_node.attribute("invalidated").as_bool(false);
+
+  // Parse dependencies
+  pugi::xml_node dep_node = signal_node.child("dependency");
+  while (!dep_node.empty()) {
+    signal.dependencies.push_back(ParseSignalDependency(dep_node, signal_id));
+    dep_node = dep_node.next_sibling("dependency");
+  }
+
+  // Parse references
+  pugi::xml_node ref_node = signal_node.child("reference");
+  while (!ref_node.empty()) {
+    signal.references.push_back(ParseSignalReferenceElement(ref_node, signal_id));
+    ref_node = ref_node.next_sibling("reference");
+  }
+
+  // Parse validities
+  signal.validities = ParseLaneValidities(signal_node);
+
+  // Extensions
+  static const std::unordered_set<std::string> kKnownSignalAttrs = {
+      "id",   "name",      "s",           "t",       "zOffset", "hOffset",
+      "roll", "pitch",     "orientation", "dynamic", "country", "countryRevision",
+      "type", "subtype",   "value",       "unit",    "height",  "width",
+      "text", "temporary", "invalidated"};
+  signal.extensions = ParseExtensions(signal_node, kKnownSignalAttrs);
+
+  return signal;
+}
+
+auto ParseSignalReference(pugi::xml_node sig_ref_node) -> ast::SignalReference {
+  if (!sig_ref_node.attribute("id")) {
+    throw MissingElementError("<signalReference> element is missing mandatory 'id' attribute");
+  }
+  std::string sig_ref_id = sig_ref_node.attribute("id").as_string();
+
+  if (!sig_ref_node.attribute("s")) {
+    throw MissingElementError("<signalReference id=\"" + sig_ref_id + "\"> is missing mandatory 's' attribute");
+  }
+  if (!sig_ref_node.attribute("t")) {
+    throw MissingElementError("<signalReference id=\"" + sig_ref_id + "\"> is missing mandatory 't' attribute");
+  }
+  if (!sig_ref_node.attribute("orientation")) {
+    throw MissingElementError("<signalReference id=\"" + sig_ref_id +
+                              "\"> is missing mandatory 'orientation' attribute");
+  }
+
+  double s = sig_ref_node.attribute("s").as_double();
+  if (s < 0.0) {
+    throw InvalidAttributeError("<signalReference id=\"" + sig_ref_id + "\"> has invalid negative 's' attribute");
+  }
+  double t = sig_ref_node.attribute("t").as_double();
+
+  ast::SignalReference sig_ref;
+  sig_ref.id = sig_ref_id;
+  sig_ref.s = s;
+  sig_ref.t = t;
+  sig_ref.z_offset = sig_ref_node.attribute("zOffset").as_double(0.0);
+
+  const std::string_view orientation_str = sig_ref_node.attribute("orientation").value();
+  if (const auto orientation_opt = FromString<ast::Orientation>(orientation_str)) {
+    sig_ref.orientation = *orientation_opt;
+  } else {
+    throw InvalidAttributeError("<signalReference id=\"" + sig_ref_id + "\"> has invalid orientation=\"" +
+                                std::string(orientation_str) + "\"");
+  }
+
+  // Parse validities
+  sig_ref.validities = ParseLaneValidities(sig_ref_node);
+
+  // Extensions
+  static const std::unordered_set<std::string> kKnownSignalRefAttrs = {"id", "s", "t", "zOffset", "orientation"};
+  sig_ref.extensions = ParseExtensions(sig_ref_node, kKnownSignalRefAttrs);
+
+  return sig_ref;
+}
+
 auto ParseObjectCornerLocal(pugi::xml_node node) -> ast::ObjectCornerLocal {
   ast::ObjectCornerLocal corner;
   corner.u = node.attribute("u").as_double(0.0);
@@ -1104,6 +1264,27 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
       std::ranges::sort(
           road.object_references,
           [](const ast::ObjectReference& lhs, const ast::ObjectReference& rhs) -> bool { return lhs.s < rhs.s; });
+    }
+
+    // Signals
+    const pugi::xml_node kSignalsNode = road_node.child("signals");
+    if (!kSignalsNode.empty()) {
+      pugi::xml_node signal_node = kSignalsNode.child("signal");
+      while (!signal_node.empty()) {
+        road.signals.push_back(ParseSignal(signal_node));
+        signal_node = signal_node.next_sibling("signal");
+      }
+      std::ranges::sort(road.signals,
+                        [](const ast::Signal& lhs, const ast::Signal& rhs) -> bool { return lhs.s < rhs.s; });
+
+      pugi::xml_node sig_ref_node = kSignalsNode.child("signalReference");
+      while (!sig_ref_node.empty()) {
+        road.signal_references.push_back(ParseSignalReference(sig_ref_node));
+        sig_ref_node = sig_ref_node.next_sibling("signalReference");
+      }
+      std::ranges::sort(
+          road.signal_references,
+          [](const ast::SignalReference& lhs, const ast::SignalReference& rhs) -> bool { return lhs.s < rhs.s; });
     }
 
     // Extensions

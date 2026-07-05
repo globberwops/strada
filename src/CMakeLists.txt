@@ -25,6 +25,7 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/ast/abstract_syntax_tree.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/profiles.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/road.hpp
+         ${PROJECT_SOURCE_DIR}/include/strada/ast/signals.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/coordinate.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/geometry_math.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/bounding_volume_hierarchy.hpp

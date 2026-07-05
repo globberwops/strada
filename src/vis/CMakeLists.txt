@@ -25,4 +25,5 @@ if(STRADA_BUILD_VIS)
   find_package(OpenGL REQUIRED)
 
   target_link_libraries(strada_vis PUBLIC Strada::strada Qt6::Widgets Qt6::OpenGLWidgets OpenGL::GL)
+  target_compile_definitions(strada_vis PUBLIC QT_NO_KEYWORDS)
 endif()
