@@ -78,13 +78,14 @@ TEST(ParserTest, ParseRoadsFromString) {
   EXPECT_DOUBLE_EQ(roads[0].length, 10.0);
   EXPECT_EQ(roads[0].junction, "-1");
   EXPECT_EQ(roads[0].rule, strada::ast::TrafficRule::kRht);
-  EXPECT_EQ(roads[0].name, "Road 1");
+  ASSERT_TRUE(roads[0].name.has_value());
+  EXPECT_EQ(*roads[0].name, "Road 1");
 
   EXPECT_EQ(roads[1].id, "2");
   EXPECT_DOUBLE_EQ(roads[1].length, 25.5);
   EXPECT_EQ(roads[1].junction, "42");
   EXPECT_EQ(roads[1].rule, strada::ast::TrafficRule::kLht);
-  EXPECT_EQ(roads[1].name, "");
+  EXPECT_EQ(roads[1].name, std::nullopt);
 }
 
 TEST(ParserTest, ParseGeometryFromPlanView) {
@@ -510,7 +511,7 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnels) {
       </laneSection>
     </lanes>
     <bridge id="b1" s="10.0" length="30.0" name="test_bridge" type="concrete"/>
-    <tunnel id="t1" s="50.0" length="40.0" name="test_tunnel" type="rock" lighting="0.8" daylight="0.2"/>
+    <tunnel id="t1" s="50.0" length="40.0" name="test_tunnel" type="standard" lighting="0.8" daylight="0.2"/>
   </road>
 </OpenDRIVE>)";
 
@@ -527,8 +528,9 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnels) {
   EXPECT_EQ(bridge.id, "b1");
   EXPECT_DOUBLE_EQ(bridge.s, 10.0);
   EXPECT_DOUBLE_EQ(bridge.length, 30.0);
-  EXPECT_EQ(bridge.name, "test_bridge");
-  EXPECT_EQ(bridge.type, "concrete");
+  ASSERT_TRUE(bridge.name.has_value());
+  EXPECT_EQ(*bridge.name, "test_bridge");
+  EXPECT_EQ(bridge.type, strada::ast::BridgeType::kConcrete);
 
   // Verify tunnels
   ASSERT_EQ(road.tunnels.size(), 1);
@@ -536,10 +538,13 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnels) {
   EXPECT_EQ(tunnel.id, "t1");
   EXPECT_DOUBLE_EQ(tunnel.s, 50.0);
   EXPECT_DOUBLE_EQ(tunnel.length, 40.0);
-  EXPECT_EQ(tunnel.name, "test_tunnel");
-  EXPECT_EQ(tunnel.type, "rock");
-  EXPECT_DOUBLE_EQ(tunnel.lighting, 0.8);
-  EXPECT_DOUBLE_EQ(tunnel.daylight, 0.2);
+  ASSERT_TRUE(tunnel.name.has_value());
+  EXPECT_EQ(*tunnel.name, "test_tunnel");
+  EXPECT_EQ(tunnel.type, strada::ast::TunnelType::kStandard);
+  ASSERT_TRUE(tunnel.lighting.has_value());
+  EXPECT_DOUBLE_EQ(*tunnel.lighting, 0.8);
+  ASSERT_TRUE(tunnel.daylight.has_value());
+  EXPECT_DOUBLE_EQ(*tunnel.daylight, 0.2);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExtensions) {
@@ -563,13 +568,13 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExten
       </laneSection>
     </lanes>
     <bridge id="b1" s="10.0" length="30.0" name="test_bridge" type="concrete" customBridgeAttr="bridgeExtra">
-      <validity fromLane="-2" toLane="-1" layer="layer1"/>
+      <validity fromLane="-2" toLane="-1" layer="temporary"/>
       <validity fromLane="1" toLane="2"/>
       <userData>
         <bridgeVendorTag>val</bridgeVendorTag>
       </userData>
     </bridge>
-    <tunnel id="t1" s="50.0" length="40.0" name="test_tunnel" type="rock" lighting="0.8" daylight="0.2" customTunnelAttr="tunnelExtra">
+    <tunnel id="t1" s="50.0" length="40.0" name="test_tunnel" type="standard" lighting="0.8" daylight="0.2" customTunnelAttr="tunnelExtra">
       <validity fromLane="-3" toLane="-1"/>
       <userData>
         <tunnelVendorTag>val2</tunnelVendorTag>
@@ -591,10 +596,10 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExten
   ASSERT_EQ(bridge.validities.size(), 2);
   EXPECT_EQ(bridge.validities[0].from_lane, -2);
   EXPECT_EQ(bridge.validities[0].to_lane, -1);
-  EXPECT_EQ(bridge.validities[0].layer, "layer1");
+  EXPECT_EQ(bridge.validities[0].layer, strada::ast::LayerType::kTemporary);
   EXPECT_EQ(bridge.validities[1].from_lane, 1);
   EXPECT_EQ(bridge.validities[1].to_lane, 2);
-  EXPECT_EQ(bridge.validities[1].layer, "");
+  EXPECT_EQ(bridge.validities[1].layer, strada::ast::LayerType::kPermanent);
 
   EXPECT_EQ(bridge.extensions.attributes.at("customBridgeAttr"), "bridgeExtra");
   ASSERT_EQ(bridge.extensions.user_data.size(), 1);
@@ -606,7 +611,7 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExten
   ASSERT_EQ(tunnel.validities.size(), 1);
   EXPECT_EQ(tunnel.validities[0].from_lane, -3);
   EXPECT_EQ(tunnel.validities[0].to_lane, -1);
-  EXPECT_EQ(tunnel.validities[0].layer, "");
+  EXPECT_EQ(tunnel.validities[0].layer, strada::ast::LayerType::kPermanent);
 
   EXPECT_EQ(tunnel.extensions.attributes.at("customTunnelAttr"), "tunnelExtra");
   ASSERT_EQ(tunnel.extensions.user_data.size(), 1);
@@ -669,7 +674,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeS
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
     <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
-    <bridge id="b1" s="-10.0" length="30.0"/>
+    <bridge id="b1" s="-10.0" length="30.0" type="concrete"/>
   </road>
 </OpenDRIVE>)";
 
@@ -685,7 +690,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeL
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
     <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
-    <bridge id="b1" s="10.0" length="-30.0"/>
+    <bridge id="b1" s="10.0" length="-30.0" type="concrete"/>
   </road>
 </OpenDRIVE>)";
 
@@ -749,7 +754,7 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelS
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
     <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
-    <tunnel id="t1" s="-10.0" length="30.0"/>
+    <tunnel id="t1" s="-10.0" length="30.0" type="standard"/>
   </road>
 </OpenDRIVE>)";
 
@@ -765,10 +770,196 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelL
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
     <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
     <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
-    <tunnel id="t1" s="10.0" length="-30.0"/>
+    <tunnel id="t1" s="10.0" length="-30.0" type="standard"/>
   </road>
 </OpenDRIVE>)";
 
   // Act & Assert
   EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeType) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <bridge id="b1" s="10.0" length="30.0"/>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelType) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <tunnel id="t1" s="10.0" length="30.0"/>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingLaneValidityFromLane) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <bridge id="b1" s="10.0" length="30.0" type="concrete">
+      <validity toLane="-1"/>
+    </bridge>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingLaneValidityToLane) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <bridge id="b1" s="10.0" length="30.0" type="concrete">
+      <validity fromLane="-2"/>
+    </bridge>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+}
+
+TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnLaneValidityFromLaneGreaterThanToLane) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <bridge id="b1" s="10.0" length="30.0" type="concrete">
+      <validity fromLane="-1" toLane="-2"/>
+    </bridge>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidBridgeType) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <bridge id="b1" s="10.0" length="30.0" type="invalid_type"/>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidTunnelType) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <tunnel id="t1" s="10.0" length="30.0" type="invalid_type"/>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidLaneValidityLayer) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+    <lanes><laneSection s="0.0"><center><lane id="0"/></center></laneSection></lanes>
+    <bridge id="b1" s="10.0" length="30.0" type="concrete">
+      <validity fromLane="-2" toLane="-1" layer="invalid_layer"/>
+    </bridge>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidTrafficRule) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1" rule="INVALID">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, DefaultTrafficRuleWhenMissing) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  EXPECT_EQ(ast_tree.roads[0].rule, strada::ast::TrafficRule::kRht);
+}
+
+TEST(ParserTest, MissingRoadNameIsNullopt) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road length="100.0" id="1" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0"><line/></geometry></planView>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  EXPECT_EQ(ast_tree.roads[0].name, std::nullopt);
 }

@@ -420,12 +420,44 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
 
 auto ParseLaneValidities(pugi::xml_node parent_node) -> std::vector<ast::LaneValidity> {
   std::vector<ast::LaneValidity> validities;
+  std::string parent_id = parent_node.attribute("id").as_string();
+  std::string parent_name = parent_node.name();
+
   pugi::xml_node validity_node = parent_node.child("validity");
   while (!validity_node.empty()) {
     ast::LaneValidity validity;
-    validity.from_lane = validity_node.attribute("fromLane").as_int(0);
-    validity.to_lane = validity_node.attribute("toLane").as_int(0);
-    validity.layer = validity_node.attribute("layer").as_string("");
+    if (!validity_node.attribute("fromLane")) {
+      throw MissingElementError("<validity> element under <" + parent_name + " id=\"" + parent_id +
+                                "\"> is missing mandatory 'fromLane' attribute");
+    }
+    if (!validity_node.attribute("toLane")) {
+      throw MissingElementError("<validity> element under <" + parent_name + " id=\"" + parent_id +
+                                "\"> is missing mandatory 'toLane' attribute");
+    }
+
+    validity.from_lane = validity_node.attribute("fromLane").as_int();
+    validity.to_lane = validity_node.attribute("toLane").as_int();
+
+    if (validity.from_lane > validity.to_lane) {
+      throw InvalidAttributeError("<validity> element under <" + parent_name + " id=\"" + parent_id +
+                                  "\"> has invalid fromLane=" + std::to_string(validity.from_lane) +
+                                  " greater than toLane=" + std::to_string(validity.to_lane));
+    }
+
+    if (validity_node.attribute("layer")) {
+      std::string layer_str = validity_node.attribute("layer").as_string();
+      if (layer_str == "permanent") {
+        validity.layer = ast::LayerType::kPermanent;
+      } else if (layer_str == "temporary") {
+        validity.layer = ast::LayerType::kTemporary;
+      } else {
+        throw InvalidAttributeError("<validity> element under <" + parent_name + " id=\"" + parent_id +
+                                    "\"> has invalid layer=\"" + layer_str + "\"");
+      }
+    } else {
+      validity.layer = ast::LayerType::kPermanent;
+    }
+
     validities.push_back(validity);
     validity_node = validity_node.next_sibling("validity");
   }
@@ -443,6 +475,9 @@ auto ParseBridge(pugi::xml_node bridge_node) -> ast::Bridge {
   if (!bridge_node.attribute("length")) {
     throw MissingElementError("<bridge id=\"" + bridge_id + "\"> is missing mandatory 'length' attribute");
   }
+  if (!bridge_node.attribute("type")) {
+    throw MissingElementError("<bridge id=\"" + bridge_id + "\"> is missing mandatory 'type' attribute");
+  }
 
   double s{bridge_node.attribute("s").as_double()};
   if (s < 0.0) {
@@ -457,8 +492,25 @@ auto ParseBridge(pugi::xml_node bridge_node) -> ast::Bridge {
   bridge.id = bridge_id;
   bridge.s = s;
   bridge.length = length;
-  bridge.name = bridge_node.attribute("name").as_string("");
-  bridge.type = bridge_node.attribute("type").as_string("");
+  if (bridge_node.attribute("name")) {
+    bridge.name = bridge_node.attribute("name").as_string();
+  } else {
+    bridge.name = std::nullopt;
+  }
+
+  std::string type_str = bridge_node.attribute("type").as_string();
+  if (type_str == "brick") {
+    bridge.type = ast::BridgeType::kBrick;
+  } else if (type_str == "concrete") {
+    bridge.type = ast::BridgeType::kConcrete;
+  } else if (type_str == "steel") {
+    bridge.type = ast::BridgeType::kSteel;
+  } else if (type_str == "wood") {
+    bridge.type = ast::BridgeType::kWood;
+  } else {
+    throw InvalidAttributeError("<bridge id=\"" + bridge_id + "\"> has invalid type=\"" + type_str + "\"");
+  }
+
   bridge.validities = ParseLaneValidities(bridge_node);
 
   static const std::unordered_set<std::string> kKnownBridgeAttrs = {"id", "s", "length", "name", "type"};
@@ -478,6 +530,9 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
   if (!tunnel_node.attribute("length")) {
     throw MissingElementError("<tunnel id=\"" + tunnel_id + "\"> is missing mandatory 'length' attribute");
   }
+  if (!tunnel_node.attribute("type")) {
+    throw MissingElementError("<tunnel id=\"" + tunnel_id + "\"> is missing mandatory 'type' attribute");
+  }
 
   double s{tunnel_node.attribute("s").as_double()};
   if (s < 0.0) {
@@ -492,10 +547,31 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
   tunnel.id = tunnel_id;
   tunnel.s = s;
   tunnel.length = length;
-  tunnel.name = tunnel_node.attribute("name").as_string("");
-  tunnel.type = tunnel_node.attribute("type").as_string("");
-  tunnel.lighting = tunnel_node.attribute("lighting").as_double(0.0);
-  tunnel.daylight = tunnel_node.attribute("daylight").as_double(0.0);
+  if (tunnel_node.attribute("name")) {
+    tunnel.name = tunnel_node.attribute("name").as_string();
+  } else {
+    tunnel.name = std::nullopt;
+  }
+
+  std::string type_str = tunnel_node.attribute("type").as_string();
+  if (type_str == "standard") {
+    tunnel.type = ast::TunnelType::kStandard;
+  } else if (type_str == "underpass") {
+    tunnel.type = ast::TunnelType::kUnderpass;
+  } else {
+    throw InvalidAttributeError("<tunnel id=\"" + tunnel_id + "\"> has invalid type=\"" + type_str + "\"");
+  }
+
+  if (tunnel_node.attribute("lighting")) {
+    tunnel.lighting = tunnel_node.attribute("lighting").as_double();
+  } else {
+    tunnel.lighting = std::nullopt;
+  }
+  if (tunnel_node.attribute("daylight")) {
+    tunnel.daylight = tunnel_node.attribute("daylight").as_double();
+  } else {
+    tunnel.daylight = std::nullopt;
+  }
   tunnel.validities = ParseLaneValidities(tunnel_node);
 
   static const std::unordered_set<std::string> kKnownTunnelAttrs = {"id",   "s",        "length",  "name",
@@ -531,13 +607,23 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     }
     road.length = road_node.attribute("length").as_double(0.0);
     road.junction = road_node.attribute("junction").as_string("-1");
-    const std::string kRuleStr = road_node.attribute("rule").as_string("RHT");
-    if (kRuleStr == "LHT") {
-      road.rule = ast::TrafficRule::kLht;
+    if (const auto kRuleAttr = road_node.attribute("rule")) {
+      const std::string_view kRuleStr = kRuleAttr.value();
+      if (kRuleStr == "RHT") {
+        road.rule = ast::TrafficRule::kRht;
+      } else if (kRuleStr == "LHT") {
+        road.rule = ast::TrafficRule::kLht;
+      } else {
+        throw InvalidAttributeError("<road id=\"" + road.id + "\"> has invalid rule=\"" + std::string(kRuleStr) + "\"");
+      }
     } else {
       road.rule = ast::TrafficRule::kRht;
     }
-    road.name = road_node.attribute("name").as_string("");
+    if (road_node.attribute("name")) {
+      road.name = road_node.attribute("name").as_string();
+    } else {
+      road.name = std::nullopt;
+    }
 
     // PlanView Geometries
     const pugi::xml_node kPlanViewNode = road_node.child("planView");

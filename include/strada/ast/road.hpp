@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <strada/ast/extensions.hpp>
 #include <strada/ast/geometry.hpp>
 #include <strada/ast/lanes.hpp>
@@ -25,7 +26,7 @@ struct Road {
   double length{};                        ///< Total length of the road reference line.
   std::string junction{"-1"};             ///< ID of the junction this road belongs to (-1 for none).
   TrafficRule rule{TrafficRule::kRht};    ///< Traffic rule (RHT/LHT).
-  std::string name;                       ///< Optional human-readable name of the road.
+  std::optional<std::string> name;        ///< Optional human-readable name of the road.
   std::vector<GeometryRecord> plan_view;  ///< The plan-view geometry segments of the reference line.
   ElevationProfile elevation_profile;     ///< Vertical elevation profile.
   LateralProfile lateral_profile;         ///< Superelevation and lateral shapes.

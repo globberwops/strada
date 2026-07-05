@@ -48,11 +48,20 @@ enum class Orientation : std::uint8_t {
   kNone       ///< "none" - Valid in both directions / no direction restriction
 };
 
+/// ASAM OpenDRIVE layer types (e_layerType).
+enum class LayerType : std::uint8_t { kPermanent = 0, kTemporary };
+
+/// ASAM OpenDRIVE tunnel types (e_tunnelType).
+enum class TunnelType : std::uint8_t { kStandard = 0, kUnderpass };
+
+/// ASAM OpenDRIVE bridge types (e_bridgeType).
+enum class BridgeType : std::uint8_t { kBrick = 0, kConcrete, kSteel, kWood };
+
 /// Lane validity range for objects and signals (t_road_objects_object_laneValidity).
 struct LaneValidity {
   int from_lane{};
   int to_lane{};
-  std::string layer;
+  LayerType layer{LayerType::kPermanent};
 };
 
 /// Local Cartesian corner definition (t_road_objects_object_outlines_outline_cornerLocal).
@@ -260,8 +269,8 @@ struct Bridge {
   std::string id;
   double s{};
   double length{};
-  std::string name;
-  std::string type;
+  std::optional<std::string> name;
+  BridgeType type;
   std::vector<LaneValidity> validities;
 
   Extensions extensions;
@@ -272,10 +281,10 @@ struct Tunnel {
   std::string id;
   double s{};
   double length{};
-  std::string name;
-  std::string type;
-  double lighting{};
-  double daylight{};
+  std::optional<std::string> name;
+  TunnelType type;
+  std::optional<double> lighting;
+  std::optional<double> daylight;
   std::vector<LaneValidity> validities;
 
   Extensions extensions;
