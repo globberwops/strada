@@ -226,7 +226,7 @@ void ViewportWidget::paintGL() {
   }
 
   // 1. Draw Road Surface Meshes
-  if (!geometry_.triangle_indices.empty()) {
+  if (show_lanes_ && !geometry_.triangle_indices.empty()) {
     triangles_vao_.bind();
     for (const auto& range : geometry_.mesh_ranges) {
       if (!show_border_lanes_ &&
@@ -273,7 +273,7 @@ void ViewportWidget::paintGL() {
   }
 
   // 3. Draw Hover Highlight Overlay
-  if (has_model_ && hovered_pose_) {
+  if (show_lanes_ && has_model_ && hovered_pose_) {
     for (const auto& range : geometry_.mesh_ranges) {
       if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
         if (!show_border_lanes_ &&
@@ -520,7 +520,7 @@ void ViewportWidget::paintGL() {
 
     // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
     {
-      const QRect kRect(20, height() - 250, 310, 230);
+      const QRect kRect(20, height() - 270, 310, 250);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(kRect, 8.0, 8.0);
@@ -530,7 +530,7 @@ void ViewportWidget::paintGL() {
       painter.setFont(font);
 
       const int kXOffset = 35;
-      int y_offset = height() - 225;
+      int y_offset = height() - 245;
       const int kLineHeight = 20;
 
       // Header
@@ -547,10 +547,11 @@ void ViewportWidget::paintGL() {
         QString key;
         QString desc;
       };
-      const std::vector<ShortcutItem> kItems = {
-          {"L-Click + Drag", "Pan Map"},       {"R-Click + Drag", "Rotate Map"}, {"Scroll Wheel", "Zoom Map"},
-          {"Ctrl+R", "Reset View / Auto-fit"}, {"R", "Toggle Reference Line"},   {"J", "Toggle Junction Boundaries"},
-          {"B", "Toggle Border Lanes"},        {"O", "Toggle Objects"},          {"S", "Toggle Signals"}};
+      const std::vector<ShortcutItem> kItems = {{"L-Click + Drag", "Pan Map"},  {"R-Click + Drag", "Rotate Map"},
+                                                {"Scroll Wheel", "Zoom Map"},   {"Ctrl+R", "Reset View / Auto-fit"},
+                                                {"R", "Toggle Reference Line"}, {"J", "Toggle Junction Boundaries"},
+                                                {"B", "Toggle Border Lanes"},   {"O", "Toggle Objects"},
+                                                {"S", "Toggle Signals"},        {"L", "Toggle Lanes"}};
 
       for (const auto& item : kItems) {
         // Shortcut key
@@ -830,6 +831,14 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
       if (auto* status = main_win->statusBar()) {
         status->showMessage(show_signals_ ? "Toggled signals: ON" : "Toggled signals: OFF", 2000);
+      }
+    }
+  } else if (event->key() == Qt::Key_L) {
+    show_lanes_ = !show_lanes_;
+    update();
+    if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+      if (auto* status = main_win->statusBar()) {
+        status->showMessage(show_lanes_ ? "Toggled lanes: ON" : "Toggled lanes: OFF", 2000);
       }
     }
   }

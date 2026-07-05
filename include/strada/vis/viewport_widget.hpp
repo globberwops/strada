@@ -47,6 +47,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   bool show_reference_lines_{true};
   bool show_objects_{false};
   bool show_signals_{false};
+  bool show_lanes_{false};
 
   QOpenGLShaderProgram shader_program_;
 
