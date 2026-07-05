@@ -695,6 +695,28 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     std::ranges::sort(road.lanes.sections,
                       [](const ast::LaneSection& lhs, const ast::LaneSection& rhs) -> bool { return lhs.s < rhs.s; });
 
+    // Road Types
+    pugi::xml_node type_node = road_node.child("type");
+    while (!type_node.empty()) {
+      ast::RoadTypeRecord record;
+      record.s = type_node.attribute("s").as_double(0.0);
+      if (const auto kTypeAttr = type_node.attribute("type")) {
+        const std::string_view kTypeStr = kTypeAttr.value();
+        if (const auto kTypeOpt = FromString<ast::RoadType>(kTypeStr)) {
+          record.type = *kTypeOpt;
+        } else {
+          record.type = ast::RoadType::kUnknown;
+        }
+      } else {
+        record.type = ast::RoadType::kUnknown;
+      }
+      road.types.push_back(record);
+      type_node = type_node.next_sibling("type");
+    }
+    std::ranges::sort(road.types, [](const ast::RoadTypeRecord& lhs, const ast::RoadTypeRecord& rhs) -> bool {
+      return lhs.s < rhs.s;
+    });
+
     // Bridges
     pugi::xml_node bridge_node = road_node.child("bridge");
     while (!bridge_node.empty()) {

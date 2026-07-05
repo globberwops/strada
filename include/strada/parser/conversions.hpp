@@ -338,6 +338,51 @@ constexpr auto FromString<ast::ObjectType>(std::string_view str) -> std::optiona
   return std::nullopt;
 }
 
+// Specialization for ast::RoadType
+template <>
+constexpr auto FromString<ast::RoadType>(std::string_view str) -> std::optional<ast::RoadType> {
+  if (str == "unknown") {
+    return ast::RoadType::kUnknown;
+  }
+  if (str == "bicycle") {
+    return ast::RoadType::kBicycle;
+  }
+  if (str == "lowSpeed") {
+    return ast::RoadType::kLowSpeed;
+  }
+  if (str == "pedestrian") {
+    return ast::RoadType::kPedestrian;
+  }
+  if (str == "motorway") {
+    return ast::RoadType::kMotorway;
+  }
+  if (str == "rural") {
+    return ast::RoadType::kRural;
+  }
+  if (str == "townArterial") {
+    return ast::RoadType::kTownArterial;
+  }
+  if (str == "townCollector") {
+    return ast::RoadType::kTownCollector;
+  }
+  if (str == "townExpressway") {
+    return ast::RoadType::kTownExpressway;
+  }
+  if (str == "townLocal") {
+    return ast::RoadType::kTownLocal;
+  }
+  if (str == "townPlayStreet") {
+    return ast::RoadType::kTownPlayStreet;
+  }
+  if (str == "townPrivate") {
+    return ast::RoadType::kTownPrivate;
+  }
+  if (str == "town") {
+    return ast::RoadType::kTown;
+  }
+  return std::nullopt;
+}
+
 /// Converts ast::TrafficRule to its string representation.
 constexpr auto ToString(ast::TrafficRule val) noexcept -> std::string_view {
   switch (val) {
@@ -584,6 +629,39 @@ constexpr auto ToString(ast::ObjectType val) noexcept -> std::string_view {
       return "roadMark";
     case ast::ObjectType::kRoadSurface:
       return "roadSurface";
+  }
+  return "";
+}
+
+/// Converts ast::RoadType to its string representation.
+constexpr auto ToString(ast::RoadType val) noexcept -> std::string_view {
+  switch (val) {
+    case ast::RoadType::kUnknown:
+      return "unknown";
+    case ast::RoadType::kBicycle:
+      return "bicycle";
+    case ast::RoadType::kLowSpeed:
+      return "lowSpeed";
+    case ast::RoadType::kPedestrian:
+      return "pedestrian";
+    case ast::RoadType::kMotorway:
+      return "motorway";
+    case ast::RoadType::kRural:
+      return "rural";
+    case ast::RoadType::kTownArterial:
+      return "townArterial";
+    case ast::RoadType::kTownCollector:
+      return "townCollector";
+    case ast::RoadType::kTownExpressway:
+      return "townExpressway";
+    case ast::RoadType::kTownLocal:
+      return "townLocal";
+    case ast::RoadType::kTownPlayStreet:
+      return "townPlayStreet";
+    case ast::RoadType::kTownPrivate:
+      return "townPrivate";
+    case ast::RoadType::kTown:
+      return "town";
   }
   return "";
 }

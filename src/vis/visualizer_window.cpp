@@ -51,7 +51,7 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     auto batched = BatchMapGeometry(kTess);
 
     // 4. Update Viewport
-    viewport_->SetGeometry(batched, cpm::CompiledPhysicsModel::Build(map));
+    viewport_->SetGeometry(batched, map, cpm::CompiledPhysicsModel::Build(map));
 
     // Update title and status bar
     const QFileInfo kFileInfo(QString::fromStdString(file_path));

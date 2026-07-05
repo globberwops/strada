@@ -1611,3 +1611,81 @@ TEST(ParserConversionsTest, ObjectTypeConversions) {
   EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kRoadMark), "roadMark");
   EXPECT_EQ(strada::parser::ToString(strada::ast::ObjectType::kRoadSurface), "roadSurface");
 }
+
+TEST(ParserConversionsTest, RoadTypeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("unknown"), strada::ast::RoadType::kUnknown);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("bicycle"), strada::ast::RoadType::kBicycle);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("lowSpeed"), strada::ast::RoadType::kLowSpeed);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("pedestrian"), strada::ast::RoadType::kPedestrian);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("motorway"), strada::ast::RoadType::kMotorway);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("rural"), strada::ast::RoadType::kRural);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("townArterial"), strada::ast::RoadType::kTownArterial);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("townCollector"), strada::ast::RoadType::kTownCollector);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("townExpressway"),
+            strada::ast::RoadType::kTownExpressway);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("townLocal"), strada::ast::RoadType::kTownLocal);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("townPlayStreet"),
+            strada::ast::RoadType::kTownPlayStreet);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("townPrivate"), strada::ast::RoadType::kTownPrivate);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("town"), strada::ast::RoadType::kTown);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::RoadType>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kUnknown), "unknown");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kBicycle), "bicycle");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kLowSpeed), "lowSpeed");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kPedestrian), "pedestrian");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kMotorway), "motorway");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kRural), "rural");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kTownArterial), "townArterial");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kTownCollector), "townCollector");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kTownExpressway), "townExpressway");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kTownLocal), "townLocal");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kTownPlayStreet), "townPlayStreet");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kTownPrivate), "townPrivate");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::RoadType::kTown), "town");
+}
+
+TEST(ParserTest, ParseRoadTypes) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0">
+        <line/>
+      </geometry>
+    </planView>
+    <type s="0.0" type="townLocal"/>
+    <type s="5.0" type="townExpressway"/>
+    <type s="2.0" type="bicycle"/>
+    <type s="8.0" type="invalid_type_here"/>
+    <type s="9.0"/>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+
+  ASSERT_EQ(road.types.size(), 5);
+
+  EXPECT_DOUBLE_EQ(road.types[0].s, 0.0);
+  EXPECT_EQ(road.types[0].type, strada::ast::RoadType::kTownLocal);
+
+  EXPECT_DOUBLE_EQ(road.types[1].s, 2.0);
+  EXPECT_EQ(road.types[1].type, strada::ast::RoadType::kBicycle);
+
+  EXPECT_DOUBLE_EQ(road.types[2].s, 5.0);
+  EXPECT_EQ(road.types[2].type, strada::ast::RoadType::kTownExpressway);
+
+  EXPECT_DOUBLE_EQ(road.types[3].s, 8.0);
+  EXPECT_EQ(road.types[3].type, strada::ast::RoadType::kUnknown);
+
+  EXPECT_DOUBLE_EQ(road.types[4].s, 9.0);
+  EXPECT_EQ(road.types[4].type, strada::ast::RoadType::kUnknown);
+}

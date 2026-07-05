@@ -9,6 +9,7 @@
 #include <QOpenGLWidget>
 #include <QPoint>
 #include <optional>
+#include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/vis/camera.hpp>
 #include <strada/vis/geometry_batcher.hpp>
@@ -23,7 +24,9 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   explicit ViewportWidget(QWidget* parent = nullptr);
   ~ViewportWidget() override;
 
-  void SetGeometry(const BatchedGeometry& geometry, cpm::CompiledPhysicsModel model);
+  void SetGeometry(const BatchedGeometry& geometry, const ast::AbstractSyntaxTree& map,
+                   cpm::CompiledPhysicsModel model);
+  static auto FindActiveRoadType(const ast::Road& road, double s) -> ast::RoadType;
 
  protected:
   void initializeGL() override;
@@ -61,6 +64,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   QPoint last_mouse_pos_;
 
   // Compiled Physics Model for CPU-side picking
+  ast::AbstractSyntaxTree map_;
   cpm::CompiledPhysicsModel cpm_model_;
   bool has_model_{false};
   mutable cpm::QueryContext query_ctx_;

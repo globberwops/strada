@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <strada/parser/parser.hpp>
 #include <strada/vis/geometry_batcher.hpp>
+#include <strada/vis/viewport_widget.hpp>
 
 #ifndef STRADA_TEST_DATA_DIR
 #define STRADA_TEST_DATA_DIR "tests/data"
@@ -269,6 +270,43 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
     EXPECT_NEAR(v.g, 197.0F / 255.0F, 1e-4F);
     EXPECT_NEAR(v.b, 61.0F / 255.0F, 1e-4F);
   }
+}
+
+TEST(VisTest, FindActiveRoadType) {
+  // Arrange
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  // Case 1: Empty types vector
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 0.0), ast::RoadType::kUnknown);
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 5.0), ast::RoadType::kUnknown);
+
+  // Set up types
+  road.types.push_back(ast::RoadTypeRecord{0.0, ast::RoadType::kTownLocal});
+  road.types.push_back(ast::RoadTypeRecord{2.0, ast::RoadType::kBicycle});
+  road.types.push_back(ast::RoadTypeRecord{5.0, ast::RoadType::kTownExpressway});
+
+  // Case 2: Before first record (s < 0.0) -> returns kUnknown per our logic
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, -1.0), ast::RoadType::kUnknown);
+
+  // Case 3: Exact match at s = 0.0 -> kTownLocal
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 0.0), ast::RoadType::kTownLocal);
+
+  // Case 4: Match between 0.0 and 2.0 -> kTownLocal
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 1.0), ast::RoadType::kTownLocal);
+
+  // Case 5: Exact match at s = 2.0 -> kBicycle
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 2.0), ast::RoadType::kBicycle);
+
+  // Case 6: Match between 2.0 and 5.0 -> kBicycle
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 3.5), ast::RoadType::kBicycle);
+
+  // Case 7: Exact match at s = 5.0 -> kTownExpressway
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 5.0), ast::RoadType::kTownExpressway);
+
+  // Case 8: Match after last record -> kTownExpressway
+  EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 8.0), ast::RoadType::kTownExpressway);
 }
 
 }  // namespace strada::vis

@@ -38,8 +38,10 @@ ViewportWidget::~ViewportWidget() {
   doneCurrent();
 }
 
-void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, cpm::CompiledPhysicsModel model) {
+void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::AbstractSyntaxTree& map,
+                                 cpm::CompiledPhysicsModel model) {
   geometry_ = geometry;
+  map_ = map;
   cpm_model_ = std::move(model);
   has_model_ = true;
   hovered_pose_ = std::nullopt;
@@ -80,6 +82,18 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, cpm::CompiledP
   }
 
   update();
+}
+
+auto ViewportWidget::FindActiveRoadType(const ast::Road& road, double s) -> ast::RoadType {
+  if (road.types.empty()) {
+    return ast::RoadType::kUnknown;
+  }
+  auto it = std::upper_bound(road.types.begin(), road.types.end(), s,
+                             [](double val, const ast::RoadTypeRecord& record) -> bool { return val < record.s; });
+  if (it == road.types.begin()) {
+    return ast::RoadType::kUnknown;
+  }
+  return std::prev(it)->type;
 }
 
 void ViewportWidget::initializeGL() {
@@ -236,7 +250,7 @@ void ViewportWidget::paintGL() {
 
     if (has_model_) {
       // Draw dark glassmorphic card container in the top-left corner
-      const QRect kRect(20, 20, 270, 182);
+      const QRect kRect(20, 20, 270, 204);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(kRect, 8.0, 8.0);
@@ -268,6 +282,24 @@ void ViewportWidget::paintGL() {
         painter.drawText(kXOffset + 70, y_offset, QString::fromStdString(hovered_road_name_));
       } else {
         painter.drawText(kXOffset + 70, y_offset, "--");
+      }
+      y_offset += kLineHeight;
+
+      // Road Type
+      painter.setPen(QColor(160, 170, 184));
+      painter.drawText(kXOffset, y_offset, "Road Type:");
+      painter.setPen(Qt::white);
+      if (hovered_pose_) {
+        ast::RoadType road_type = ast::RoadType::kUnknown;
+        for (const auto& road : map_.roads) {
+          if (road.id == hovered_road_name_) {
+            road_type = FindActiveRoadType(road, hovered_pose_->s);
+            break;
+          }
+        }
+        painter.drawText(kXOffset + 80, y_offset, QString::fromStdString(std::string(parser::ToString(road_type))));
+      } else {
+        painter.drawText(kXOffset + 80, y_offset, "--");
       }
       y_offset += kLineHeight;
 
