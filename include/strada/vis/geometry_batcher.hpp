@@ -6,7 +6,7 @@
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/tess/tessellator.hpp>
-#include <string>
+#include <strada/vis/colors.hpp>
 #include <vector>
 
 namespace strada::vis {
@@ -41,16 +41,6 @@ struct BatchedGeometry {
   std::vector<Vertex> object_line_vertices;
   std::vector<Vertex> signal_line_vertices;
 };
-
-/// Curated premium color palette matching dark-mode aesthetics.
-struct Color {
-  float r{};
-  float g{};
-  float b{};
-};
-
-/// Color lookup helper based on lane type and original lane ID.
-auto GetLaneColor(ast::LaneType lane_type, int original_lane_id) noexcept -> Color;
 
 /// Batches all map meshes and polylines into contiguous arrays.
 auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTree& map,

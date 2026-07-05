@@ -16,6 +16,7 @@ if(STRADA_BUILD_VIS)
            BASE_DIRS
            ${PROJECT_SOURCE_DIR}/include
            FILES
+           ${PROJECT_SOURCE_DIR}/include/strada/vis/colors.hpp
            ${PROJECT_SOURCE_DIR}/include/strada/vis/geometry_batcher.hpp
            ${PROJECT_SOURCE_DIR}/include/strada/vis/camera.hpp
            ${PROJECT_SOURCE_DIR}/include/strada/vis/viewport_widget.hpp

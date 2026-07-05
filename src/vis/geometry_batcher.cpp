@@ -8,66 +8,6 @@
 
 namespace strada::vis {
 
-auto GetLaneColor(ast::LaneType lane_type, int original_lane_id) noexcept -> Color {
-  switch (lane_type) {
-    case ast::LaneType::kHov:
-    case ast::LaneType::kBidirectional:
-    case ast::LaneType::kBus:
-    case ast::LaneType::kTaxi:
-    case ast::LaneType::kRoadWorks:
-    case ast::LaneType::kShared:
-    case ast::LaneType::kDriving: {
-      if (original_lane_id < 0) {
-        return Color{.r = 239.0F / 255.0F, .g = 215.0F / 255.0F, .b = 171.0F / 255.0F};
-      }
-      return Color{.r = 205.0F / 255.0F, .g = 216.0F / 255.0F, .b = 232.0F / 255.0F};
-    }
-    case ast::LaneType::kBiking:
-      return Color{.r = 207.0F / 255.0F, .g = 16.0F / 255.0F, .b = 45.0F / 255.0F};
-    case ast::LaneType::kBorder:
-      return Color{.r = 165.0F / 255.0F, .g = 94.0F / 255.0F, .b = 55.0F / 255.0F};
-    case ast::LaneType::kConnectingRamp:
-      return Color{.r = 168.0F / 255.0F, .g = 211.0F / 255.0F, .b = 0.0F / 255.0F};
-    case ast::LaneType::kCurb:
-      return Color{.r = 151.0F / 255.0F, .g = 120.0F / 255.0F, .b = 211.0F / 255.0F};
-    case ast::LaneType::kMwyEntry:
-    case ast::LaneType::kEntry:
-      return Color{.r = 234.0F / 255.0F, .g = 217.0F / 255.0F, .b = 96.0F / 255.0F};
-    case ast::LaneType::kMwyExit:
-    case ast::LaneType::kExit:
-      return Color{.r = 103.0F / 255.0F, .g = 153.0F / 255.0F, .b = 204.0F / 255.0F};
-    case ast::LaneType::kMedian:
-      return Color{.r = 124.0F / 255.0F, .g = 84.0F / 255.0F, .b = 71.0F / 255.0F};
-    case ast::LaneType::kSpecial1:
-    case ast::LaneType::kSpecial2:
-    case ast::LaneType::kSpecial3:
-    case ast::LaneType::kNone:
-      return Color{.r = 147.0F / 255.0F, .g = 149.0F / 255.0F, .b = 152.0F / 255.0F};
-    case ast::LaneType::kOffRamp:
-      return Color{.r = 35.0F / 255.0F, .g = 121.0F / 255.0F, .b = 185.0F / 255.0F};
-    case ast::LaneType::kOnRamp:
-      return Color{.r = 255.0F / 255.0F, .g = 212.0F / 255.0F, .b = 2.0F / 255.0F};
-    case ast::LaneType::kParking:
-      return Color{.r = 98.0F / 255.0F, .g = 38.0F / 255.0F, .b = 158.0F / 255.0F};
-    case ast::LaneType::kRail:
-      return Color{.r = 56.0F / 255.0F, .g = 43.0F / 255.0F, .b = 178.0F / 255.0F};
-    case ast::LaneType::kRestricted:
-      return Color{.r = 255.0F / 255.0F, .g = 103.0F / 255.0F, .b = 27.0F / 255.0F};
-    case ast::LaneType::kShoulder:
-      return Color{.r = 0.0F / 255.0F, .g = 98.0F / 255.0F, .b = 65.0F / 255.0F};
-    case ast::LaneType::kSidewalk:
-    case ast::LaneType::kWalking:
-      return Color{.r = 121.0F / 255.0F, .g = 36.0F / 255.0F, .b = 47.0F / 255.0F};
-    case ast::LaneType::kSlipLane:
-      return Color{.r = 0.0F / 255.0F, .g = 148.0F / 255.0F, .b = 94.0F / 255.0F};
-    case ast::LaneType::kStop:
-      return Color{.r = 146.0F / 255.0F, .g = 213.0F / 255.0F, .b = 172.0F / 255.0F};
-    case ast::LaneType::kTram:
-      return Color{.r = 109.0F / 255.0F, .g = 109.0F / 255.0F, .b = 226.0F / 255.0F};
-  }
-  return Color{.r = 147.0F / 255.0F, .g = 149.0F / 255.0F, .b = 152.0F / 255.0F};
-}
-
 auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTree& map,
                       const cpm::CompiledPhysicsModel& cpm) -> BatchedGeometry {
   BatchedGeometry batched;
@@ -104,7 +44,7 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
       continue;
     }
 
-    auto line_color = Color{.r = 1.0F, .g = 0.0F, .b = 0.0F};
+    constexpr Color kLineColor = kReferenceLineColor;
 
     if (poly.vertices.size() < 2) {
       continue;
@@ -115,9 +55,9 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
       const auto& v1 = poly.vertices[i + 1];
 
       batched.line_vertices.push_back(
-          Vertex{.x = v0.x, .y = v0.y, .z = v0.z, .r = line_color.r, .g = line_color.g, .b = line_color.b});
+          Vertex{.x = v0.x, .y = v0.y, .z = v0.z, .r = kLineColor.r, .g = kLineColor.g, .b = kLineColor.b});
       batched.line_vertices.push_back(
-          Vertex{.x = v1.x, .y = v1.y, .z = v1.z, .r = line_color.r, .g = line_color.g, .b = line_color.b});
+          Vertex{.x = v1.x, .y = v1.y, .z = v1.z, .r = kLineColor.r, .g = kLineColor.g, .b = kLineColor.b});
     }
   }
 
@@ -125,8 +65,12 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
   for (const auto& boundary_geom : tess.JunctionBoundaries()) {
     auto current_offset = static_cast<std::uint32_t>(batched.boundary_triangle_vertices.size());
     for (const auto& v : boundary_geom.vertices) {
-      batched.boundary_triangle_vertices.push_back(
-          Vertex{.x = v.x, .y = v.y, .z = v.z, .r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F});
+      batched.boundary_triangle_vertices.push_back(Vertex{.x = v.x,
+                                                          .y = v.y,
+                                                          .z = v.z,
+                                                          .r = kJunctionBoundaryColor.r,
+                                                          .g = kJunctionBoundaryColor.g,
+                                                          .b = kJunctionBoundaryColor.b});
     }
     for (const std::uint32_t kIdx : boundary_geom.indices) {
       batched.boundary_triangle_indices.push_back(kIdx + current_offset);
@@ -135,7 +79,6 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
 
   // 4. Batch Road Objects
   cpm::QueryContext query_ctx;
-  const Color kObjectColor{.r = 1.0F, .g = 145.0F / 255.0F, .b = 0.0F};
 
   for (const auto& road : map.roads) {
     auto opt_road_id = cpm.RoadIdFromString(road.id);
@@ -310,7 +253,6 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
   }
 
   // 5. Batch Road Signals and Signal References
-  const Color kSignalColor{.r = 0.0F, .g = 229.0F / 255.0F, .b = 1.0F};
   for (const auto& road : map.roads) {
     auto opt_road_id = cpm.RoadIdFromString(road.id);
     if (!opt_road_id) {
