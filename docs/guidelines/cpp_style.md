@@ -391,19 +391,3 @@ Strada integrates the C++ Core Guidelines to promote safety, type correctness, a
 | **Error Handling (CG E.2)** | Throw exceptions for all failures | Exceptions **only in non-hot paths**. Hot-paths return `std::optional` or boolean status | Performance optimization to avoid stack unwinding tables on CPU-intensive queries |
 | **Type Initialization (CG ES.23)** | Use `{}` for all unified initialization | Primitive types use `{}` initialization. STL/class types use default constructor (`std::string s;` without `{}`) | Prevents `readability-redundant-member-init` warnings from `clang-tidy` |
 | **Function Return Syntax (CG F.21)** | Traditional leading return types (`int f();`) | Trailing return types unconditionally for all non-void functions (`auto f() -> int;`) | Enhanced readability, uniformity, and simplified template signatures |
-
----
-
-## 9. Value Representation & Sets
-
-The Strada AST and parser layer represents XML values and closed sets of values strictly, prioritizing type safety, explicit defaults, and fail-fast validation.
-
-### 9.1 Optional vs. Default-Initialized Fields
-- **No Implicit Absence:** Do not use empty strings (`""`), `0.0`, `-1`, or other magic values to represent the implicit absence of a field.
-- **True Optional Fields:** If a field is optional in the specification and has no spec-mandated default behavior (i.e. its absence represents "none" or "no value"), it **must** be modeled using `std::optional<T>` in C++ and initialized to `std::nullopt` by default.
-- **Spec-Mandated Defaults:** If a field has a spec-mandated default value (e.g. `layer` defaulting to `"permanent"` or `level` defaulting to `false`), it **must** be modeled as a non-optional field in C++ and default-initialized to that spec default in the struct definition (e.g. `LayerType layer{LayerType::kPermanent};`). The parser must explicitly assign this default when the attribute is missing.
-
-### 9.2 Closed Sets (Enum Classes)
-- **Scoped Enums:** Closed sets of values defined in the ASAM OpenDRIVE specification **must** use strongly-typed scoped enums (`enum class`) typed with an explicit underlying integer size (typically `std::uint8_t`).
-- **No Artificial Sentinel States:** Do not pollute strictly closed spec-mandated enums with artificial sentinel values like `kUnknown` or `kOther` unless they are part of the specification itself. Any unrecognized string parsed from XML must immediately throw `InvalidAttributeError`.
-- **Sentinel for True Optional Enums:** If an enum field is optional in the specification and has no spec-mandated default, use `kUnknown = 0` inside the enum class to represent the optionality/absence state, avoiding `std::optional<EnumType>` wrappers.
