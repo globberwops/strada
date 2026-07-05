@@ -84,8 +84,11 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
       batched.triangle_indices.push_back(kIdx + vertex_offset);
     }
 
-    batched.mesh_ranges.push_back(MeshRange{
-        .road_id = mesh.road_id, .lane_id = mesh.lane_id, .index_start = index_start, .index_count = index_count});
+    batched.mesh_ranges.push_back(MeshRange{.road_id = mesh.road_id,
+                                            .lane_id = mesh.lane_id,
+                                            .lane_type = mesh.lane_type,
+                                            .index_start = index_start,
+                                            .index_count = index_count});
 
     vertex_offset += static_cast<std::uint32_t>(mesh.vertices.size());
   }

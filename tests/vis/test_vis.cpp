@@ -245,6 +245,7 @@ TEST(VisTest, MeshRangeTracking) {
 
   EXPECT_EQ(range.road_id, tess.Meshes()[0].road_id);
   EXPECT_EQ(range.lane_id, tess.Meshes()[0].lane_id);
+  EXPECT_EQ(range.lane_type, ast::LaneType::kDriving);
   EXPECT_EQ(range.index_start, 0);
   EXPECT_EQ(range.index_count, tess.Meshes()[0].indices.size());
 }

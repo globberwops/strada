@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <strada/parser/conversions.hpp>
 #include <strada/vis/viewport_widget.hpp>
 
 namespace strada::vis {
@@ -235,7 +236,7 @@ void ViewportWidget::paintGL() {
 
     if (has_model_) {
       // Draw dark glassmorphic card container in the top-left corner
-      const QRect kRect(20, 20, 270, 160);
+      const QRect kRect(20, 20, 270, 182);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(kRect, 8.0, 8.0);
@@ -278,6 +279,25 @@ void ViewportWidget::paintGL() {
         painter.drawText(kXOffset + 70, y_offset, QString::number(hovered_lane_original_id_));
       } else {
         painter.drawText(kXOffset + 70, y_offset, "--");
+      }
+      y_offset += kLineHeight;
+
+      // Lane Type
+      painter.setPen(QColor(160, 170, 184));
+      painter.drawText(kXOffset, y_offset, "Lane Type:");
+      painter.setPen(Qt::white);
+      if (hovered_pose_) {
+        ast::LaneType hovered_lane_type = ast::LaneType::kNone;
+        for (const auto& range : geometry_.mesh_ranges) {
+          if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
+            hovered_lane_type = range.lane_type;
+            break;
+          }
+        }
+        painter.drawText(kXOffset + 80, y_offset,
+                         QString::fromStdString(std::string(parser::ToString(hovered_lane_type))));
+      } else {
+        painter.drawText(kXOffset + 80, y_offset, "--");
       }
       y_offset += kLineHeight;
 

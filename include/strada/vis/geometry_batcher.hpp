@@ -23,6 +23,7 @@ struct Vertex {
 struct MeshRange {
   cpm::RoadId road_id{};
   cpm::LaneId lane_id{};
+  ast::LaneType lane_type{ast::LaneType::kNone};
   std::uint32_t index_start{};
   std::uint32_t index_count{};
 };
