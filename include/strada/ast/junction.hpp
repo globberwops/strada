@@ -62,11 +62,19 @@ struct JunctionBoundary {
   Extensions extensions;                          ///< Non-schema and custom user data extensions.
 };
 
+/// The type of a junction.
+enum class JunctionType : std::uint8_t {
+  kCommon = 0,  ///< Maps to XML "default" or used when @type is omitted/absent.
+  kCrossing,    ///< Maps to XML "crossing".
+  kDirect,      ///< Maps to XML "direct".
+  kVirtual      ///< Maps to XML "virtual"
+};
+
 /// Represents an ASAM OpenDRIVE junction containing overlapping connections.
 struct Junction {
   std::string id;                            ///< Unique ID of the junction.
-  std::string name;                          ///< Optional human-readable name of the junction.
-  std::string type;                          ///< Type of junction (e.g. "default", "direct").
+  std::optional<std::string> name;           ///< Optional human-readable name of the junction.
+  JunctionType type{JunctionType::kCommon};  ///< Type of junction (e.g. default, crossing, direct, virtual).
   std::vector<Connection> connections;       ///< Road-to-road connections within the junction.
   std::optional<JunctionBoundary> boundary;  ///< Optional boundary enclosing the junction area.
   Extensions extensions;                     ///< Non-schema and custom user data extensions.

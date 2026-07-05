@@ -236,8 +236,9 @@ TEST(ParserTest, ParseJunctions) {
   ASSERT_EQ(ast_tree.junctions.size(), 1);
   const auto& junction = ast_tree.junctions[0];
   EXPECT_EQ(junction.id, "1");
-  EXPECT_EQ(junction.name, "Main Junction");
-  EXPECT_EQ(junction.type, "default");
+  ASSERT_TRUE(junction.name.has_value());
+  EXPECT_EQ(*junction.name, "Main Junction");
+  EXPECT_EQ(junction.type, strada::ast::JunctionType::kCommon);
 
   ASSERT_EQ(junction.connections.size(), 2);
 
@@ -260,6 +261,69 @@ TEST(ParserTest, ParseJunctions) {
   ASSERT_EQ(conn1.lane_links.size(), 1);
   EXPECT_EQ(conn1.lane_links[0].from, 1);
   EXPECT_EQ(conn1.lane_links[0].to, 1);
+}
+
+TEST(ParserTest, ParseOtherJunctionTypes) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Junction Types Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
+    <junction id="1" name="Crossing Junction" type="crossing"/>
+    <junction id="2" name="Direct Junction" type="direct"/>
+    <junction id="3" name="Virtual Junction" type="virtual"/>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.junctions.size(), 3);
+
+  EXPECT_EQ(ast_tree.junctions[0].id, "1");
+  ASSERT_TRUE(ast_tree.junctions[0].name.has_value());
+  EXPECT_EQ(*ast_tree.junctions[0].name, "Crossing Junction");
+  EXPECT_EQ(ast_tree.junctions[0].type, strada::ast::JunctionType::kCrossing);
+
+  EXPECT_EQ(ast_tree.junctions[1].id, "2");
+  ASSERT_TRUE(ast_tree.junctions[1].name.has_value());
+  EXPECT_EQ(*ast_tree.junctions[1].name, "Direct Junction");
+  EXPECT_EQ(ast_tree.junctions[1].type, strada::ast::JunctionType::kDirect);
+
+  EXPECT_EQ(ast_tree.junctions[2].id, "3");
+  ASSERT_TRUE(ast_tree.junctions[2].name.has_value());
+  EXPECT_EQ(*ast_tree.junctions[2].name, "Virtual Junction");
+  EXPECT_EQ(ast_tree.junctions[2].type, strada::ast::JunctionType::kVirtual);
+}
+
+TEST(ParserTest, ParseJunctionMissingTypeAndName) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Junction Types Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
+    <junction id="1"/>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.junctions.size(), 1);
+  const auto& junction = ast_tree.junctions[0];
+  EXPECT_EQ(junction.id, "1");
+  EXPECT_EQ(junction.name, std::nullopt);
+  EXPECT_EQ(junction.type, strada::ast::JunctionType::kCommon);
+}
+
+TEST(ParserTest, ParseJunctionInvalidTypeThrows) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" encoding="utf-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="Junction Types Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
+    <junction id="1" name="Invalid Junction" type="invalid_type"/>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, ParseJunctionBoundary) {

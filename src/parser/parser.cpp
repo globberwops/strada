@@ -511,8 +511,28 @@ auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
 auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
   ast::Junction junction;
   junction.id = junction_node.attribute("id").as_string("");
-  junction.name = junction_node.attribute("name").as_string("");
-  junction.type = junction_node.attribute("type").as_string("");
+  if (junction_node.attribute("name")) {
+    junction.name = junction_node.attribute("name").as_string();
+  } else {
+    junction.name = std::nullopt;
+  }
+
+  if (junction_node.attribute("type")) {
+    const std::string type_str = junction_node.attribute("type").as_string();
+    if (type_str == "default") {
+      junction.type = ast::JunctionType::kCommon;
+    } else if (type_str == "crossing") {
+      junction.type = ast::JunctionType::kCrossing;
+    } else if (type_str == "direct") {
+      junction.type = ast::JunctionType::kDirect;
+    } else if (type_str == "virtual") {
+      junction.type = ast::JunctionType::kVirtual;
+    } else {
+      throw InvalidAttributeError("Invalid junction type: " + type_str);
+    }
+  } else {
+    junction.type = ast::JunctionType::kCommon;
+  }
 
   pugi::xml_node conn_node = junction_node.child("connection");
   while (!conn_node.empty()) {
