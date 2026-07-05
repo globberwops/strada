@@ -47,11 +47,13 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     // 2. Build Tessellator
     const tess::Tessellator kTess(map, 0.1);  // Use 0.1m chord error for rendering quality
 
+    auto cpm = cpm::CompiledPhysicsModel::Build(map);
+
     // 3. Batch Geometry
-    auto batched = BatchMapGeometry(kTess);
+    auto batched = BatchMapGeometry(kTess, map, cpm);
 
     // 4. Update Viewport
-    viewport_->SetGeometry(batched, map, cpm::CompiledPhysicsModel::Build(map));
+    viewport_->SetGeometry(batched, map, std::move(cpm));
 
     // Update title and status bar
     const QFileInfo kFileInfo(QString::fromStdString(file_path));

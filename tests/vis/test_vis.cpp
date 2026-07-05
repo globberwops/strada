@@ -99,7 +99,7 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
   ASSERT_EQ(tess.Meshes().size(), 1);
 
   // Act: batch geometry
-  auto batched = BatchMapGeometry(tess);
+  auto batched = BatchMapGeometry(tess, map, cpm::CompiledPhysicsModel::Build(map));
 
   // Assert
   const auto& mesh = tess.Meshes()[0];
@@ -162,7 +162,7 @@ TEST(VisTest, BatchMapGeometryLines) {
   ASSERT_EQ(tess.Polylines().size(), 2);
 
   // Act: batch
-  auto batched = BatchMapGeometry(tess);
+  auto batched = BatchMapGeometry(tess, map, cpm::CompiledPhysicsModel::Build(map));
 
   // Assert:
   // For each polyline of M vertices, we generate 2*(M-1) vertices for GL_LINES
@@ -238,7 +238,7 @@ TEST(VisTest, MeshRangeTracking) {
   ASSERT_EQ(tess.Meshes().size(), 1);
 
   // Act: batch geometry
-  auto batched = BatchMapGeometry(tess);
+  auto batched = BatchMapGeometry(tess, map, cpm::CompiledPhysicsModel::Build(map));
 
   // Assert: we expect exactly 1 range corresponding to the single mesh
   ASSERT_EQ(batched.mesh_ranges.size(), 1);
@@ -258,7 +258,7 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
 
   // Act
   tess::Tessellator tess(map, 0.5);
-  auto batched = BatchMapGeometry(tess);
+  auto batched = BatchMapGeometry(tess, map, cpm::CompiledPhysicsModel::Build(map));
 
   // Assert
   EXPECT_FALSE(batched.boundary_triangle_vertices.empty());
@@ -269,6 +269,109 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
     EXPECT_NEAR(v.r, 245.0F / 255.0F, 1e-4F);
     EXPECT_NEAR(v.g, 197.0F / 255.0F, 1e-4F);
     EXPECT_NEAR(v.b, 61.0F / 255.0F, 1e-4F);
+  }
+}
+
+TEST(VisTest, BatchMapGeometryObjects) {
+  // Arrange
+  ast::AbstractSyntaxTree map;
+
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  ast::GeometryRecord geom;
+  geom.s = 0.0;
+  geom.length = 10.0;
+  geom.x = 0.0;
+  geom.y = 0.0;
+  geom.hdg = 0.0;
+  geom.shape = ast::Line{};
+  road.plan_view.push_back(geom);
+
+  ast::LaneSection section;
+  section.s = 0.0;
+  ast::Lane lane0;
+  lane0.id = 0;
+  lane0.type = strada::ast::LaneType::kBorder;
+  section.center.push_back(lane0);
+  road.lanes.sections.push_back(section);
+
+  // 1. Add object with local corners (Outline)
+  ast::Object obj_local;
+  obj_local.id = "obj_local";
+  obj_local.s = 2.0;
+  obj_local.t = 0.0;
+  obj_local.z_offset = 1.0;
+  obj_local.hdg = 0.0;
+  obj_local.pitch = 0.0;
+  obj_local.roll = 0.0;
+
+  ast::ObjectOutline outline_local;
+  outline_local.closed = true;
+  outline_local.corners_local.push_back(ast::ObjectCornerLocal{.u = -1.0, .v = -1.0, .z = 0.0});
+  outline_local.corners_local.push_back(ast::ObjectCornerLocal{.u = 1.0, .v = -1.0, .z = 0.0});
+  outline_local.corners_local.push_back(ast::ObjectCornerLocal{.u = 1.0, .v = 1.0, .z = 0.0});
+  outline_local.corners_local.push_back(ast::ObjectCornerLocal{.u = -1.0, .v = 1.0, .z = 0.0});
+  obj_local.outlines.push_back(outline_local);
+  road.objects.push_back(obj_local);
+
+  // 2. Add object with road corners (Outline)
+  ast::Object obj_road;
+  obj_road.id = "obj_road";
+  obj_road.s = 4.0;
+  obj_road.t = 0.0;
+  obj_road.z_offset = 0.0;
+
+  ast::ObjectOutline outline_road;
+  outline_road.closed = false;
+  outline_road.corners_road.push_back(ast::ObjectCornerRoad{.s = 4.0, .t = -1.0, .dz = 0.0});
+  outline_road.corners_road.push_back(ast::ObjectCornerRoad{.s = 5.0, .t = 1.0, .dz = 0.0});
+  obj_road.outlines.push_back(outline_road);
+  road.objects.push_back(obj_road);
+
+  // 3. Add object with length/width > 0 (Oriented 2D Box)
+  ast::Object obj_box;
+  obj_box.id = "obj_box";
+  obj_box.s = 6.0;
+  obj_box.t = 0.0;
+  obj_box.z_offset = 0.0;
+  obj_box.length = 2.0;
+  obj_box.width = 1.0;
+  obj_box.hdg = 0.0;
+  obj_box.pitch = 0.0;
+  obj_box.roll = 0.0;
+  road.objects.push_back(obj_box);
+
+  // 4. Add other object (Crosshair)
+  ast::Object obj_cross;
+  obj_cross.id = "obj_cross";
+  obj_cross.s = 8.0;
+  obj_cross.t = 0.0;
+  obj_cross.z_offset = 0.0;
+  road.objects.push_back(obj_cross);
+
+  map.roads.push_back(road);
+
+  tess::Tessellator tess(map, 0.5);
+  cpm::CompiledPhysicsModel cpm = cpm::CompiledPhysicsModel::Build(map);
+
+  // Act
+  auto batched = BatchMapGeometry(tess, map, cpm);
+
+  // Assert
+  // 1. obj_local has 4 local corners, closed -> 4 line segments -> 8 vertices
+  // 2. obj_road has 2 road corners, open -> 1 line segment -> 2 vertices
+  // 3. obj_box has length/width > 0 -> 4 line segments -> 8 vertices
+  // 4. obj_cross has no outline/dim -> crosshair -> 2 line segments -> 4 vertices
+  // Total expected vertices = 8 + 2 + 8 + 4 = 22 vertices.
+  EXPECT_EQ(batched.object_line_vertices.size(), 22);
+
+  // Verify colors are neon amber/orange: rgb(255, 145, 0)
+  for (const auto& v : batched.object_line_vertices) {
+    EXPECT_NEAR(v.r, 1.0F, 1e-4F);
+    EXPECT_NEAR(v.g, 145.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.b, 0.0F, 1e-4F);
   }
 }
 

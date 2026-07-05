@@ -3,11 +3,13 @@
 #include <QGestureEvent>
 #include <QInputDevice>
 #include <QKeyEvent>
+#include <QMainWindow>
 #include <QMatrix4x4>
 #include <QMouseEvent>
 #include <QNativeGestureEvent>
 #include <QPainter>
 #include <QPinchGesture>
+#include <QStatusBar>
 #include <QVector4D>
 #include <QWheelEvent>
 #include <algorithm>
@@ -35,6 +37,8 @@ ViewportWidget::~ViewportWidget() {
   boundaries_vao_.destroy();
   boundaries_vbo_.destroy();
   boundaries_ibo_.destroy();
+  objects_vao_.destroy();
+  objects_vbo_.destroy();
   doneCurrent();
 }
 
@@ -61,6 +65,13 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::Abs
   }
 
   for (const auto& v : geometry_.line_vertices) {
+    min_x = std::min(min_x, v.x);
+    max_x = std::max(max_x, v.x);
+    min_y = std::min(min_y, v.y);
+    max_y = std::max(max_y, v.y);
+  }
+
+  for (const auto& v : geometry_.object_line_vertices) {
     min_x = std::min(min_x, v.x);
     max_x = std::max(max_x, v.x);
     min_y = std::min(min_y, v.y);
@@ -153,6 +164,9 @@ void ViewportWidget::initializeGL() {
   boundaries_vao_.create();
   boundaries_vbo_.create();
   boundaries_ibo_.create();
+
+  objects_vao_.create();
+  objects_vbo_.create();
 }
 
 void ViewportWidget::resizeGL(int w, int h) {
@@ -167,6 +181,7 @@ void ViewportWidget::paintGL() {
     SetupTriangles();
     SetupLines();
     SetupBoundaries();
+    SetupObjects();
     geometry_dirty_ = false;
   }
 
@@ -221,6 +236,16 @@ void ViewportWidget::paintGL() {
     glLineWidth(2.0F);
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.line_vertices.size()));
     lines_vao_.release();
+    glEnable(GL_DEPTH_TEST);
+  }
+
+  // Draw Objects in a Single batched call
+  if (show_objects_ && !geometry_.object_line_vertices.empty()) {
+    glDisable(GL_DEPTH_TEST);
+    objects_vao_.bind();
+    glLineWidth(2.0F);
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.object_line_vertices.size()));
+    objects_vao_.release();
     glEnable(GL_DEPTH_TEST);
   }
 
@@ -583,6 +608,24 @@ void ViewportWidget::SetupBoundaries() {
   boundaries_vao_.release();
 }
 
+void ViewportWidget::SetupObjects() {
+  objects_vao_.bind();
+
+  // Load object line vertices
+  objects_vbo_.bind();
+  objects_vbo_.allocate(geometry_.object_line_vertices.data(),
+                        static_cast<int>(geometry_.object_line_vertices.size() * sizeof(Vertex)));
+
+  // Set attribute locations
+  shader_program_.enableAttributeArray(0);
+  shader_program_.setAttributeBuffer(0, GL_FLOAT, offsetof(Vertex, x), 3, sizeof(Vertex));
+
+  shader_program_.enableAttributeArray(1);
+  shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
+
+  objects_vao_.release();
+}
+
 void ViewportWidget::mousePressEvent(QMouseEvent* event) {
   last_mouse_pos_ = event->pos();
   setFocus();
@@ -688,6 +731,12 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
         min_y = std::min(min_y, v.y);
         max_y = std::max(max_y, v.y);
       }
+      for (const auto& v : geometry_.object_line_vertices) {
+        min_x = std::min(min_x, v.x);
+        max_x = std::max(max_x, v.x);
+        min_y = std::min(min_y, v.y);
+        max_y = std::max(max_y, v.y);
+      }
       if (max_x >= min_x && max_y >= min_y) {
         camera_.camera_x = 0.5F * (min_x + max_x);
         camera_.camera_y = 0.5F * (min_y + max_y);
@@ -709,6 +758,14 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
   } else if (event->key() == Qt::Key_B) {
     show_border_lanes_ = !show_border_lanes_;
     update();
+  } else if (event->key() == Qt::Key_O) {
+    show_objects_ = !show_objects_;
+    update();
+    if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+      if (auto* status = main_win->statusBar()) {
+        status->showMessage(show_objects_ ? "Toggled objects: ON" : "Toggled objects: OFF", 2000);
+      }
+    }
   }
 }
 

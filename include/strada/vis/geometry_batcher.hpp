@@ -3,6 +3,8 @@
 #pragma once
 
 #include <cstdint>
+#include <strada/ast/abstract_syntax_tree.hpp>
+#include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/tess/tessellator.hpp>
 #include <string>
 #include <vector>
@@ -36,6 +38,7 @@ struct BatchedGeometry {
   std::vector<MeshRange> mesh_ranges;
   std::vector<Vertex> boundary_triangle_vertices;
   std::vector<std::uint32_t> boundary_triangle_indices;
+  std::vector<Vertex> object_line_vertices;
 };
 
 /// Curated premium color palette matching dark-mode aesthetics.
@@ -49,6 +52,7 @@ struct Color {
 auto GetLaneColor(ast::LaneType lane_type, int original_lane_id) noexcept -> Color;
 
 /// Batches all map meshes and polylines into contiguous arrays.
-auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry;
+auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTree& map,
+                      const cpm::CompiledPhysicsModel& cpm) -> BatchedGeometry;
 
 }  // namespace strada::vis

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BSL-1.0
 
+#include <strada/cpm/query_context.hpp>
 #include <strada/vis/geometry_batcher.hpp>
+
+#include "../cpm/rotation.hpp"
 
 namespace strada::vis {
 
@@ -64,7 +67,8 @@ auto GetLaneColor(ast::LaneType lane_type, int original_lane_id) noexcept -> Col
   return Color{.r = 147.0F / 255.0F, .g = 149.0F / 255.0F, .b = 152.0F / 255.0F};
 }
 
-auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
+auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTree& map,
+                      const cpm::CompiledPhysicsModel& cpm) -> BatchedGeometry {
   BatchedGeometry batched;
 
   // 1. Batch meshes for GL_TRIANGLES
@@ -125,6 +129,182 @@ auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
     }
     for (const std::uint32_t kIdx : boundary_geom.indices) {
       batched.boundary_triangle_indices.push_back(kIdx + current_offset);
+    }
+  }
+
+  // 4. Batch Road Objects
+  cpm::QueryContext query_ctx;
+  const Color kObjectColor{.r = 1.0F, .g = 145.0F / 255.0F, .b = 0.0F};
+
+  for (const auto& road : map.roads) {
+    auto opt_road_id = cpm.RoadIdFromString(road.id);
+    if (!opt_road_id) {
+      continue;
+    }
+    const cpm::RoadId road_id = *opt_road_id;
+
+    for (const auto& object : road.objects) {
+      bool has_outlines = false;
+      for (const auto& outline : object.outlines) {
+        if (!outline.corners_local.empty() || !outline.corners_road.empty()) {
+          has_outlines = true;
+          break;
+        }
+      }
+
+      if (has_outlines) {
+        for (const auto& outline : object.outlines) {
+          if (!outline.corners_local.empty()) {
+            const std::size_t num_corners = outline.corners_local.size();
+            std::vector<Vertex> world_corners;
+            world_corners.reserve(num_corners);
+
+            cpm::RoadPose obj_pose;
+            obj_pose.road = road_id;
+            obj_pose.s = object.s;
+            obj_pose.t = object.t;
+            obj_pose.h = object.z_offset;
+            obj_pose.heading = object.hdg;
+            obj_pose.pitch = object.pitch;
+            obj_pose.roll = object.roll;
+
+            cpm::InertialPose ip_obj = cpm.RoadToInertial(obj_pose, query_ctx);
+            auto r_obj = cpm::Rotation::FromEuler(ip_obj.heading, ip_obj.pitch, ip_obj.roll);
+
+            for (const auto& corner : outline.corners_local) {
+              auto local_pos = r_obj.Transform(corner.u, corner.v, corner.z);
+              world_corners.push_back(Vertex{.x = static_cast<float>(ip_obj.x + local_pos[0]),
+                                             .y = static_cast<float>(ip_obj.y + local_pos[1]),
+                                             .z = static_cast<float>(ip_obj.z + local_pos[2]),
+                                             .r = kObjectColor.r,
+                                             .g = kObjectColor.g,
+                                             .b = kObjectColor.b});
+            }
+
+            for (std::size_t i = 0; i < num_corners - 1; ++i) {
+              batched.object_line_vertices.push_back(world_corners[i]);
+              batched.object_line_vertices.push_back(world_corners[i + 1]);
+            }
+            if (outline.closed && num_corners > 2) {
+              batched.object_line_vertices.push_back(world_corners.back());
+              batched.object_line_vertices.push_back(world_corners.front());
+            }
+          } else if (!outline.corners_road.empty()) {
+            const std::size_t num_corners = outline.corners_road.size();
+            std::vector<Vertex> world_corners;
+            world_corners.reserve(num_corners);
+
+            for (const auto& corner : outline.corners_road) {
+              cpm::RoadPose corner_pose;
+              corner_pose.road = road_id;
+              corner_pose.s = corner.s;
+              corner_pose.t = corner.t;
+              corner_pose.h = corner.dz;
+              corner_pose.heading = 0.0;
+              corner_pose.pitch = 0.0;
+              corner_pose.roll = 0.0;
+
+              cpm::InertialPose ip = cpm.RoadToInertial(corner_pose, query_ctx);
+              world_corners.push_back(Vertex{.x = static_cast<float>(ip.x),
+                                             .y = static_cast<float>(ip.y),
+                                             .z = static_cast<float>(ip.z),
+                                             .r = kObjectColor.r,
+                                             .g = kObjectColor.g,
+                                             .b = kObjectColor.b});
+            }
+
+            for (std::size_t i = 0; i < num_corners - 1; ++i) {
+              batched.object_line_vertices.push_back(world_corners[i]);
+              batched.object_line_vertices.push_back(world_corners[i + 1]);
+            }
+            if (outline.closed && num_corners > 2) {
+              batched.object_line_vertices.push_back(world_corners.back());
+              batched.object_line_vertices.push_back(world_corners.front());
+            }
+          }
+        }
+      } else if (object.length > 0.0 && object.width > 0.0) {
+        double half_l = object.length * 0.5;
+        double half_w = object.width * 0.5;
+
+        cpm::RoadPose obj_pose;
+        obj_pose.road = road_id;
+        obj_pose.s = object.s;
+        obj_pose.t = object.t;
+        obj_pose.h = object.z_offset;
+        obj_pose.heading = object.hdg;
+        obj_pose.pitch = object.pitch;
+        obj_pose.roll = object.roll;
+
+        cpm::InertialPose ip_obj = cpm.RoadToInertial(obj_pose, query_ctx);
+        auto r_obj = cpm::Rotation::FromEuler(ip_obj.heading, ip_obj.pitch, ip_obj.roll);
+
+        std::array<std::pair<double, double>, 4> local_pts = {
+            {{half_l, half_w}, {half_l, -half_w}, {-half_l, -half_w}, {-half_l, half_w}}};
+
+        std::array<Vertex, 4> world_pts;
+        for (std::size_t i = 0; i < 4; ++i) {
+          auto local_pos = r_obj.Transform(local_pts[i].first, local_pts[i].second, 0.0);
+          world_pts[i] = Vertex{.x = static_cast<float>(ip_obj.x + local_pos[0]),
+                                .y = static_cast<float>(ip_obj.y + local_pos[1]),
+                                .z = static_cast<float>(ip_obj.z + local_pos[2]),
+                                .r = kObjectColor.r,
+                                .g = kObjectColor.g,
+                                .b = kObjectColor.b};
+        }
+
+        batched.object_line_vertices.push_back(world_pts[0]);
+        batched.object_line_vertices.push_back(world_pts[1]);
+        batched.object_line_vertices.push_back(world_pts[1]);
+        batched.object_line_vertices.push_back(world_pts[2]);
+        batched.object_line_vertices.push_back(world_pts[2]);
+        batched.object_line_vertices.push_back(world_pts[3]);
+        batched.object_line_vertices.push_back(world_pts[3]);
+        batched.object_line_vertices.push_back(world_pts[0]);
+      } else {
+        cpm::RoadPose obj_pose;
+        obj_pose.road = road_id;
+        obj_pose.s = object.s;
+        obj_pose.t = object.t;
+        obj_pose.h = object.z_offset;
+        obj_pose.heading = object.hdg;
+        obj_pose.pitch = object.pitch;
+        obj_pose.roll = object.roll;
+
+        cpm::InertialPose ip_obj = cpm.RoadToInertial(obj_pose, query_ctx);
+        auto r_obj = cpm::Rotation::FromEuler(ip_obj.heading, ip_obj.pitch, ip_obj.roll);
+
+        auto local1_a = r_obj.Transform(0.0, -0.25, 0.0);
+        auto local1_b = r_obj.Transform(0.0, 0.25, 0.0);
+        auto local2_a = r_obj.Transform(-0.25, 0.0, 0.0);
+        auto local2_b = r_obj.Transform(0.25, 0.0, 0.0);
+
+        batched.object_line_vertices.push_back(Vertex{.x = static_cast<float>(ip_obj.x + local1_a[0]),
+                                                      .y = static_cast<float>(ip_obj.y + local1_a[1]),
+                                                      .z = static_cast<float>(ip_obj.z + local1_a[2]),
+                                                      .r = kObjectColor.r,
+                                                      .g = kObjectColor.g,
+                                                      .b = kObjectColor.b});
+        batched.object_line_vertices.push_back(Vertex{.x = static_cast<float>(ip_obj.x + local1_b[0]),
+                                                      .y = static_cast<float>(ip_obj.y + local1_b[1]),
+                                                      .z = static_cast<float>(ip_obj.z + local1_b[2]),
+                                                      .r = kObjectColor.r,
+                                                      .g = kObjectColor.g,
+                                                      .b = kObjectColor.b});
+
+        batched.object_line_vertices.push_back(Vertex{.x = static_cast<float>(ip_obj.x + local2_a[0]),
+                                                      .y = static_cast<float>(ip_obj.y + local2_a[1]),
+                                                      .z = static_cast<float>(ip_obj.z + local2_a[2]),
+                                                      .r = kObjectColor.r,
+                                                      .g = kObjectColor.g,
+                                                      .b = kObjectColor.b});
+        batched.object_line_vertices.push_back(Vertex{.x = static_cast<float>(ip_obj.x + local2_b[0]),
+                                                      .y = static_cast<float>(ip_obj.y + local2_b[1]),
+                                                      .z = static_cast<float>(ip_obj.z + local2_b[2]),
+                                                      .r = kObjectColor.r,
+                                                      .g = kObjectColor.g,
+                                                      .b = kObjectColor.b});
+      }
     }
   }
 
