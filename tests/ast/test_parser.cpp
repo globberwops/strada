@@ -3,6 +3,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <strada/parser/conversions.hpp>
 #include <strada/parser/parser.hpp>
 #include <string>
 
@@ -1293,4 +1294,134 @@ TEST(ParserTest, DefaultObjectFields) {
 
   EXPECT_EQ(obj_ref.orientation, strada::ast::Orientation::kNone);
   EXPECT_EQ(static_cast<std::uint8_t>(obj_ref.orientation), 0);
+}
+
+TEST(ParserConversionsTest, TrafficRuleConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::TrafficRule>("RHT"), strada::ast::TrafficRule::kRht);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::TrafficRule>("LHT"), strada::ast::TrafficRule::kLht);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::TrafficRule>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::TrafficRule::kRht), "RHT");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::TrafficRule::kLht), "LHT");
+}
+
+TEST(ParserConversionsTest, OrientationConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::Orientation>("none"), strada::ast::Orientation::kNone);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::Orientation>("+"), strada::ast::Orientation::kPlus);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::Orientation>("-"), strada::ast::Orientation::kMinus);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::Orientation>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::Orientation::kNone), "none");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::Orientation::kPlus), "+");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::Orientation::kMinus), "-");
+}
+
+TEST(ParserConversionsTest, PRangeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::PRange>("normalized"), strada::ast::PRange::kNormalized);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::PRange>("arcLength"), strada::ast::PRange::kArcLength);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::PRange>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::PRange::kNormalized), "normalized");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::PRange::kArcLength), "arcLength");
+}
+
+TEST(ParserConversionsTest, ContactPointConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ContactPoint>("start"), strada::ast::ContactPoint::kStart);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ContactPoint>("end"), strada::ast::ContactPoint::kEnd);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::ContactPoint>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ContactPoint::kStart), "start");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::ContactPoint::kEnd), "end");
+}
+
+TEST(ParserConversionsTest, JunctionSegmentTypeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::JunctionSegmentType>("lane"),
+            strada::ast::JunctionSegmentType::kLane);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::JunctionSegmentType>("joint"),
+            strada::ast::JunctionSegmentType::kJoint);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::JunctionSegmentType>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::JunctionSegmentType::kLane), "lane");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::JunctionSegmentType::kJoint), "joint");
+}
+
+TEST(ParserConversionsTest, StripModeConversions) {
+  // Arrange & Act & Assert
+  EXPECT_EQ(strada::parser::FromString<strada::ast::StripMode>("independent"), strada::ast::StripMode::kIndependent);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::StripMode>("relative"), strada::ast::StripMode::kRelative);
+  EXPECT_EQ(strada::parser::FromString<strada::ast::StripMode>("invalid"), std::nullopt);
+
+  EXPECT_EQ(strada::parser::ToString(strada::ast::StripMode::kIndependent), "independent");
+  EXPECT_EQ(strada::parser::ToString(strada::ast::StripMode::kRelative), "relative");
+}
+
+TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidPRange) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <road name="Road 1" length="100.0" id="1" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <paramPoly3 aU="0.0" bU="0.0" cU="0.0" dU="0.0" aV="0.0" bV="0.0" cV="0.0" dV="0.0" pRange="INVALID"/>
+      </geometry>
+    </planView>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionSegmentType) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <junction id="1" name="Junction 1">
+    <connection id="0" incomingRoad="1" connectingRoad="2" contactPoint="start"/>
+    <boundary>
+      <segment type="INVALID" roadId="1"/>
+    </boundary>
+  </junction>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionBoundaryContactPoint) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <junction id="1" name="Junction 1">
+    <connection id="0" incomingRoad="1" connectingRoad="2" contactPoint="start"/>
+    <boundary>
+      <segment type="joint" roadId="1" contactPoint="INVALID"/>
+    </boundary>
+  </junction>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionConnectionContactPoint) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
+  <junction id="1" name="Junction 1">
+    <connection id="0" incomingRoad="1" connectingRoad="2" contactPoint="INVALID"/>
+  </junction>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
 }

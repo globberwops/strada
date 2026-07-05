@@ -10,6 +10,7 @@
 #include <strada/cpm/ids.hpp>
 #include <strada/cpm/lane_network.hpp>
 #include <strada/cpm/query_context.hpp>
+#include <strada/parser/conversions.hpp>
 #include <vector>
 
 namespace strada::cpm {
@@ -119,7 +120,7 @@ auto LaneNetwork::Build(const ast::AbstractSyntaxTree& map) -> LaneNetwork {
 
       for (const auto& strip : sorted_strips) {
         network.strips_.strip_id.push_back(strip.id);
-        network.strips_.is_relative.push_back(static_cast<std::uint8_t>(strip.mode == ast::StripMode::kRelative));
+        network.strips_.is_relative.push_back(static_cast<std::uint8_t>(parser::ToString(strip.mode) == "relative"));
 
         auto [w_first, w_count] = network.polynomials_.Compile(strip.width);
         network.strips_.width_first_idx.push_back(w_first);

@@ -4,6 +4,7 @@
 #include <pugixml.hpp>
 #include <sstream>
 #include <strada/ast/objects.hpp>
+#include <strada/parser/conversions.hpp>
 #include <strada/parser/errors.hpp>
 #include <strada/parser/parser.hpp>
 #include <string>
@@ -96,11 +97,11 @@ auto ParseGeometry(pugi::xml_node geom_node) -> ast::GeometryRecord {
     param_poly3.c_v = kParamPoly3Node.attribute("cV").as_double(0.0);
     param_poly3.d_v = kParamPoly3Node.attribute("dV").as_double(0.0);
 
-    const std::string kPRangeStr = kParamPoly3Node.attribute("pRange").as_string("normalized");
-    if (kPRangeStr == "arcLength") {
-      param_poly3.p_range = ast::PRange::kArcLength;
+    const std::string_view kPRangeStr = kParamPoly3Node.attribute("pRange").as_string("normalized");
+    if (const auto kRangeOpt = FromString<ast::PRange>(kPRangeStr)) {
+      param_poly3.p_range = *kRangeOpt;
     } else {
-      param_poly3.p_range = ast::PRange::kNormalized;
+      throw InvalidAttributeError("<paramPoly3> has invalid pRange=\"" + std::string(kPRangeStr) + "\"");
     }
     geom.shape = param_poly3;
   } else {
@@ -189,10 +190,8 @@ auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile {
           strip.mode = ast::StripMode::kIndependent;
         } else {
           const std::string_view kModeStr = kModeAttr.as_string();
-          if (kModeStr == "independent") {
-            strip.mode = ast::StripMode::kIndependent;
-          } else if (kModeStr == "relative") {
-            strip.mode = ast::StripMode::kRelative;
+          if (const auto kModeOpt = FromString<ast::StripMode>(kModeStr)) {
+            strip.mode = *kModeOpt;
           } else {
             throw InvalidAttributeError("<strip id=\"" + std::to_string(strip.id) + "\"> has invalid mode=\"" +
                                         std::string(kModeStr) + "\"");
@@ -466,11 +465,16 @@ auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
   pugi::xml_node seg_node = boundary_node.child("segment");
   while (!seg_node.empty()) {
     ast::JunctionBoundarySegment segment;
-    const std::string kTypeStr = seg_node.attribute("type").as_string("");
-    if (kTypeStr == "joint") {
-      segment.type = ast::JunctionSegmentType::kJoint;
-    } else {
+    const auto kTypeAttr = seg_node.attribute("type");
+    if (!kTypeAttr) {
       segment.type = ast::JunctionSegmentType::kLane;
+    } else {
+      const std::string_view kTypeStr = kTypeAttr.value();
+      if (const auto kTypeOpt = FromString<ast::JunctionSegmentType>(kTypeStr)) {
+        segment.type = *kTypeOpt;
+      } else {
+        throw InvalidAttributeError("<segment> has invalid type=\"" + std::string(kTypeStr) + "\"");
+      }
     }
 
     segment.road_id = seg_node.attribute("roadId").as_string("");
@@ -482,8 +486,12 @@ auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
       segment.s_start = ParseBoundaryCoordinate(seg_node.attribute("sStart").as_string("begin"));
       segment.s_end = ParseBoundaryCoordinate(seg_node.attribute("sEnd").as_string("end"));
     } else {
-      const std::string kCpStr = seg_node.attribute("contactPoint").as_string("start");
-      segment.contact_point = (kCpStr == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
+      const std::string_view kCpStr = seg_node.attribute("contactPoint").as_string("start");
+      if (const auto kCpOpt = FromString<ast::ContactPoint>(kCpStr)) {
+        segment.contact_point = *kCpOpt;
+      } else {
+        throw InvalidAttributeError("<segment> has invalid contactPoint=\"" + std::string(kCpStr) + "\"");
+      }
       if (seg_node.attribute("jointLaneStart") != nullptr) {
         segment.joint_lane_start = seg_node.attribute("jointLaneStart").as_int();
       }
@@ -540,8 +548,13 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
     conn.id = conn_node.attribute("id").as_string("");
     conn.incoming_road = conn_node.attribute("incomingRoad").as_string("");
     conn.connecting_road = conn_node.attribute("connectingRoad").as_string("");
-    const std::string kCpStr = conn_node.attribute("contactPoint").as_string("start");
-    conn.contact_point = (kCpStr == "end") ? ast::ContactPoint::kEnd : ast::ContactPoint::kStart;
+    const std::string_view kCpStr = conn_node.attribute("contactPoint").as_string("start");
+    if (const auto kCpOpt = FromString<ast::ContactPoint>(kCpStr)) {
+      conn.contact_point = *kCpOpt;
+    } else {
+      throw InvalidAttributeError("<connection id=\"" + conn.id + "\"> has invalid contactPoint=\"" +
+                                  std::string(kCpStr) + "\"");
+    }
 
     pugi::xml_node ll_node = conn_node.child("laneLink");
     while (!ll_node.empty()) {
@@ -757,10 +770,8 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     road.junction = road_node.attribute("junction").as_string("-1");
     if (const auto kRuleAttr = road_node.attribute("rule")) {
       const std::string_view kRuleStr = kRuleAttr.value();
-      if (kRuleStr == "RHT") {
-        road.rule = ast::TrafficRule::kRht;
-      } else if (kRuleStr == "LHT") {
-        road.rule = ast::TrafficRule::kLht;
+      if (const auto kRuleOpt = FromString<ast::TrafficRule>(kRuleStr)) {
+        road.rule = *kRuleOpt;
       } else {
         throw InvalidAttributeError("<road id=\"" + road.id + "\"> has invalid rule=\"" + std::string(kRuleStr) + "\"");
       }
