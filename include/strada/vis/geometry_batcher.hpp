@@ -39,6 +39,7 @@ struct BatchedGeometry {
   std::vector<Vertex> boundary_triangle_vertices;
   std::vector<std::uint32_t> boundary_triangle_indices;
   std::vector<Vertex> object_line_vertices;
+  std::vector<Vertex> signal_line_vertices;
 };
 
 /// Curated premium color palette matching dark-mode aesthetics.

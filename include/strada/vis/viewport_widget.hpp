@@ -46,6 +46,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   bool show_border_lanes_{false};
   bool show_reference_lines_{true};
   bool show_objects_{false};
+  bool show_signals_{false};
 
   QOpenGLShaderProgram shader_program_;
 
@@ -65,6 +66,9 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
   QOpenGLVertexArrayObject objects_vao_;
   QOpenGLBuffer objects_vbo_{QOpenGLBuffer::VertexBuffer};
+
+  QOpenGLVertexArrayObject signals_vao_;
+  QOpenGLBuffer signals_vbo_{QOpenGLBuffer::VertexBuffer};
 
   Camera camera_;
   QPoint last_mouse_pos_;
@@ -86,6 +90,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   void SetupLines();
   void SetupBoundaries();
   void SetupObjects();
+  void SetupSignals();
 
   void RenderGrid();
 };

@@ -412,4 +412,74 @@ TEST(VisTest, FindActiveRoadType) {
   EXPECT_EQ(ViewportWidget::FindActiveRoadType(road, 8.0), ast::RoadType::kTownExpressway);
 }
 
+TEST(VisTest, BatchMapGeometrySignals) {
+  // Arrange
+  ast::AbstractSyntaxTree map;
+
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  ast::GeometryRecord geom;
+  geom.s = 0.0;
+  geom.length = 10.0;
+  geom.x = 0.0;
+  geom.y = 0.0;
+  geom.hdg = 0.0;
+  geom.shape = ast::Line{};
+  road.plan_view.push_back(geom);
+
+  ast::LaneSection section;
+  section.s = 0.0;
+  ast::Lane lane0;
+  lane0.id = 0;
+  lane0.type = strada::ast::LaneType::kBorder;
+  section.center.push_back(lane0);
+  road.lanes.sections.push_back(section);
+
+  // Add a signal with width & height (should draw rectangular face: 4 lines * 2 = 8 vertices + 2 pole vertices = 10
+  // total)
+  ast::Signal signal;
+  signal.id = "signal_1";
+  signal.s = 2.0;
+  signal.t = 1.0;
+  signal.z_offset = 3.0;
+  signal.width = 1.0;
+  signal.height = 0.5;
+  road.signals.push_back(signal);
+
+  // Add a signal reference (should draw circular face: 12 segments * 2 = 24 vertices + 2 pole vertices = 26 total)
+  ast::SignalReference sig_ref;
+  sig_ref.id = "signal_1";
+  sig_ref.s = 5.0;
+  sig_ref.t = -1.0;
+  sig_ref.z_offset = 2.0;
+  road.signal_references.push_back(sig_ref);
+
+  map.roads.push_back(road);
+
+  tess::Tessellator tess(map, 0.5);
+  cpm::CompiledPhysicsModel cpm = cpm::CompiledPhysicsModel::Build(map);
+
+  // Act
+  auto batched = BatchMapGeometry(tess, map, cpm);
+
+  // Assert
+  // Total expected vertices = 10 (for signal) + 26 (for signal reference) = 36 vertices.
+  ASSERT_EQ(batched.signal_line_vertices.size(), 36);
+
+  // Color: Electric Cyan/Teal (rgb(0, 229, 255))
+  for (const auto& v : batched.signal_line_vertices) {
+    EXPECT_NEAR(v.r, 0.0F, 1e-4F);
+    EXPECT_NEAR(v.g, 229.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.b, 1.0F, 1e-4F);
+  }
+
+  // Verify pole bottom and top for signal 1: starts at index 0
+  const auto& p1_bottom = batched.signal_line_vertices[0];
+  const auto& p1_top = batched.signal_line_vertices[1];
+  EXPECT_NEAR(p1_bottom.z, 0.0F, 1e-4F);
+  EXPECT_NEAR(p1_top.z, 3.0F, 1e-4F);
+}
+
 }  // namespace strada::vis

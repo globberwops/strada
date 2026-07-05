@@ -39,6 +39,8 @@ ViewportWidget::~ViewportWidget() {
   boundaries_ibo_.destroy();
   objects_vao_.destroy();
   objects_vbo_.destroy();
+  signals_vao_.destroy();
+  signals_vbo_.destroy();
   doneCurrent();
 }
 
@@ -72,6 +74,13 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::Abs
   }
 
   for (const auto& v : geometry_.object_line_vertices) {
+    min_x = std::min(min_x, v.x);
+    max_x = std::max(max_x, v.x);
+    min_y = std::min(min_y, v.y);
+    max_y = std::max(max_y, v.y);
+  }
+
+  for (const auto& v : geometry_.signal_line_vertices) {
     min_x = std::min(min_x, v.x);
     max_x = std::max(max_x, v.x);
     min_y = std::min(min_y, v.y);
@@ -167,6 +176,9 @@ void ViewportWidget::initializeGL() {
 
   objects_vao_.create();
   objects_vbo_.create();
+
+  signals_vao_.create();
+  signals_vbo_.create();
 }
 
 void ViewportWidget::resizeGL(int w, int h) {
@@ -182,6 +194,7 @@ void ViewportWidget::paintGL() {
     SetupLines();
     SetupBoundaries();
     SetupObjects();
+    SetupSignals();
     geometry_dirty_ = false;
   }
 
@@ -246,6 +259,16 @@ void ViewportWidget::paintGL() {
     glLineWidth(2.0F);
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.object_line_vertices.size()));
     objects_vao_.release();
+    glEnable(GL_DEPTH_TEST);
+  }
+
+  // Draw Signals in a Single batched call
+  if (show_signals_ && !geometry_.signal_line_vertices.empty()) {
+    glDisable(GL_DEPTH_TEST);
+    signals_vao_.bind();
+    glLineWidth(2.0F);
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.signal_line_vertices.size()));
+    signals_vao_.release();
     glEnable(GL_DEPTH_TEST);
   }
 
@@ -497,7 +520,7 @@ void ViewportWidget::paintGL() {
 
     // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
     {
-      const QRect kRect(20, height() - 210, 310, 190);
+      const QRect kRect(20, height() - 250, 310, 230);
       painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
       painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
       painter.drawRoundedRect(kRect, 8.0, 8.0);
@@ -507,7 +530,7 @@ void ViewportWidget::paintGL() {
       painter.setFont(font);
 
       const int kXOffset = 35;
-      int y_offset = height() - 185;
+      int y_offset = height() - 225;
       const int kLineHeight = 20;
 
       // Header
@@ -524,10 +547,10 @@ void ViewportWidget::paintGL() {
         QString key;
         QString desc;
       };
-      const std::vector<ShortcutItem> kItems = {{"L-Click + Drag", "Pan Map"},  {"R-Click + Drag", "Rotate Map"},
-                                                {"Scroll Wheel", "Zoom Map"},   {"Ctrl+R", "Reset View / Auto-fit"},
-                                                {"R", "Toggle Reference Line"}, {"J", "Toggle Junction Boundaries"},
-                                                {"B", "Toggle Border Lanes"}};
+      const std::vector<ShortcutItem> kItems = {
+          {"L-Click + Drag", "Pan Map"},       {"R-Click + Drag", "Rotate Map"}, {"Scroll Wheel", "Zoom Map"},
+          {"Ctrl+R", "Reset View / Auto-fit"}, {"R", "Toggle Reference Line"},   {"J", "Toggle Junction Boundaries"},
+          {"B", "Toggle Border Lanes"},        {"O", "Toggle Objects"},          {"S", "Toggle Signals"}};
 
       for (const auto& item : kItems) {
         // Shortcut key
@@ -624,6 +647,24 @@ void ViewportWidget::SetupObjects() {
   shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
 
   objects_vao_.release();
+}
+
+void ViewportWidget::SetupSignals() {
+  signals_vao_.bind();
+
+  // Load signal line vertices
+  signals_vbo_.bind();
+  signals_vbo_.allocate(geometry_.signal_line_vertices.data(),
+                        static_cast<int>(geometry_.signal_line_vertices.size() * sizeof(Vertex)));
+
+  // Set attribute locations
+  shader_program_.enableAttributeArray(0);
+  shader_program_.setAttributeBuffer(0, GL_FLOAT, offsetof(Vertex, x), 3, sizeof(Vertex));
+
+  shader_program_.enableAttributeArray(1);
+  shader_program_.setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
+
+  signals_vao_.release();
 }
 
 void ViewportWidget::mousePressEvent(QMouseEvent* event) {
@@ -764,6 +805,14 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
       if (auto* status = main_win->statusBar()) {
         status->showMessage(show_objects_ ? "Toggled objects: ON" : "Toggled objects: OFF", 2000);
+      }
+    }
+  } else if (event->key() == Qt::Key_S) {
+    show_signals_ = !show_signals_;
+    update();
+    if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+      if (auto* status = main_win->statusBar()) {
+        status->showMessage(show_signals_ ? "Toggled signals: ON" : "Toggled signals: OFF", 2000);
       }
     }
   }
