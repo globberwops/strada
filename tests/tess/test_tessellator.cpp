@@ -207,7 +207,8 @@ TEST(TessellatorTest, LaneSurfaceTriangulation) {
   for (const auto& mesh : meshes) {
     // Validate metadata
     EXPECT_EQ(mesh.road_id, static_cast<cpm::RoadId>(0));
-    EXPECT_EQ(mesh.lane_type, "driving");
+    EXPECT_EQ(mesh.lane_type, ast::LaneType::kDriving);
+    EXPECT_TRUE(mesh.original_lane_id == 1 || mesh.original_lane_id == -1);
 
     // Vertex and Index size consistency
     ASSERT_FALSE(mesh.vertices.empty());

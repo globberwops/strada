@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-Strada needs an example application to preview, inspect, and verify loaded road maps. This requires a lightweight, performant 2D visualizer built with Qt6 and OpenGL. 
+Strada needs an example application to preview, inspect, and verify loaded road maps. This requires a lightweight, performant 2D visualizer built with Qt6 and OpenGL.
 
 To support rendering, we also need to implement the planned (but currently missing) **Tessellator** library layer, which discretizes the map's continuous mathematical curves (reference lines, lane boundaries, elevation profiles, and widths) into renderable lines and triangles.
 
@@ -15,7 +15,7 @@ The system must handle viewport manipulation (pan, zoom, rotate), display contex
 ### 1. Reusable `strada_tess` Library Layer
 Rather than hardcoding tessellation inside the visualizer, we will build a reusable library target `strada_tess` with the following structure:
 * **Headers**: [include/strada/tess/tessellator.hpp](file:///workspaces/strada/include/strada/tess/tessellator.hpp)
-* **API Factory**: 
+* **API Factory**:
   `auto BuildTessellator(const ast::AbstractSyntaxTree& map, double chord_error) -> Tessellator;`
 * **Output Structures**:
   * `tess::Vertex`: 32-bit floats `(x, y, z)` for GPU buffer friendliness.

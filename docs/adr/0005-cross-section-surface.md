@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-ASAM OpenDRIVE 1.8.0+ introduced the `<crossSectionSurface>` element inside `<lateralProfile>` as a mutually exclusive alternative to traditional `<superelevation>` and `<shape>` profiles. It allows defining the road's lateral elevation profile via a series of strips whose height is determined by polynomials in the lateral coordinate $t$, whose coefficients are themselves piecewise polynomials in $s$. 
+ASAM OpenDRIVE 1.8.0+ introduced the `<crossSectionSurface>` element inside `<lateralProfile>` as a mutually exclusive alternative to traditional `<superelevation>` and `<shape>` profiles. It allows defining the road's lateral elevation profile via a series of strips whose height is determined by polynomials in the lateral coordinate $t$, whose coefficients are themselves piecewise polynomials in $s$.
 
 To support modern maps utilizing OpenDRIVE 1.8/1.9 features, the CPM must support `<crossSectionSurface>` in its core layout and coordinate transformation pipelines without compromising the performance, concurrency, or data-locality constraints established in ADR 0004.
 
@@ -36,7 +36,7 @@ Strips with $|id| = 2$ can specify an evaluation mode:
   $$h(s, t) = h_{inner}(s, \pm W_{inner}(s)) + h_{outer}(s, dt)$$
 
 ### 5. Roll Orientation is Zero for Cross-Section Surface Roads
-Because `<crossSectionSurface>` is mutually exclusive with `<superelevation>` and `<shape>`, a road using a cross-section surface has no banking roll profile. The natural roll (superelevation) angle $\psi(s)$ of the road frame is defined as $0.0$ at all points. 
+Because `<crossSectionSurface>` is mutually exclusive with `<superelevation>` and `<shape>`, a road using a cross-section surface has no banking roll profile. The natural roll (superelevation) angle $\psi(s)$ of the road frame is defined as $0.0$ at all points.
 
 ### 6. Unspecified Coefficients Default to $0.0$
 Per the XML schema specification, any optional polynomial coefficients ($a, b, c, d$) that are absent in the source `.xodr` file default to `0.0`. The AST parser and CPM build factory will explicitly enforce this fallback.

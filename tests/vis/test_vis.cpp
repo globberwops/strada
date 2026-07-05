@@ -14,16 +14,47 @@ namespace strada::vis {
 
 TEST(VisTest, LaneColorDistinctiveness) {
   // Arrange
-  auto driving_color = GetLaneColor("driving");
-  auto sidewalk_color = GetLaneColor("sidewalk");
-  auto shoulder_color = GetLaneColor("shoulder");
-  auto default_color = GetLaneColor("unknown_type");
+  auto driving_pos = GetLaneColor(ast::LaneType::kDriving, -1);
+  auto driving_neg = GetLaneColor(ast::LaneType::kDriving, 1);
+  auto sidewalk_color = GetLaneColor(ast::LaneType::kSidewalk, 0);
+  auto shoulder_color = GetLaneColor(ast::LaneType::kShoulder, 0);
+  auto none_color = GetLaneColor(ast::LaneType::kNone, 0);
 
-  // Assert: colors should not be identical (except default which could match shoulder or default,
-  // but driving, sidewalk, shoulder should be distinct)
-  EXPECT_NE(driving_color.r, sidewalk_color.r);
+  // Assert: colors should not be identical
+  EXPECT_NE(driving_pos.r, driving_neg.r);
+  EXPECT_NE(driving_pos.r, sidewalk_color.r);
   EXPECT_NE(sidewalk_color.r, shoulder_color.r);
-  EXPECT_NE(driving_color.r, default_color.r);
+  EXPECT_NE(driving_pos.r, none_color.r);
+}
+
+TEST(VisTest, LaneColorMapping) {
+  // Test driving + (original_lane_id < 0)
+  auto driving_pos = GetLaneColor(ast::LaneType::kDriving, -1);
+  EXPECT_NEAR(driving_pos.r, 239.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_pos.g, 215.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_pos.b, 171.0F / 255.0F, 1e-4F);
+
+  // Test driving - (original_lane_id > 0)
+  auto driving_neg = GetLaneColor(ast::LaneType::kDriving, 1);
+  EXPECT_NEAR(driving_neg.r, 205.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_neg.g, 216.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_neg.b, 232.0F / 255.0F, 1e-4F);
+
+  // Test unspec-defined lane types mapping to driving
+  auto hov_color = GetLaneColor(ast::LaneType::kHov, -1);
+  EXPECT_NEAR(hov_color.r, driving_pos.r, 1e-4F);
+
+  // Test biking mapping
+  auto biking_color = GetLaneColor(ast::LaneType::kBiking, 0);
+  EXPECT_NEAR(biking_color.r, 207.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(biking_color.g, 16.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(biking_color.b, 45.0F / 255.0F, 1e-4F);
+
+  // Test none mapping
+  auto none_color = GetLaneColor(ast::LaneType::kNone, 0);
+  EXPECT_NEAR(none_color.r, 147.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(none_color.g, 149.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(none_color.b, 152.0F / 255.0F, 1e-4F);
 }
 
 TEST(VisTest, BatchMapGeometryTriangulation) {
@@ -75,7 +106,7 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
   EXPECT_EQ(batched.triangle_indices.size(), mesh.indices.size());
 
   // Verify colors are mapped (driving is dark grey/blue)
-  auto color = GetLaneColor("driving");
+  auto color = GetLaneColor(ast::LaneType::kDriving, 1);
   for (const auto& v : batched.triangle_vertices) {
     EXPECT_NEAR(v.r, color.r, 1e-4F);
     EXPECT_NEAR(v.g, color.g, 1e-4F);

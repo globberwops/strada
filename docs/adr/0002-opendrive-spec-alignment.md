@@ -21,7 +21,7 @@ $$S(x) = \int_0^x \sin(t^2) dt, \quad C(x) = \int_0^x \cos(t^2) dt$$
 
 ### 3. Separation of Superelevation and Bivariate Road Shape Profiles
 Road elevations can be specified via simple superelevation or complex `<shape>` profiles. The `<shape>` profile defines heights as piecewise polynomials in the lateral coordinate $t$, which are then linearly interpolated in the longitudinal direction $s$.
-* **Decision**: 
+* **Decision**:
   1. The CPM will compile `<shape>` stations into a contiguous array of lateral polynomial groups.
   2. For roads using `<shape>` profiles, CPM will locate the surrounding stations via flat interval lookups and interpolate their results.
   3. Roads utilizing only standard `<superelevation>` (which covers the vast majority of maps) will bypass this bivariate shape check entirely.

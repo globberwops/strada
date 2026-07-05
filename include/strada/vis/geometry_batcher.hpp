@@ -44,8 +44,8 @@ struct Color {
   float b{};
 };
 
-/// Color lookup helper based on lane type.
-auto GetLaneColor(const std::string& lane_type) noexcept -> Color;
+/// Color lookup helper based on lane type and original lane ID.
+auto GetLaneColor(ast::LaneType lane_type, int original_lane_id) noexcept -> Color;
 
 /// Batches all map meshes and polylines into contiguous arrays.
 auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry;
