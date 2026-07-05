@@ -630,6 +630,356 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
   return tunnel;
 }
 
+auto ParseObjectCornerLocal(pugi::xml_node node) -> ast::ObjectCornerLocal {
+  ast::ObjectCornerLocal corner;
+  corner.u = node.attribute("u").as_double(0.0);
+  corner.v = node.attribute("v").as_double(0.0);
+  corner.z = node.attribute("z").as_double(0.0);
+  corner.height = node.attribute("height").as_double(0.0);
+  corner.id = node.attribute("id").as_uint(0);
+  return corner;
+}
+
+auto ParseObjectCornerRoad(pugi::xml_node node) -> ast::ObjectCornerRoad {
+  ast::ObjectCornerRoad corner;
+  corner.s = node.attribute("s").as_double(0.0);
+  corner.t = node.attribute("t").as_double(0.0);
+  corner.dz = node.attribute("dz").as_double(0.0);
+  corner.height = node.attribute("height").as_double(0.0);
+  corner.id = node.attribute("id").as_uint(0);
+  return corner;
+}
+
+auto ParseObjectCurveLocal(pugi::xml_node node) -> ast::ObjectCurveLocal {
+  ast::ObjectCurveLocal curve;
+  curve.id = node.attribute("id").as_uint(0);
+  curve.u = node.attribute("u").as_double(0.0);
+  curve.v = node.attribute("v").as_double(0.0);
+  curve.z = node.attribute("z").as_double(0.0);
+  curve.height = node.attribute("height").as_double(0.0);
+  curve.length = node.attribute("length").as_double(0.0);
+  curve.hdg = node.attribute("hdg").as_double(0.0);
+  return curve;
+}
+
+auto ParseOutlineMarking(pugi::xml_node node) -> ast::OutlineMarking {
+  ast::OutlineMarking marking;
+  marking.side = node.attribute("side").as_string("");
+  marking.weight = node.attribute("weight").as_string("");
+  marking.width = node.attribute("width").as_double(0.0);
+  marking.color = node.attribute("color").as_string("");
+  marking.z_offset = node.attribute("zOffset").as_double(0.0);
+  marking.space_length = node.attribute("spaceLength").as_double(0.0);
+  marking.line_length = node.attribute("lineLength").as_double(0.0);
+  marking.start_offset = node.attribute("startOffset").as_double(0.0);
+  marking.stop_offset = node.attribute("stopOffset").as_double(0.0);
+
+  pugi::xml_node ref_node = node.child("cornerReference");
+  while (!ref_node.empty()) {
+    ast::CornerReference ref;
+    ref.id = ref_node.attribute("id").as_uint(0);
+    marking.corner_references.push_back(ref);
+    ref_node = ref_node.next_sibling("cornerReference");
+  }
+  return marking;
+}
+
+auto ParseObjectOutline(pugi::xml_node node) -> ast::ObjectOutline {
+  ast::ObjectOutline outline;
+  outline.id = node.attribute("id").as_uint(0);
+  outline.fill_type = node.attribute("fillType").as_string("");
+  outline.outer = node.attribute("outer").as_bool(false);
+  outline.closed = node.attribute("closed").as_bool(false);
+  outline.lane_type = node.attribute("laneType").as_string("");
+
+  pugi::xml_node corner_local = node.child("cornerLocal");
+  while (!corner_local.empty()) {
+    outline.corners_local.push_back(ParseObjectCornerLocal(corner_local));
+    corner_local = corner_local.next_sibling("cornerLocal");
+  }
+
+  pugi::xml_node corner_road = node.child("cornerRoad");
+  while (!corner_road.empty()) {
+    outline.corners_road.push_back(ParseObjectCornerRoad(corner_road));
+    corner_road = corner_road.next_sibling("cornerRoad");
+  }
+
+  pugi::xml_node curve_local = node.child("curveLocal");
+  while (!curve_local.empty()) {
+    outline.curves_local.push_back(ParseObjectCurveLocal(curve_local));
+    curve_local = curve_local.next_sibling("curveLocal");
+  }
+
+  pugi::xml_node markings_node = node.child("markings");
+  if (!markings_node.empty()) {
+    pugi::xml_node marking_node = markings_node.child("marking");
+    while (!marking_node.empty()) {
+      outline.markings.push_back(ParseOutlineMarking(marking_node));
+      marking_node = marking_node.next_sibling("marking");
+    }
+  }
+
+  return outline;
+}
+
+auto ParseObjectBorder(pugi::xml_node node) -> ast::ObjectBorder {
+  ast::ObjectBorder border;
+  border.width = node.attribute("width").as_double(0.0);
+  border.type = node.attribute("type").as_string("");
+  border.outline_id = node.attribute("outlineId").as_uint(0);
+  border.use_complete_outline = node.attribute("useCompleteOutline").as_bool(false);
+
+  pugi::xml_node ref_node = node.child("cornerReference");
+  while (!ref_node.empty()) {
+    ast::CornerReference ref;
+    ref.id = ref_node.attribute("id").as_uint(0);
+    border.corner_references.push_back(ref);
+    ref_node = ref_node.next_sibling("cornerReference");
+  }
+  return border;
+}
+
+auto ParseObjectRepeat(pugi::xml_node node) -> ast::ObjectRepeat {
+  ast::ObjectRepeat repeat;
+  repeat.s = node.attribute("s").as_double(0.0);
+  repeat.length = node.attribute("length").as_double(0.0);
+  repeat.distance = node.attribute("distance").as_double(0.0);
+  repeat.t_start = node.attribute("tStart").as_double(0.0);
+  repeat.t_end = node.attribute("tEnd").as_double(0.0);
+  repeat.height_start = node.attribute("heightStart").as_double(0.0);
+  repeat.height_end = node.attribute("heightEnd").as_double(0.0);
+  repeat.z_offset_start = node.attribute("zOffsetStart").as_double(0.0);
+  repeat.z_offset_end = node.attribute("zOffsetEnd").as_double(0.0);
+  repeat.width_start = node.attribute("widthStart").as_double(0.0);
+  repeat.width_end = node.attribute("widthEnd").as_double(0.0);
+  repeat.length_start = node.attribute("lengthStart").as_double(0.0);
+  repeat.length_end = node.attribute("lengthEnd").as_double(0.0);
+  repeat.radius_start = node.attribute("radiusStart").as_double(0.0);
+  repeat.radius_end = node.attribute("radiusEnd").as_double(0.0);
+  repeat.detach_from_reference_line = node.attribute("detachFromReferenceLine").as_bool(false);
+  repeat.b_t = node.attribute("bT").as_double(0.0);
+  repeat.c_t = node.attribute("cT").as_double(0.0);
+  repeat.d_t = node.attribute("dT").as_double(0.0);
+  return repeat;
+}
+
+auto ParseObject(pugi::xml_node node) -> ast::Object {
+  if (!node.attribute("id")) {
+    throw MissingElementError("<object> element is missing mandatory 'id' attribute");
+  }
+  std::string id = node.attribute("id").as_string();
+
+  if (!node.attribute("s")) {
+    throw MissingElementError("<object id=\"" + id + "\"> is missing mandatory 's' attribute");
+  }
+  if (!node.attribute("t")) {
+    throw MissingElementError("<object id=\"" + id + "\"> is missing mandatory 't' attribute");
+  }
+  if (!node.attribute("orientation")) {
+    throw MissingElementError("<object id=\"" + id + "\"> is missing mandatory 'orientation' attribute");
+  }
+
+  ast::Object obj;
+  obj.id = id;
+  obj.s = node.attribute("s").as_double();
+  obj.t = node.attribute("t").as_double();
+
+  const std::string_view orient_str = node.attribute("orientation").value();
+  if (const auto orient_opt = FromString<ast::Orientation>(orient_str)) {
+    obj.orientation = *orient_opt;
+  } else {
+    throw InvalidAttributeError("<object id=\"" + id + "\"> has invalid orientation=\"" + std::string(orient_str) +
+                                "\"");
+  }
+
+  if (node.attribute("type")) {
+    const std::string_view type_str = node.attribute("type").value();
+    if (const auto type_opt = FromString<ast::ObjectType>(type_str)) {
+      obj.type = *type_opt;
+    } else {
+      throw InvalidAttributeError("<object id=\"" + id + "\"> has invalid type=\"" + std::string(type_str) + "\"");
+    }
+  } else {
+    obj.type = ast::ObjectType::kNone;
+  }
+
+  obj.subtype = node.attribute("subtype").as_string("");
+  obj.name = node.attribute("name").as_string("");
+  obj.z_offset = node.attribute("zOffset").as_double(0.0);
+  obj.roll = node.attribute("roll").as_double(0.0);
+  obj.pitch = node.attribute("pitch").as_double(0.0);
+  obj.hdg = node.attribute("hdg").as_double(0.0);
+  obj.height = node.attribute("height").as_double(0.0);
+  obj.length = node.attribute("length").as_double(0.0);
+  obj.width = node.attribute("width").as_double(0.0);
+  obj.dynamic = node.attribute("dynamic").as_bool(false);
+  obj.valid_length = node.attribute("validLength").as_double(0.0);
+  obj.perp_to_road = node.attribute("perpToRoad").as_bool(false);
+  obj.radius = node.attribute("radius").as_double(0.0);
+  obj.temporary = node.attribute("temporary").as_bool(false);
+  obj.invalidated = node.attribute("invalidated").as_bool(false);
+
+  // Repeats
+  pugi::xml_node repeat_node = node.child("repeat");
+  while (!repeat_node.empty()) {
+    obj.repeats.push_back(ParseObjectRepeat(repeat_node));
+    repeat_node = repeat_node.next_sibling("repeat");
+  }
+
+  // Outlines (can be nested under <outlines> or directly under <object>)
+  pugi::xml_node outlines_node = node.child("outlines");
+  if (!outlines_node.empty()) {
+    pugi::xml_node outline_node = outlines_node.child("outline");
+    while (!outline_node.empty()) {
+      obj.outlines.push_back(ParseObjectOutline(outline_node));
+      outline_node = outline_node.next_sibling("outline");
+    }
+  }
+  pugi::xml_node outline_node = node.child("outline");
+  while (!outline_node.empty()) {
+    obj.outlines.push_back(ParseObjectOutline(outline_node));
+    outline_node = outline_node.next_sibling("outline");
+  }
+
+  // Borders
+  pugi::xml_node borders_node = node.child("borders");
+  if (!borders_node.empty()) {
+    pugi::xml_node border_node = borders_node.child("border");
+    while (!border_node.empty()) {
+      obj.borders.push_back(ParseObjectBorder(border_node));
+      border_node = border_node.next_sibling("border");
+    }
+  }
+
+  // Parking Space
+  pugi::xml_node ps_node = node.child("parkingSpace");
+  if (!ps_node.empty()) {
+    ast::ParkingSpace ps;
+    ps.access = ps_node.attribute("access").as_string("");
+    ps.restrictions = ps_node.attribute("restrictions").as_string("");
+    obj.parking_space = ps;
+  }
+
+  // Skeleton
+  pugi::xml_node skeleton_node = node.child("skeleton");
+  if (!skeleton_node.empty()) {
+    ast::ObjectSkeleton skeleton;
+    pugi::xml_node poly_node = skeleton_node.child("polyline");
+    while (!poly_node.empty()) {
+      ast::SkeletonPolyline polyline;
+      polyline.id = poly_node.attribute("id").as_uint(0);
+
+      pugi::xml_node vl_node = poly_node.child("vertexLocal");
+      while (!vl_node.empty()) {
+        ast::PolylineVertexLocal vl;
+        vl.u = vl_node.attribute("u").as_double(0.0);
+        vl.v = vl_node.attribute("v").as_double(0.0);
+        vl.z = vl_node.attribute("z").as_double(0.0);
+        vl.radius = vl_node.attribute("radius").as_double(0.0);
+        vl.intersection_point = vl_node.attribute("intersectionPoint").as_bool(false);
+        vl.id = vl_node.attribute("id").as_uint(0);
+        polyline.vertices_local.push_back(vl);
+        vl_node = vl_node.next_sibling("vertexLocal");
+      }
+
+      pugi::xml_node vr_node = poly_node.child("vertexRoad");
+      while (!vr_node.empty()) {
+        ast::PolylineVertexRoad vr;
+        vr.s = vr_node.attribute("s").as_double(0.0);
+        vr.t = vr_node.attribute("t").as_double(0.0);
+        vr.dz = vr_node.attribute("dz").as_double(0.0);
+        vr.radius = vr_node.attribute("radius").as_double(0.0);
+        vr.intersection_point = vr_node.attribute("intersectionPoint").as_bool(false);
+        vr.id = vr_node.attribute("id").as_uint(0);
+        polyline.vertices_road.push_back(vr);
+        vr_node = vr_node.next_sibling("vertexRoad");
+      }
+
+      skeleton.polylines.push_back(polyline);
+      poly_node = poly_node.next_sibling("polyline");
+    }
+    obj.skeleton = skeleton;
+  }
+
+  // Validity
+  obj.validities = ParseLaneValidities(node);
+
+  // Surface
+  pugi::xml_node surface_node = node.child("surface");
+  if (!surface_node.empty()) {
+    ast::ObjectSurface surface;
+    pugi::xml_node crg_node = surface_node.child("CRG");
+    if (!crg_node.empty()) {
+      ast::ObjectSurfaceCrg crg;
+      crg.file = crg_node.attribute("file").as_string("");
+      crg.hide_road_surface_crg = crg_node.attribute("hideRoadSurfaceCRG").as_bool(false);
+      crg.z_scale = crg_node.attribute("zScale").as_double(0.0);
+      surface.crg = crg;
+    }
+    obj.surface = surface;
+  }
+
+  // Materials
+  pugi::xml_node material_node = node.child("material");
+  while (!material_node.empty()) {
+    ast::ObjectMaterial material;
+    material.surface = material_node.attribute("surface").as_string("");
+    material.friction = material_node.attribute("friction").as_double(0.0);
+    material.roughness = material_node.attribute("roughness").as_double(0.0);
+    material.road_mark_color = material_node.attribute("roadMarkColor").as_string("");
+    obj.materials.push_back(material);
+    material_node = material_node.next_sibling("material");
+  }
+
+  static const std::unordered_set<std::string> kKnownObjectAttrs = {
+      "id",      "type",        "subtype",    "name",        "s",         "t",          "zOffset",
+      "roll",    "pitch",       "hdg",        "orientation", "height",    "length",     "width",
+      "dynamic", "validLength", "perpToRoad", "radius",      "temporary", "invalidated"};
+  obj.extensions = ParseExtensions(node, kKnownObjectAttrs);
+
+  return obj;
+}
+
+auto ParseObjectReference(pugi::xml_node node) -> ast::ObjectReference {
+  if (!node.attribute("id")) {
+    throw MissingElementError("<objectReference> element is missing mandatory 'id' attribute");
+  }
+  std::string id = node.attribute("id").as_string();
+
+  if (!node.attribute("s")) {
+    throw MissingElementError("<objectReference id=\"" + id + "\"> is missing mandatory 's' attribute");
+  }
+  if (!node.attribute("t")) {
+    throw MissingElementError("<objectReference id=\"" + id + "\"> is missing mandatory 't' attribute");
+  }
+  if (!node.attribute("orientation")) {
+    throw MissingElementError("<objectReference id=\"" + id + "\"> is missing mandatory 'orientation' attribute");
+  }
+
+  ast::ObjectReference obj_ref;
+  obj_ref.id = id;
+  obj_ref.s = node.attribute("s").as_double();
+  obj_ref.t = node.attribute("t").as_double();
+  obj_ref.z_offset = node.attribute("zOffset").as_double(0.0);
+  obj_ref.valid_length = node.attribute("validLength").as_double(0.0);
+
+  const std::string_view orient_str = node.attribute("orientation").value();
+  if (const auto orient_opt = FromString<ast::Orientation>(orient_str)) {
+    obj_ref.orientation = *orient_opt;
+  } else {
+    throw InvalidAttributeError("<objectReference id=\"" + id + "\"> has invalid orientation=\"" +
+                                std::string(orient_str) + "\"");
+  }
+
+  obj_ref.validities = ParseLaneValidities(node);
+
+  static const std::unordered_set<std::string> kKnownObjectRefAttrs = {"id",      "s",           "t",
+                                                                       "zOffset", "validLength", "orientation"};
+  obj_ref.extensions = ParseExtensions(node, kKnownObjectRefAttrs);
+
+  return obj_ref;
+}
+
 auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
   const pugi::xml_node kRoot = doc.child("OpenDRIVE");
   if (!kRoot) {
@@ -734,6 +1084,27 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     }
     std::ranges::sort(road.tunnels,
                       [](const ast::Tunnel& lhs, const ast::Tunnel& rhs) -> bool { return lhs.s < rhs.s; });
+
+    // Objects & Object References
+    pugi::xml_node objects_node = road_node.child("objects");
+    if (!objects_node.empty()) {
+      pugi::xml_node object_node = objects_node.child("object");
+      while (!object_node.empty()) {
+        road.objects.push_back(ParseObject(object_node));
+        object_node = object_node.next_sibling("object");
+      }
+      std::ranges::sort(road.objects,
+                        [](const ast::Object& lhs, const ast::Object& rhs) -> bool { return lhs.s < rhs.s; });
+
+      pugi::xml_node object_ref_node = objects_node.child("objectReference");
+      while (!object_ref_node.empty()) {
+        road.object_references.push_back(ParseObjectReference(object_ref_node));
+        object_ref_node = object_ref_node.next_sibling("objectReference");
+      }
+      std::ranges::sort(
+          road.object_references,
+          [](const ast::ObjectReference& lhs, const ast::ObjectReference& rhs) -> bool { return lhs.s < rhs.s; });
+    }
 
     // Extensions
     static const std::unordered_set<std::string> kNownRoadAttrs = {"id", "length", "junction", "rule", "name"};

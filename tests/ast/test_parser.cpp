@@ -1689,3 +1689,389 @@ TEST(ParserTest, ParseRoadTypes) {
   EXPECT_DOUBLE_EQ(road.types[4].s, 9.0);
   EXPECT_EQ(road.types[4].type, strada::ast::RoadType::kUnknown);
 }
+
+TEST(ParserTest, ParseObjectsFromFixture) {
+  // Arrange
+  std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
+  std::filesystem::path file_path = data_dir / "objects.xodr";
+
+  // Act
+  auto ast_tree = strada::parser::ParseFile(file_path);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+
+  auto find_obj = [&](const std::string& id) -> const strada::ast::Object* {
+    for (const auto& obj : road.objects) {
+      if (obj.id == id) {
+        return &obj;
+      }
+    }
+    return nullptr;
+  };
+
+  // 1. Verify object "0" (building)
+  {
+    auto* obj = find_obj("0");
+    ASSERT_NE(obj, nullptr);
+    EXPECT_EQ(obj->type, strada::ast::ObjectType::kBuilding);
+    EXPECT_EQ(obj->subtype, "building");
+    EXPECT_EQ(obj->name, "house");
+    EXPECT_DOUBLE_EQ(obj->s, 2.4028125000000038e+01);
+    EXPECT_DOUBLE_EQ(obj->t, 1.2802136334240046e+01);
+    EXPECT_DOUBLE_EQ(obj->z_offset, 4.9999999999998934e-03);
+    EXPECT_EQ(obj->orientation, strada::ast::Orientation::kNone);
+    EXPECT_DOUBLE_EQ(obj->length, 1.1300000000000001e+01);
+    EXPECT_DOUBLE_EQ(obj->width, 9.9900000000000002e+00);
+    EXPECT_DOUBLE_EQ(obj->height, 1.2230000000000000e+01);
+    EXPECT_DOUBLE_EQ(obj->hdg, 2.6413812899682183e+00);
+    EXPECT_DOUBLE_EQ(obj->pitch, 0.0);
+    EXPECT_DOUBLE_EQ(obj->roll, 0.0);
+  }
+
+  // 2. Verify object "2" (surface and CRG)
+  {
+    auto* obj = find_obj("2");
+    ASSERT_NE(obj, nullptr);
+    EXPECT_EQ(obj->type, strada::ast::ObjectType::kRoadSurface);
+    EXPECT_EQ(obj->subtype, "patch");
+    ASSERT_TRUE(obj->surface.has_value());
+    ASSERT_TRUE(obj->surface->crg.has_value());
+    EXPECT_EQ(obj->surface->crg->file, "Rd_Damage_Patch_22_Center.crg");
+    EXPECT_TRUE(obj->surface->crg->hide_road_surface_crg);
+    EXPECT_DOUBLE_EQ(obj->surface->crg->z_scale, 1.0);
+  }
+
+  // 3. Verify object "5" (outline corners local & material & validity)
+  {
+    auto* obj = find_obj("5");
+    ASSERT_NE(obj, nullptr);
+    EXPECT_EQ(obj->type, strada::ast::ObjectType::kRoadMark);
+    EXPECT_EQ(obj->subtype, "arrowStraight");
+
+    // Outlines
+    ASSERT_EQ(obj->outlines.size(), 1);
+    const auto& outline = obj->outlines[0];
+    EXPECT_EQ(outline.id, 1);
+    EXPECT_TRUE(outline.outer);
+    EXPECT_TRUE(outline.closed);
+    EXPECT_EQ(outline.lane_type, "driving");
+
+    ASSERT_EQ(outline.corners_local.size(), 8);
+    EXPECT_DOUBLE_EQ(outline.corners_local[0].u, -3.6386);
+    EXPECT_DOUBLE_EQ(outline.corners_local[0].v, 0.1123);
+    EXPECT_DOUBLE_EQ(outline.corners_local[0].z, 0.0);
+    EXPECT_DOUBLE_EQ(outline.corners_local[0].height, 0.0);
+    EXPECT_EQ(outline.corners_local[0].id, 0);
+
+    // Materials
+    ASSERT_EQ(obj->materials.size(), 1);
+    EXPECT_EQ(obj->materials[0].road_mark_color, "white");
+
+    // Validity
+    ASSERT_EQ(obj->validities.size(), 1);
+    EXPECT_EQ(obj->validities[0].from_lane, 1);
+    EXPECT_EQ(obj->validities[0].to_lane, 1);
+  }
+
+  // 4. Verify object "4000001" (skeleton vertex road)
+  {
+    auto* obj = find_obj("4000001");
+    ASSERT_NE(obj, nullptr);
+    EXPECT_EQ(obj->type, strada::ast::ObjectType::kGantry);
+    ASSERT_TRUE(obj->skeleton.has_value());
+    ASSERT_EQ(obj->skeleton->polylines.size(), 1);
+    const auto& poly = obj->skeleton->polylines[0];
+    EXPECT_EQ(poly.id, 1);
+    ASSERT_EQ(poly.vertices_road.size(), 4);
+
+    EXPECT_DOUBLE_EQ(poly.vertices_road[0].s, 230.0);
+    EXPECT_DOUBLE_EQ(poly.vertices_road[0].t, -4.0);
+    EXPECT_DOUBLE_EQ(poly.vertices_road[0].dz, 0.0);
+    EXPECT_DOUBLE_EQ(poly.vertices_road[0].radius, 0.5);
+    EXPECT_EQ(poly.vertices_road[0].id, 1);
+    EXPECT_TRUE(poly.vertices_road[0].intersection_point);
+
+    EXPECT_DOUBLE_EQ(poly.vertices_road[1].dz, 5.25);
+    EXPECT_FALSE(poly.vertices_road[1].intersection_point);
+  }
+
+  // 5. Verify object "8" (corners road and border)
+  {
+    auto* obj = find_obj("8");
+    ASSERT_NE(obj, nullptr);
+    EXPECT_EQ(obj->type, strada::ast::ObjectType::kTrafficIsland);
+    ASSERT_EQ(obj->outlines.size(), 1);
+    const auto& outline = obj->outlines[0];
+    EXPECT_EQ(outline.id, 50);
+    EXPECT_EQ(outline.fill_type, "cobble");
+    EXPECT_TRUE(outline.closed);
+    ASSERT_EQ(outline.corners_road.size(), 30);
+    EXPECT_DOUBLE_EQ(outline.corners_road[0].s, 52.5);
+    EXPECT_DOUBLE_EQ(outline.corners_road[0].t, 1.5);
+    EXPECT_DOUBLE_EQ(outline.corners_road[0].dz, 0.0);
+    EXPECT_DOUBLE_EQ(outline.corners_road[0].height, 0.1);
+
+    // Borders
+    ASSERT_EQ(obj->borders.size(), 1);
+    const auto& border = obj->borders[0];
+    EXPECT_DOUBLE_EQ(border.width, 0.1);
+    EXPECT_EQ(border.type, "curb");
+    EXPECT_EQ(border.outline_id, 50);
+    EXPECT_TRUE(border.use_complete_outline);
+  }
+
+  // 6. Verify object "9" (parking space and markings cornerReference)
+  {
+    auto* obj = find_obj("9");
+    ASSERT_NE(obj, nullptr);
+    EXPECT_EQ(obj->type, strada::ast::ObjectType::kParkingSpace);
+    ASSERT_TRUE(obj->parking_space.has_value());
+    EXPECT_EQ(obj->parking_space->access, "all");
+
+    ASSERT_EQ(obj->outlines.size(), 1);
+    const auto& outline = obj->outlines[0];
+    EXPECT_EQ(outline.id, 51);
+    ASSERT_EQ(outline.markings.size(), 2);
+
+    const auto& marking = outline.markings[0];
+    EXPECT_DOUBLE_EQ(marking.width, 0.1);
+    EXPECT_EQ(marking.color, "white");
+    EXPECT_DOUBLE_EQ(marking.z_offset, 0.005);
+    ASSERT_EQ(marking.corner_references.size(), 2);
+    EXPECT_EQ(marking.corner_references[0].id, 0);
+    EXPECT_EQ(marking.corner_references[1].id, 1);
+  }
+
+  // 7. Verify object "4000203" (repeats)
+  {
+    auto* obj = find_obj("4000203");
+    ASSERT_NE(obj, nullptr);
+    EXPECT_EQ(obj->type, strada::ast::ObjectType::kBarrier);
+    ASSERT_EQ(obj->repeats.size(), 12);
+    const auto& rep = obj->repeats[0];
+    EXPECT_DOUBLE_EQ(rep.s, 7.4615629425e+01);
+    EXPECT_DOUBLE_EQ(rep.length, 2.2248725912e+00);
+    EXPECT_DOUBLE_EQ(rep.distance, 0.0);
+    EXPECT_DOUBLE_EQ(rep.t_start, -1.4796332056e+01);
+    EXPECT_DOUBLE_EQ(rep.t_end, -1.4797490375e+01);
+    EXPECT_DOUBLE_EQ(rep.width_start, 0.1);
+    EXPECT_DOUBLE_EQ(rep.width_end, 0.1);
+    EXPECT_DOUBLE_EQ(rep.height_start, 0.3);
+    EXPECT_DOUBLE_EQ(rep.height_end, 0.3);
+    EXPECT_DOUBLE_EQ(rep.z_offset_start, -3.2829728032e-01);
+    EXPECT_DOUBLE_EQ(rep.z_offset_end, -2.0316925494e-01);
+  }
+
+  // 8. Verify object "6" (skeleton vertexLocal)
+  {
+    auto* obj = find_obj("6");
+    ASSERT_NE(obj, nullptr);
+    EXPECT_EQ(obj->type, strada::ast::ObjectType::kTree);
+    ASSERT_TRUE(obj->skeleton.has_value());
+    ASSERT_EQ(obj->skeleton->polylines.size(), 1);
+    const auto& poly = obj->skeleton->polylines[0];
+    ASSERT_EQ(poly.vertices_local.size(), 2);
+    EXPECT_DOUBLE_EQ(poly.vertices_local[0].u, -0.2);
+    EXPECT_DOUBLE_EQ(poly.vertices_local[0].v, 1.0);
+    EXPECT_DOUBLE_EQ(poly.vertices_local[0].z, 1.120);
+    EXPECT_DOUBLE_EQ(poly.vertices_local[0].radius, 0.15);
+    EXPECT_EQ(poly.vertices_local[0].id, 1);
+    EXPECT_TRUE(poly.vertices_local[0].intersection_point);
+  }
+}
+
+TEST(ParserTest, ParseObjectReferenceAndValidation) {
+  // Arrange
+  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
+  <road id="1" length="100.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+    <objects>
+      <objectReference id="ref1" s="10.0" t="-2.0" zOffset="0.5" validLength="5.0" orientation="+" customAttr="customVal">
+        <validity fromLane="1" toLane="2" layer="temporary"/>
+        <userData>
+          <customElement val="foo"/>
+        </userData>
+      </objectReference>
+    </objects>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(kXml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+  ASSERT_EQ(road.object_references.size(), 1);
+
+  const auto& ref = road.object_references[0];
+  EXPECT_EQ(ref.id, "ref1");
+  EXPECT_DOUBLE_EQ(ref.s, 10.0);
+  EXPECT_DOUBLE_EQ(ref.t, -2.0);
+  EXPECT_DOUBLE_EQ(ref.z_offset, 0.5);
+  EXPECT_DOUBLE_EQ(ref.valid_length, 5.0);
+  EXPECT_EQ(ref.orientation, strada::ast::Orientation::kPlus);
+
+  ASSERT_EQ(ref.validities.size(), 1);
+  EXPECT_EQ(ref.validities[0].from_lane, 1);
+  EXPECT_EQ(ref.validities[0].to_lane, 2);
+  EXPECT_EQ(ref.validities[0].layer, strada::ast::LayerType::kTemporary);
+
+  // Extensions
+  EXPECT_EQ(ref.extensions.attributes.at("customAttr"), "customVal");
+  ASSERT_EQ(ref.extensions.user_data.size(), 1);
+  EXPECT_NE(ref.extensions.user_data[0].find("<customElement val=\"foo\""), std::string::npos);
+}
+
+TEST(ParserTest, ObjectsRequiredAttributesThrow) {
+  // Missing object id
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><object s="0.0" t="0.0" orientation="none"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  }
+
+  // Missing object s
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><object id="1" t="0.0" orientation="none"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  }
+
+  // Missing object t
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><object id="1" s="0.0" orientation="none"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  }
+
+  // Missing object orientation
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><object id="1" s="0.0" t="0.0"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  }
+
+  // Invalid object orientation
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><object id="1" s="0.0" t="0.0" orientation="invalid_orientation"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  }
+
+  // Invalid object type
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><object id="1" s="0.0" t="0.0" orientation="none" type="invalid_type"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  }
+
+  // Missing objectReference id
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><objectReference s="0.0" t="0.0" orientation="none"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  }
+
+  // Missing objectReference s
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><objectReference id="1" t="0.0" orientation="none"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  }
+
+  // Missing objectReference t
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><objectReference id="1" s="0.0" orientation="none"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  }
+
+  // Missing objectReference orientation
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><objectReference id="1" s="0.0" t="0.0"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  }
+
+  // Invalid objectReference orientation
+  {
+    const std::string kXml = R"(<?xml version="1.0"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView><geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry></planView>
+    <objects><objectReference id="1" s="0.0" t="0.0" orientation="invalid_orientation"/></objects>
+  </road>
+</OpenDRIVE>)";
+    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  }
+}

@@ -45,19 +45,21 @@ struct RoadTypeRecord {
 
 /// Represents an individual road inside the map network.
 struct Road {
-  std::string id;                         ///< Unique ID of the road.
-  double length{};                        ///< Total length of the road reference line.
-  std::string junction{"-1"};             ///< ID of the junction this road belongs to (-1 for none).
-  TrafficRule rule{TrafficRule::kRht};    ///< Traffic rule (RHT/LHT).
-  std::optional<std::string> name;        ///< Optional human-readable name of the road.
-  std::vector<GeometryRecord> plan_view;  ///< The plan-view geometry segments of the reference line.
-  ElevationProfile elevation_profile;     ///< Vertical elevation profile.
-  LateralProfile lateral_profile;         ///< Superelevation and lateral shapes.
-  Lanes lanes;                            ///< Lanes structure (width, offset, section groups).
-  std::vector<RoadTypeRecord> types;      ///< Road type records along the road.
-  std::vector<Bridge> bridges;            ///< Bridges along the road.
-  std::vector<Tunnel> tunnels;            ///< Tunnels along the road.
-  Extensions extensions;                  ///< Non-schema and custom user data extensions.
+  std::string id;                                  ///< Unique ID of the road.
+  double length{};                                 ///< Total length of the road reference line.
+  std::string junction{"-1"};                      ///< ID of the junction this road belongs to (-1 for none).
+  TrafficRule rule{TrafficRule::kRht};             ///< Traffic rule (RHT/LHT).
+  std::optional<std::string> name;                 ///< Optional human-readable name of the road.
+  std::vector<GeometryRecord> plan_view;           ///< The plan-view geometry segments of the reference line.
+  ElevationProfile elevation_profile;              ///< Vertical elevation profile.
+  LateralProfile lateral_profile;                  ///< Superelevation and lateral shapes.
+  Lanes lanes;                                     ///< Lanes structure (width, offset, section groups).
+  std::vector<RoadTypeRecord> types;               ///< Road type records along the road.
+  std::vector<Bridge> bridges;                     ///< Bridges along the road.
+  std::vector<Tunnel> tunnels;                     ///< Tunnels along the road.
+  std::vector<Object> objects;                     ///< Objects along the road.
+  std::vector<ObjectReference> object_references;  ///< Object references along the road.
+  Extensions extensions;                           ///< Non-schema and custom user data extensions.
 };
 
 }  // namespace strada::ast
