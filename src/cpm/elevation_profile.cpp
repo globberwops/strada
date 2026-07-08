@@ -19,9 +19,9 @@ struct ShapeGroup {
 };
 
 void FindShapeGroups(const ShapesSoA& shapes, std::uint32_t first_idx, std::uint32_t count, double s_coord,
-                     std::optional<ShapeGroup>& g1, std::optional<ShapeGroup>& g2) noexcept {
-  g1 = std::nullopt;
-  g2 = std::nullopt;
+                     std::optional<ShapeGroup>& group1, std::optional<ShapeGroup>& group2) noexcept {
+  group1 = std::nullopt;
+  group2 = std::nullopt;
   if (count == 0) {
     return;
   }
@@ -63,7 +63,7 @@ void FindShapeGroups(const ShapesSoA& shapes, std::uint32_t first_idx, std::uint
         group.count++;
       }
     }
-    g1 = group;
+    group1 = group;
   }
 
   if (found_ge) {
@@ -82,7 +82,7 @@ void FindShapeGroups(const ShapesSoA& shapes, std::uint32_t first_idx, std::uint
         group.count++;
       }
     }
-    g2 = group;
+    group2 = group;
   }
 }
 

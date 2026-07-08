@@ -154,7 +154,8 @@ constexpr auto FromString<ast::BridgeType>(std::string_view str) -> std::optiona
 
 // Specialization for ast::LaneType
 template <>
-constexpr auto FromString<ast::LaneType>(std::string_view str) -> std::optional<ast::LaneType> {
+constexpr auto FromString<ast::LaneType>(std::string_view str)  // NOLINT(readability-function-cognitive-complexity)
+    -> std::optional<ast::LaneType> {
   if (str == "hov") {
     return ast::LaneType::kHov;
   }
@@ -253,7 +254,8 @@ constexpr auto FromString<ast::LaneType>(std::string_view str) -> std::optional<
 
 // Specialization for ast::ObjectType
 template <>
-constexpr auto FromString<ast::ObjectType>(std::string_view str) -> std::optional<ast::ObjectType> {
+constexpr auto FromString<ast::ObjectType>(std::string_view str)  // NOLINT(readability-function-cognitive-complexity)
+    -> std::optional<ast::ObjectType> {
   if (str == "none") {
     return ast::ObjectType::kNone;
   }

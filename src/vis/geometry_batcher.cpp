@@ -51,13 +51,13 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
     }
 
     for (std::size_t i = 0; i < poly.vertices.size() - 1; ++i) {
-      const auto& v0 = poly.vertices[i];
-      const auto& v1 = poly.vertices[i + 1];
+      const auto& vertex0 = poly.vertices[i];
+      const auto& vertex1 = poly.vertices[i + 1];
 
-      batched.line_vertices.push_back(
-          Vertex{.x = v0.x, .y = v0.y, .z = v0.z, .r = line_color.r, .g = line_color.g, .b = line_color.b});
-      batched.line_vertices.push_back(
-          Vertex{.x = v1.x, .y = v1.y, .z = v1.z, .r = line_color.r, .g = line_color.g, .b = line_color.b});
+      batched.line_vertices.push_back(Vertex{
+          .x = vertex0.x, .y = vertex0.y, .z = vertex0.z, .r = line_color.r, .g = line_color.g, .b = line_color.b});
+      batched.line_vertices.push_back(Vertex{
+          .x = vertex1.x, .y = vertex1.y, .z = vertex1.z, .r = line_color.r, .g = line_color.g, .b = line_color.b});
     }
   }
 
@@ -148,10 +148,10 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
               corner_pose.pitch = 0.0;
               corner_pose.roll = 0.0;
 
-              cpm::InertialPose ip = cpm.RoadToInertial(corner_pose, query_ctx);
-              world_corners.push_back(Vertex{.x = static_cast<float>(ip.x),
-                                             .y = static_cast<float>(ip.y),
-                                             .z = static_cast<float>(ip.z),
+              cpm::InertialPose inertial_pose = cpm.RoadToInertial(corner_pose, query_ctx);
+              world_corners.push_back(Vertex{.x = static_cast<float>(inertial_pose.x),
+                                             .y = static_cast<float>(inertial_pose.y),
+                                             .z = static_cast<float>(inertial_pose.z),
                                              .r = kObjectColor.r,
                                              .g = kObjectColor.g,
                                              .b = kObjectColor.b});

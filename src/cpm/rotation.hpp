@@ -57,7 +57,8 @@ class Rotation {
   }
 
  private:
-  using Matrix3x3 = std::array<std::array<double, 3>, 3>;
+  using Matrix3x3 =
+      std::array<std::array<double, 3>, 3>;  // NOLINT(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
 
   static auto EulerToMatrix(double heading, double pitch, double roll) noexcept -> Matrix3x3 {
     const double cos_heading = std::cos(heading);

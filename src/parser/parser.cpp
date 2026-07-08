@@ -253,7 +253,7 @@ auto ParseLane(pugi::xml_node lane_node) -> ast::Lane {
   lane.id = lane_node.attribute("id").as_int(0);
 
   const auto type_attr = lane_node.attribute("type");
-  if (type_attr) {
+  if (type_attr != nullptr) {
     const std::string_view type_str = type_attr.value();
     const auto lane_type = FromString<ast::LaneType>(type_str);
     if (!lane_type) {
@@ -423,13 +423,13 @@ auto ParseBoundary(pugi::xml_node boundary_node) -> ast::JunctionBoundary {
 auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
   ast::Junction junction;
   junction.id = junction_node.attribute("id").as_string("");
-  if (junction_node.attribute("name")) {
+  if (junction_node.attribute("name") != nullptr) {
     junction.name = junction_node.attribute("name").as_string();
   } else {
     junction.name = std::nullopt;
   }
 
-  if (junction_node.attribute("type")) {
+  if (junction_node.attribute("type") != nullptr) {
     const std::string_view type_str = junction_node.attribute("type").value();
     if (const auto type_opt = FromString<ast::JunctionType>(type_str)) {
       junction.type = *type_opt;
@@ -503,7 +503,7 @@ auto ParseLaneValidities(pugi::xml_node parent_node) -> std::vector<ast::LaneVal
                                   " greater than toLane=" + std::to_string(validity.to_lane));
     }
 
-    if (validity_node.attribute("layer")) {
+    if (validity_node.attribute("layer") != nullptr) {
       const std::string_view layer_str = validity_node.attribute("layer").value();
       if (const auto layer_opt = FromString<ast::LayerType>(layer_str)) {
         validity.layer = *layer_opt;
@@ -549,7 +549,7 @@ auto ParseBridge(pugi::xml_node bridge_node) -> ast::Bridge {
   bridge.id = bridge_id;
   bridge.s = s;
   bridge.length = length;
-  if (bridge_node.attribute("name")) {
+  if (bridge_node.attribute("name") != nullptr) {
     bridge.name = bridge_node.attribute("name").as_string();
   } else {
     bridge.name = std::nullopt;
@@ -598,7 +598,7 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
   tunnel.id = tunnel_id;
   tunnel.s = s;
   tunnel.length = length;
-  if (tunnel_node.attribute("name")) {
+  if (tunnel_node.attribute("name") != nullptr) {
     tunnel.name = tunnel_node.attribute("name").as_string();
   } else {
     tunnel.name = std::nullopt;
@@ -611,12 +611,12 @@ auto ParseTunnel(pugi::xml_node tunnel_node) -> ast::Tunnel {
     throw InvalidAttributeError("<tunnel id=\"" + tunnel_id + "\"> has invalid type=\"" + std::string(type_str) + "\"");
   }
 
-  if (tunnel_node.attribute("lighting")) {
+  if (tunnel_node.attribute("lighting") != nullptr) {
     tunnel.lighting = tunnel_node.attribute("lighting").as_double();
   } else {
     tunnel.lighting = std::nullopt;
   }
-  if (tunnel_node.attribute("daylight")) {
+  if (tunnel_node.attribute("daylight") != nullptr) {
     tunnel.daylight = tunnel_node.attribute("daylight").as_double();
   } else {
     tunnel.daylight = std::nullopt;
@@ -952,7 +952,7 @@ auto ParseObject(pugi::xml_node node) -> ast::Object {
                                 "\"");
   }
 
-  if (node.attribute("type")) {
+  if (node.attribute("type") != nullptr) {
     const std::string_view type_str = node.attribute("type").value();
     if (const auto type_opt = FromString<ast::ObjectType>(type_str)) {
       obj.type = *type_opt;
@@ -1014,10 +1014,10 @@ auto ParseObject(pugi::xml_node node) -> ast::Object {
   // Parking Space
   pugi::xml_node ps_node = node.child("parkingSpace");
   if (!ps_node.empty()) {
-    ast::ParkingSpace ps;
-    ps.access = ps_node.attribute("access").as_string("");
-    ps.restrictions = ps_node.attribute("restrictions").as_string("");
-    obj.parking_space = ps;
+    ast::ParkingSpace parking_space;
+    parking_space.access = ps_node.attribute("access").as_string("");
+    parking_space.restrictions = ps_node.attribute("restrictions").as_string("");
+    obj.parking_space = parking_space;
   }
 
   // Skeleton
@@ -1031,27 +1031,27 @@ auto ParseObject(pugi::xml_node node) -> ast::Object {
 
       pugi::xml_node vl_node = poly_node.child("vertexLocal");
       while (!vl_node.empty()) {
-        ast::PolylineVertexLocal vl;
-        vl.u = vl_node.attribute("u").as_double(0.0);
-        vl.v = vl_node.attribute("v").as_double(0.0);
-        vl.z = vl_node.attribute("z").as_double(0.0);
-        vl.radius = vl_node.attribute("radius").as_double(0.0);
-        vl.intersection_point = vl_node.attribute("intersectionPoint").as_bool(false);
-        vl.id = vl_node.attribute("id").as_uint(0);
-        polyline.vertices_local.push_back(vl);
+        ast::PolylineVertexLocal vertex_local;
+        vertex_local.u = vl_node.attribute("u").as_double(0.0);
+        vertex_local.v = vl_node.attribute("v").as_double(0.0);
+        vertex_local.z = vl_node.attribute("z").as_double(0.0);
+        vertex_local.radius = vl_node.attribute("radius").as_double(0.0);
+        vertex_local.intersection_point = vl_node.attribute("intersectionPoint").as_bool(false);
+        vertex_local.id = vl_node.attribute("id").as_uint(0);
+        polyline.vertices_local.push_back(vertex_local);
         vl_node = vl_node.next_sibling("vertexLocal");
       }
 
       pugi::xml_node vr_node = poly_node.child("vertexRoad");
       while (!vr_node.empty()) {
-        ast::PolylineVertexRoad vr;
-        vr.s = vr_node.attribute("s").as_double(0.0);
-        vr.t = vr_node.attribute("t").as_double(0.0);
-        vr.dz = vr_node.attribute("dz").as_double(0.0);
-        vr.radius = vr_node.attribute("radius").as_double(0.0);
-        vr.intersection_point = vr_node.attribute("intersectionPoint").as_bool(false);
-        vr.id = vr_node.attribute("id").as_uint(0);
-        polyline.vertices_road.push_back(vr);
+        ast::PolylineVertexRoad vertex_road;
+        vertex_road.s = vr_node.attribute("s").as_double(0.0);
+        vertex_road.t = vr_node.attribute("t").as_double(0.0);
+        vertex_road.dz = vr_node.attribute("dz").as_double(0.0);
+        vertex_road.radius = vr_node.attribute("radius").as_double(0.0);
+        vertex_road.intersection_point = vr_node.attribute("intersectionPoint").as_bool(false);
+        vertex_road.id = vr_node.attribute("id").as_uint(0);
+        polyline.vertices_road.push_back(vertex_road);
         vr_node = vr_node.next_sibling("vertexRoad");
       }
 
@@ -1176,7 +1176,7 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
     } else {
       road.rule = ast::TrafficRule::kRht;
     }
-    if (road_node.attribute("name")) {
+    if (road_node.attribute("name") != nullptr) {
       road.name = road_node.attribute("name").as_string();
     } else {
       road.name = std::nullopt;
