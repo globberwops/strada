@@ -51,14 +51,14 @@ struct JunctionBoundaryGeometry {
 /// Holds the output layers of tessellated road network geometries.
 class Tessellator {
  public:
-  /// Constructs the Tessellator layer from the Logical AST.
+  /// Constructs the Tessellator layer from the Logical AST and CompiledPhysicsModel.
   ///
-  /// Internally instantiates a temporary CompiledPhysicsModel to evaluate geometries
-  /// with the specified chord error tolerance.
+  /// Evaluates geometries with the specified chord error tolerance.
   ///
   /// \param map The logical C++ abstract syntax tree of the map.
+  /// \param model The compiled physics model.
   /// \param chord_error The maximum chord error tolerance in meters (e.g., 0.5m).
-  Tessellator(const ast::AbstractSyntaxTree& map, double chord_error);
+  Tessellator(const ast::AbstractSyntaxTree& map, const cpm::CompiledPhysicsModel& model, double chord_error);
 
   /// Returns the flat list of generated road surface meshes.
   [[nodiscard]] auto Meshes() const noexcept -> const std::vector<Mesh>& { return meshes_; }

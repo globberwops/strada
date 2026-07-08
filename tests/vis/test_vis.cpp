@@ -95,11 +95,12 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
 
-  tess::Tessellator tess(map, 0.5);
+  auto cpm = cpm::CompiledPhysicsModel::Build(map);
+  tess::Tessellator tess(map, cpm, 0.5);
   ASSERT_EQ(tess.Meshes().size(), 1);
 
   // Act: batch geometry
-  auto batched = BatchMapGeometry(tess, map, cpm::CompiledPhysicsModel::Build(map));
+  auto batched = BatchMapGeometry(tess, map, cpm);
 
   // Assert
   const auto& mesh = tess.Meshes()[0];
@@ -157,12 +158,13 @@ TEST(VisTest, BatchMapGeometryLines) {
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
 
-  tess::Tessellator tess(map, 0.5);
+  auto cpm = cpm::CompiledPhysicsModel::Build(map);
+  tess::Tessellator tess(map, cpm, 0.5);
   // Expect 1 reference line polyline and 1 outer boundary polyline
   ASSERT_EQ(tess.Polylines().size(), 2);
 
   // Act: batch
-  auto batched = BatchMapGeometry(tess, map, cpm::CompiledPhysicsModel::Build(map));
+  auto batched = BatchMapGeometry(tess, map, cpm);
 
   // Assert:
   // For each polyline of M vertices, we generate 2*(M-1) vertices for GL_LINES
@@ -234,11 +236,12 @@ TEST(VisTest, MeshRangeTracking) {
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
 
-  tess::Tessellator tess(map, 0.5);
+  auto cpm = cpm::CompiledPhysicsModel::Build(map);
+  tess::Tessellator tess(map, cpm, 0.5);
   ASSERT_EQ(tess.Meshes().size(), 1);
 
   // Act: batch geometry
-  auto batched = BatchMapGeometry(tess, map, cpm::CompiledPhysicsModel::Build(map));
+  auto batched = BatchMapGeometry(tess, map, cpm);
 
   // Assert: we expect exactly 1 range corresponding to the single mesh
   ASSERT_EQ(batched.mesh_ranges.size(), 1);
@@ -257,8 +260,9 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
   auto map = parser::ParseFile(map_path);
 
   // Act
-  tess::Tessellator tess(map, 0.5);
-  auto batched = BatchMapGeometry(tess, map, cpm::CompiledPhysicsModel::Build(map));
+  auto cpm = cpm::CompiledPhysicsModel::Build(map);
+  tess::Tessellator tess(map, cpm, 0.5);
+  auto batched = BatchMapGeometry(tess, map, cpm);
 
   // Assert
   EXPECT_FALSE(batched.boundary_triangle_vertices.empty());
@@ -353,8 +357,8 @@ TEST(VisTest, BatchMapGeometryObjects) {
 
   map.roads.push_back(road);
 
-  tess::Tessellator tess(map, 0.5);
   cpm::CompiledPhysicsModel cpm = cpm::CompiledPhysicsModel::Build(map);
+  tess::Tessellator tess(map, cpm, 0.5);
 
   // Act
   auto batched = BatchMapGeometry(tess, map, cpm);
@@ -458,8 +462,8 @@ TEST(VisTest, BatchMapGeometrySignals) {
 
   map.roads.push_back(road);
 
-  tess::Tessellator tess(map, 0.5);
   cpm::CompiledPhysicsModel cpm = cpm::CompiledPhysicsModel::Build(map);
+  tess::Tessellator tess(map, cpm, 0.5);
 
   // Act
   auto batched = BatchMapGeometry(tess, map, cpm);

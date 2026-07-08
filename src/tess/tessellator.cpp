@@ -12,8 +12,8 @@
 
 namespace strada::tess {
 
-Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, double chord_error) {
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, const cpm::CompiledPhysicsModel& model,
+                         double chord_error) {
   cpm::QueryContext ctx;
 
   for (std::size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {

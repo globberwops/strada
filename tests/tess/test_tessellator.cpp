@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <strada/ast/abstract_syntax_tree.hpp>
+#include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/parser/parser.hpp>
 #include <strada/tess/tessellator.hpp>
 
@@ -21,9 +22,10 @@ static auto GetTestDataPath(const std::string& filename) -> std::filesystem::pat
 TEST(TessellatorTest, EmptyMap) {
   // Arrange: empty AST
   ast::AbstractSyntaxTree map;
+  auto model = cpm::CompiledPhysicsModel::Build(map);
 
   // Act: tessellate
-  Tessellator tess(map, 0.5);
+  Tessellator tess(map, model, 0.5);
 
   // Assert: no meshes or polylines
   EXPECT_TRUE(tess.Meshes().empty());
@@ -34,9 +36,10 @@ TEST(TessellatorTest, StraightRoadReferenceLine) {
   // Arrange: parse roads.xodr containing two straight line roads
   auto map_path = GetTestDataPath("roads.xodr");
   auto map = parser::ParseFile(map_path);
+  auto model = cpm::CompiledPhysicsModel::Build(map);
 
   // Act: tessellate with 0.5m chord error
-  Tessellator tess(map, 0.5);
+  Tessellator tess(map, model, 0.5);
 
   // Assert: we expect 2 reference lines (one per road)
   // Let's filter polylines representing reference lines
@@ -82,9 +85,10 @@ TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
   // Arrange: parse lanes_flat.xodr containing a multi-lane road
   auto map_path = GetTestDataPath("lanes_flat.xodr");
   auto map = parser::ParseFile(map_path);
+  auto model = cpm::CompiledPhysicsModel::Build(map);
 
   // Act: tessellate
-  Tessellator tess(map, 0.5);
+  Tessellator tess(map, model, 0.5);
 
   // Assert:
   std::vector<Polyline> boundaries;
@@ -171,9 +175,10 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
 
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
+  auto model = cpm::CompiledPhysicsModel::Build(map);
 
   // Act: tessellate
-  Tessellator tess(map, 0.5);
+  Tessellator tess(map, model, 0.5);
 
   // Assert: we expect two lane boundaries (for lane 1 and lane 2) + center reference line
   std::vector<Polyline> boundaries;
@@ -196,9 +201,10 @@ TEST(TessellatorTest, LaneSurfaceTriangulation) {
   // Arrange: parse lanes_flat.xodr
   auto map_path = GetTestDataPath("lanes_flat.xodr");
   auto map = parser::ParseFile(map_path);
+  auto model = cpm::CompiledPhysicsModel::Build(map);
 
   // Act: tessellate
-  Tessellator tess(map, 0.5);
+  Tessellator tess(map, model, 0.5);
 
   // Assert: we expect 2 meshes
   const auto& meshes = tess.Meshes();
@@ -247,9 +253,10 @@ TEST(TessellatorTest, JunctionBoundaryTessellation) {
   // Arrange
   auto map_path = GetTestDataPath("junction_boundary.xodr");
   auto map = parser::ParseFile(map_path);
+  auto model = cpm::CompiledPhysicsModel::Build(map);
 
   // Act
-  Tessellator tess(map, 0.5);
+  Tessellator tess(map, model, 0.5);
 
   // Assert
   const auto& boundaries = tess.JunctionBoundaries();
@@ -339,9 +346,10 @@ TEST(TessellatorTest, JunctionJointBoundaryTessellation) {
 
   junction.boundary = boundary;
   map.junctions.push_back(junction);
+  auto model = cpm::CompiledPhysicsModel::Build(map);
 
   // Act
-  Tessellator tess(map, 0.5);
+  Tessellator tess(map, model, 0.5);
 
   // Assert
   const auto& boundaries = tess.JunctionBoundaries();
@@ -394,9 +402,10 @@ TEST(TessellatorTest, JunctionBoundaryFallbackWithoutBoundaryTag) {
   junction.id = "100";
   // NO boundary set
   map.junctions.push_back(junction);
+  auto model = cpm::CompiledPhysicsModel::Build(map);
 
   // Act
-  Tessellator tess(map, 0.5);
+  Tessellator tess(map, model, 0.5);
 
   // Assert
   const auto& boundaries = tess.JunctionBoundaries();

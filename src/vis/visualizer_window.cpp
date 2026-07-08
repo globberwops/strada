@@ -44,15 +44,16 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     // 1. Parse XODR file
     auto map = parser::ParseFile(file_path);
 
-    // 2. Build Tessellator
-    const tess::Tessellator kTess(map, 0.1);  // Use 0.1m chord error for rendering quality
-
+    // 2. Compile Physics Model once
     auto cpm = cpm::CompiledPhysicsModel::Build(map);
 
-    // 3. Batch Geometry
+    // 3. Build Tessellator
+    const tess::Tessellator kTess(map, cpm, 0.1);  // Use 0.1m chord error for rendering quality
+
+    // 4. Batch Geometry
     auto batched = BatchMapGeometry(kTess, map, cpm);
 
-    // 4. Update Viewport
+    // 5. Update Viewport
     viewport_->SetGeometry(batched, map, std::move(cpm));
 
     // Update title and status bar
