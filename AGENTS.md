@@ -18,7 +18,7 @@ Single-context layout with one CONTEXT.md and docs/adr/ at the repository root. 
 
 ### Idea backlog
 
-Rough ideas and feature proposals that need to be fleshed out before entering the main specification flow live in [IDEAS.md](file:///workspaces/strada/IDEAS.md).
+Rough ideas and feature proposals that need to be fleshed out before entering the main specification flow live in [IDEAS.md](IDEAS.md).
 
 
 ## Development Guidelines
@@ -39,7 +39,7 @@ Common types:
 
 ### Coding & Testing Conventions
 
-* **C++ Style & Coding Standards**: Follow the project's [C++ Style Reference](file:///workspaces/strada/docs/guidelines/cpp_style.md), which details naming, formatting, non-owning views, trailing return types, Doxygen documentation, member initialization, and formatting/linting compliance.
+* **C++ Style & Coding Standards**: Follow the project's [C++ Style Reference](docs/guidelines/cpp_style.md), which details naming, formatting, non-owning views, trailing return types, Doxygen documentation, member initialization, and formatting/linting compliance.
 * **Test Design**: Follow the **Arrange-Act-Assert (AAA)** pattern in all unit and integration tests. Clearly separate and label these blocks.
 * **Testing & Benchmarks**: Use **GoogleTest / GoogleMock** for TDD and **Google Benchmark** for performance regressions.
 * **Commit Strategy**: Create exactly **one commit per issue** following the Conventional Commits specification.
