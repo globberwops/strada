@@ -266,7 +266,7 @@ TEST(ParserTest, ParseJunctions) {
 
 TEST(ParserTest, ParseOtherJunctionTypes) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" encoding="utf-8"?>
+  const std::string xml = R"(<?xml version="1.0" encoding="utf-8"?>
 <OpenDRIVE>
     <header revMajor="1" revMinor="9" name="Junction Types Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
     <junction id="1" name="Crossing Junction" type="crossing"/>
@@ -275,7 +275,7 @@ TEST(ParserTest, ParseOtherJunctionTypes) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.junctions.size(), 3);
@@ -298,14 +298,14 @@ TEST(ParserTest, ParseOtherJunctionTypes) {
 
 TEST(ParserTest, ParseJunctionMissingTypeAndName) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" encoding="utf-8"?>
+  const std::string xml = R"(<?xml version="1.0" encoding="utf-8"?>
 <OpenDRIVE>
     <header revMajor="1" revMinor="9" name="Junction Types Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
     <junction id="1"/>
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.junctions.size(), 1);
@@ -317,14 +317,14 @@ TEST(ParserTest, ParseJunctionMissingTypeAndName) {
 
 TEST(ParserTest, ParseJunctionInvalidTypeThrows) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" encoding="utf-8"?>
+  const std::string xml = R"(<?xml version="1.0" encoding="utf-8"?>
 <OpenDRIVE>
     <header revMajor="1" revMinor="9" name="Junction Types Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
     <junction id="1" name="Invalid Junction" type="invalid_type"/>
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, ParseJunctionBoundary) {
@@ -365,7 +365,7 @@ TEST(ParserTest, ParseJunctionBoundary) {
 
 TEST(ParserTest, ParseJunctionJointBoundary) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" encoding="utf-8"?>
+  const std::string xml = R"(<?xml version="1.0" encoding="utf-8"?>
 <OpenDRIVE>
     <header revMajor="1" revMinor="9" name="Joint Boundary Test Map" version="1.0" date="2026-06-21T12:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0" vendor="Strada Vendor"/>
     <road id="1" length="10.0" junction="-1">
@@ -381,7 +381,7 @@ TEST(ParserTest, ParseJunctionJointBoundary) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.junctions.size(), 1);
@@ -435,26 +435,26 @@ TEST(ParserTest, ParseExtensions) {
 
 TEST(ParserTest, ThrowsXmlParseErrorOnMalformedXml) {
   // Arrange
-  const std::string kMalformedXml = "<not valid xml <<< >";
+  const std::string malformed_xml = "<not valid xml <<< >";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kMalformedXml), strada::parser::XmlParseError);
+  EXPECT_THROW(strada::parser::ParseString(malformed_xml), strada::parser::XmlParseError);
 }
 
 TEST(ParserTest, ThrowsMissingElementErrorOnMissingRoot) {
   // Arrange
-  const std::string kXml = "<NotOpenDRIVE />";
+  const std::string xml = "<NotOpenDRIVE />";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, ThrowsMissingElementErrorOnMissingHeader) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0"?><OpenDRIVE></OpenDRIVE>)";
+  const std::string xml = R"(<?xml version="1.0"?><OpenDRIVE></OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, ThrowsMissingElementErrorOnMissingRoadId) {
@@ -491,7 +491,7 @@ TEST(ParserTest, ErrorMessageContainsRoadIdOnMissingPlanView) {
 
 TEST(ParserTest, ParseCrossSectionSurface) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -526,7 +526,7 @@ TEST(ParserTest, ParseCrossSectionSurface) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -555,7 +555,7 @@ TEST(ParserTest, ParseCrossSectionSurface) {
 
 TEST(ParserTest, ParseCrossSectionSurfaceWithRelativeMode) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -583,7 +583,7 @@ TEST(ParserTest, ParseCrossSectionSurfaceWithRelativeMode) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -596,7 +596,7 @@ TEST(ParserTest, ParseCrossSectionSurfaceWithRelativeMode) {
 
 TEST(ParserTest, ParseCrossSectionSurfaceWithMissingMode) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -624,7 +624,7 @@ TEST(ParserTest, ParseCrossSectionSurfaceWithMissingMode) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -637,7 +637,7 @@ TEST(ParserTest, ParseCrossSectionSurfaceWithMissingMode) {
 
 TEST(ParserTest, ParseCrossSectionSurfaceThrowsOnInvalidMode) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -665,14 +665,14 @@ TEST(ParserTest, ParseCrossSectionSurfaceThrowsOnInvalidMode) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 class BridgesAndTunnelsParserTest : public ::testing::Test {};
 
 TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnels) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -696,7 +696,7 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnels) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -729,7 +729,7 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnels) {
 
 TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExtensions) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -764,7 +764,7 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExten
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -800,7 +800,7 @@ TEST_F(BridgesAndTunnelsParserTest, ParseBridgesAndTunnelsWithValiditiesAndExten
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeId) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -811,12 +811,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeId) 
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeS) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -827,12 +827,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeS) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeLength) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -843,12 +843,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeLeng
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeS) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -859,12 +859,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeS
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeLength) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -875,12 +875,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeBridgeL
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelId) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -891,12 +891,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelId) 
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelS) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -907,12 +907,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelS) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelLength) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -923,12 +923,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelLeng
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelS) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -939,12 +939,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelS
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelLength) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -955,12 +955,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnNegativeTunnelL
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeType) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -971,12 +971,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingBridgeType
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelType) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -987,12 +987,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingTunnelType
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingLaneValidityFromLane) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -1005,12 +1005,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingLaneValidi
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingLaneValidityToLane) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -1023,12 +1023,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsMissingElementErrorOnMissingLaneValidi
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnLaneValidityFromLaneGreaterThanToLane) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -1041,12 +1041,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnLaneValidityFro
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidBridgeType) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -1057,12 +1057,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidBridgeTy
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidTunnelType) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -1073,12 +1073,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidTunnelTy
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidLaneValidityLayer) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -1091,12 +1091,12 @@ TEST_F(BridgesAndTunnelsParserTest, ThrowsInvalidAttributeErrorOnInvalidLaneVali
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidTrafficRule) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="INVALID">
@@ -1105,12 +1105,12 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidTrafficRule) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, DefaultTrafficRuleWhenMissing) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -1119,7 +1119,7 @@ TEST(ParserTest, DefaultTrafficRuleWhenMissing) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -1128,7 +1128,7 @@ TEST(ParserTest, DefaultTrafficRuleWhenMissing) {
 
 TEST(ParserTest, MissingRoadNameIsNullopt) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road length="100.0" id="1" junction="-1">
@@ -1137,7 +1137,7 @@ TEST(ParserTest, MissingRoadNameIsNullopt) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -1146,7 +1146,7 @@ TEST(ParserTest, MissingRoadNameIsNullopt) {
 
 TEST(ParserTest, ParseLaneTypesToEnum) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -1170,7 +1170,7 @@ TEST(ParserTest, ParseLaneTypesToEnum) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -1186,7 +1186,7 @@ TEST(ParserTest, ParseLaneTypesToEnum) {
 
 TEST(ParserTest, ParsesLaneMissingTypeAsNone) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -1202,7 +1202,7 @@ TEST(ParserTest, ParsesLaneMissingTypeAsNone) {
 </OpenDRIVE>)";
 
   // Act
-  auto map = strada::parser::ParseString(kXml);
+  auto map = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(map.roads.size(), 1);
@@ -1213,7 +1213,7 @@ TEST(ParserTest, ParsesLaneMissingTypeAsNone) {
 
 TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidLaneType) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -1229,12 +1229,12 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidLaneType) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, ThrowsMissingElementErrorOnMissingPredecessorId) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -1257,12 +1257,12 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingPredecessorId) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, ThrowsMissingElementErrorOnMissingSuccessorId) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -1285,7 +1285,7 @@ TEST(ParserTest, ThrowsMissingElementErrorOnMissingSuccessorId) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, DefaultObjectFields) {
@@ -1368,7 +1368,7 @@ TEST(ParserConversionsTest, StripModeConversions) {
 
 TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidPRange) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -1381,12 +1381,12 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidPRange) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionSegmentType) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <junction id="1" name="Junction 1">
@@ -1398,12 +1398,12 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionSegmentType) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionBoundaryContactPoint) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <junction id="1" name="Junction 1">
@@ -1415,12 +1415,12 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionBoundaryContactPoin
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionConnectionContactPoint) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <junction id="1" name="Junction 1">
@@ -1429,7 +1429,7 @@ TEST(ParserTest, ThrowsInvalidAttributeErrorOnInvalidJunctionConnectionContactPo
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserConversionsTest, JunctionTypeConversions) {
@@ -1648,7 +1648,7 @@ TEST(ParserConversionsTest, RoadTypeConversions) {
 
 TEST(ParserTest, ParseRoadTypes) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="10.0" junction="-1">
@@ -1666,7 +1666,7 @@ TEST(ParserTest, ParseRoadTypes) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -1884,7 +1884,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
 TEST(ParserTest, ParseObjectReferenceAndValidation) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
   <road id="1" length="100.0" junction="-1">
@@ -1905,7 +1905,7 @@ TEST(ParserTest, ParseObjectReferenceAndValidation) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -1934,7 +1934,7 @@ TEST(ParserTest, ParseObjectReferenceAndValidation) {
 TEST(ParserTest, ObjectsRequiredAttributesThrow) {
   // Missing object id
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -1942,12 +1942,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><object s="0.0" t="0.0" orientation="none"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
   }
 
   // Missing object s
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -1955,12 +1955,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><object id="1" t="0.0" orientation="none"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
   }
 
   // Missing object t
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -1968,12 +1968,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><object id="1" s="0.0" orientation="none"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
   }
 
   // Missing object orientation
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -1981,12 +1981,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><object id="1" s="0.0" t="0.0"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
   }
 
   // Invalid object orientation
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -1994,12 +1994,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><object id="1" s="0.0" t="0.0" orientation="invalid_orientation"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
   }
 
   // Invalid object type
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -2007,12 +2007,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><object id="1" s="0.0" t="0.0" orientation="none" type="invalid_type"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
   }
 
   // Missing objectReference id
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -2020,12 +2020,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><objectReference s="0.0" t="0.0" orientation="none"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
   }
 
   // Missing objectReference s
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -2033,12 +2033,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><objectReference id="1" t="0.0" orientation="none"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
   }
 
   // Missing objectReference t
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -2046,12 +2046,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><objectReference id="1" s="0.0" orientation="none"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
   }
 
   // Missing objectReference orientation
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -2059,12 +2059,12 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><objectReference id="1" s="0.0" t="0.0"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
   }
 
   // Invalid objectReference orientation
   {
-    const std::string kXml = R"(<?xml version="1.0"?>
+    const std::string xml = R"(<?xml version="1.0"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test"/>
   <road id="1" length="10.0" junction="-1">
@@ -2072,7 +2072,7 @@ TEST(ParserTest, ObjectsRequiredAttributesThrow) {
     <objects><objectReference id="1" s="0.0" t="0.0" orientation="invalid_orientation"/></objects>
   </road>
 </OpenDRIVE>)";
-    EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+    EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
   }
 }
 
@@ -2144,7 +2144,7 @@ TEST(ParserTest, ParseSignalsFromFixture) {
 
 TEST(ParserTest, ParseSignalsAndReferencesFull) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="100.0" junction="-1">
@@ -2169,7 +2169,7 @@ TEST(ParserTest, ParseSignalsAndReferencesFull) {
 </OpenDRIVE>)";
 
   // Act
-  auto ast_tree = strada::parser::ParseString(kXml);
+  auto ast_tree = strada::parser::ParseString(xml);
 
   // Assert
   ASSERT_EQ(ast_tree.roads.size(), 1);
@@ -2240,7 +2240,7 @@ TEST(ParserTest, ParseSignalsAndReferencesFull) {
 
 TEST(ParserTest, SignalMissingIdThrows) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="100.0" junction="-1">
@@ -2256,12 +2256,12 @@ TEST(ParserTest, SignalMissingIdThrows) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, SignalMissingSThrows) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="100.0" junction="-1">
@@ -2277,12 +2277,12 @@ TEST(ParserTest, SignalMissingSThrows) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, SignalNegativeSThrows) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="100.0" junction="-1">
@@ -2298,12 +2298,12 @@ TEST(ParserTest, SignalNegativeSThrows) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, SignalInvalidOrientationThrows) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="100.0" junction="-1">
@@ -2319,12 +2319,12 @@ TEST(ParserTest, SignalInvalidOrientationThrows) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
 
 TEST(ParserTest, SignalDependencyMissingIdThrows) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="100.0" junction="-1">
@@ -2342,12 +2342,12 @@ TEST(ParserTest, SignalDependencyMissingIdThrows) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, SignalReferenceMissingIdThrows) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="100.0" junction="-1">
@@ -2363,12 +2363,12 @@ TEST(ParserTest, SignalReferenceMissingIdThrows) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::MissingElementError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
 }
 
 TEST(ParserTest, SignalReferenceNegativeSThrows) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road id="1" length="100.0" junction="-1">
@@ -2384,5 +2384,5 @@ TEST(ParserTest, SignalReferenceNegativeSThrows) {
 </OpenDRIVE>)";
 
   // Act & Assert
-  EXPECT_THROW(strada::parser::ParseString(kXml), strada::parser::InvalidAttributeError);
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }

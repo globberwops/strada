@@ -30,14 +30,15 @@ CheckOptions:
   readability-identifier-naming.ConceptCase: CamelCase
   readability-identifier-naming.ConstantCase: CamelCase
   readability-identifier-naming.ConstantPrefix: k
-  readability-identifier-naming.ConstexprVariableCase: CamelCase
-  readability-identifier-naming.ConstexprVariablePrefix: k
   readability-identifier-naming.EnumConstantCase: CamelCase
   readability-identifier-naming.EnumConstantPrefix: k
   readability-identifier-naming.FunctionCase: CamelCase
   readability-identifier-naming.GlobalConstantCase: CamelCase
   readability-identifier-naming.GlobalConstantPrefix: k
   readability-identifier-naming.LocalConstantCase: lower_case
+  readability-identifier-naming.LocalConstantPrefix: ""
+  readability-identifier-naming.LocalConstexprVariableCase: lower_case
+  readability-identifier-naming.LocalConstexprVariablePrefix: ""
   readability-identifier-naming.MemberConstantCase: CamelCase
   readability-identifier-naming.MemberConstantPrefix: k
   readability-identifier-naming.NamespaceCase: lower_case

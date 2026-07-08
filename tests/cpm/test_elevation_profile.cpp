@@ -12,7 +12,7 @@ namespace strada::cpm {
 
 TEST(ElevationProfileTest, CompileAndEvaluateElevationAndSuperelevation) {
   // Arrange: Simple road with linear elevation profile and superelevation profile.
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -37,7 +37,7 @@ TEST(ElevationProfileTest, CompileAndEvaluateElevationAndSuperelevation) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = parser::ParseString(kXml);
+  auto ast = parser::ParseString(xml);
 
   // Act
   auto profile = ElevationProfile::Build(ast);
@@ -54,7 +54,7 @@ TEST(ElevationProfileTest, CompileAndEvaluateElevationAndSuperelevation) {
 
 TEST(ElevationProfileTest, SuperelevationIsZeroIfCrossSectionSurfacePresent) {
   // Arrange: Road has superelevation AND cross-section surface. Superelevation must be ignored.
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -89,7 +89,7 @@ TEST(ElevationProfileTest, SuperelevationIsZeroIfCrossSectionSurfacePresent) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = parser::ParseString(kXml);
+  auto ast = parser::ParseString(xml);
 
   // Act
   auto profile = ElevationProfile::Build(ast);
@@ -103,7 +103,7 @@ TEST(ElevationProfileTest, SuperelevationIsZeroIfCrossSectionSurfacePresent) {
 
 TEST(ElevationProfileTest, ShapeProfileEvaluation) {
   // Arrange: Simple road with shape profile
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
   <road name="Road 1" length="100.0" id="1" junction="-1">
@@ -126,7 +126,7 @@ TEST(ElevationProfileTest, ShapeProfileEvaluation) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = parser::ParseString(kXml);
+  auto ast = parser::ParseString(xml);
 
   // Act
   auto profile = ElevationProfile::Build(ast);

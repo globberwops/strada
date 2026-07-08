@@ -15,18 +15,18 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
   // 1. Batch meshes for GL_TRIANGLES
   std::uint32_t vertex_offset = 0;
   for (const auto& mesh : tess.Meshes()) {
-    const Color kLaneColor = GetLaneColor(mesh.lane_type, mesh.original_lane_id);
+    const Color lane_color = GetLaneColor(mesh.lane_type, mesh.original_lane_id);
 
     auto index_start = static_cast<std::uint32_t>(batched.triangle_indices.size());
     auto index_count = static_cast<std::uint32_t>(mesh.indices.size());
 
     for (const auto& v : mesh.vertices) {
       batched.triangle_vertices.push_back(
-          Vertex{.x = v.x, .y = v.y, .z = v.z, .r = kLaneColor.r, .g = kLaneColor.g, .b = kLaneColor.b});
+          Vertex{.x = v.x, .y = v.y, .z = v.z, .r = lane_color.r, .g = lane_color.g, .b = lane_color.b});
     }
 
-    for (const std::uint32_t kIdx : mesh.indices) {
-      batched.triangle_indices.push_back(kIdx + vertex_offset);
+    for (const std::uint32_t idx : mesh.indices) {
+      batched.triangle_indices.push_back(idx + vertex_offset);
     }
 
     batched.mesh_ranges.push_back(MeshRange{.road_id = mesh.road_id,
@@ -44,7 +44,7 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
       continue;
     }
 
-    constexpr Color kLineColor = kReferenceLineColor;
+    constexpr Color line_color = kReferenceLineColor;
 
     if (poly.vertices.size() < 2) {
       continue;
@@ -55,9 +55,9 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
       const auto& v1 = poly.vertices[i + 1];
 
       batched.line_vertices.push_back(
-          Vertex{.x = v0.x, .y = v0.y, .z = v0.z, .r = kLineColor.r, .g = kLineColor.g, .b = kLineColor.b});
+          Vertex{.x = v0.x, .y = v0.y, .z = v0.z, .r = line_color.r, .g = line_color.g, .b = line_color.b});
       batched.line_vertices.push_back(
-          Vertex{.x = v1.x, .y = v1.y, .z = v1.z, .r = kLineColor.r, .g = kLineColor.g, .b = kLineColor.b});
+          Vertex{.x = v1.x, .y = v1.y, .z = v1.z, .r = line_color.r, .g = line_color.g, .b = line_color.b});
     }
   }
 
@@ -72,8 +72,8 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
                                                           .g = kJunctionBoundaryColor.g,
                                                           .b = kJunctionBoundaryColor.b});
     }
-    for (const std::uint32_t kIdx : boundary_geom.indices) {
-      batched.boundary_triangle_indices.push_back(kIdx + current_offset);
+    for (const std::uint32_t idx : boundary_geom.indices) {
+      batched.boundary_triangle_indices.push_back(idx + current_offset);
     }
   }
 
@@ -319,10 +319,10 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
         }
       } else {
         double radius = (signal.width > 0.0) ? signal.width * 0.5 : 0.25;
-        constexpr std::size_t kSegments = 12;
-        std::array<Vertex, kSegments> world_circle;
-        for (std::size_t i = 0; i < kSegments; ++i) {
-          double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(kSegments);
+        constexpr std::size_t segments = 12;
+        std::array<Vertex, segments> world_circle;
+        for (std::size_t i = 0; i < segments; ++i) {
+          double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(segments);
           auto local_pos = r_obj.Transform(0.0, radius * std::cos(theta), radius * std::sin(theta));
           world_circle[i] = Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
                                    .y = static_cast<float>(ip_top.y + local_pos[1]),
@@ -332,9 +332,9 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
                                    .b = kSignalColor.b};
         }
 
-        for (std::size_t i = 0; i < kSegments; ++i) {
+        for (std::size_t i = 0; i < segments; ++i) {
           batched.signal_line_vertices.push_back(world_circle[i]);
-          batched.signal_line_vertices.push_back(world_circle[(i + 1) % kSegments]);
+          batched.signal_line_vertices.push_back(world_circle[(i + 1) % segments]);
         }
       }
     }
@@ -376,10 +376,10 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
 
       auto r_obj = cpm::Rotation::FromEuler(ip_top.heading, ip_top.pitch, ip_top.roll);
       double radius = 0.25;
-      constexpr std::size_t kSegments = 12;
-      std::array<Vertex, kSegments> world_circle;
-      for (std::size_t i = 0; i < kSegments; ++i) {
-        double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(kSegments);
+      constexpr std::size_t segments = 12;
+      std::array<Vertex, segments> world_circle;
+      for (std::size_t i = 0; i < segments; ++i) {
+        double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(segments);
         auto local_pos = r_obj.Transform(0.0, radius * std::cos(theta), radius * std::sin(theta));
         world_circle[i] = Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
                                  .y = static_cast<float>(ip_top.y + local_pos[1]),
@@ -389,9 +389,9 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
                                  .b = kSignalColor.b};
       }
 
-      for (std::size_t i = 0; i < kSegments; ++i) {
+      for (std::size_t i = 0; i < segments; ++i) {
         batched.signal_line_vertices.push_back(world_circle[i]);
-        batched.signal_line_vertices.push_back(world_circle[(i + 1) % kSegments]);
+        batched.signal_line_vertices.push_back(world_circle[(i + 1) % segments]);
       }
     }
   }

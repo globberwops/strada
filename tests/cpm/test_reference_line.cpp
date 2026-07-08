@@ -8,7 +8,7 @@ namespace strada::cpm {
 
 TEST(ReferenceLineTest, CompileAndEvaluateSimpleLine) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="50.0" id="1" junction="-1" rule="RHT">
@@ -27,7 +27,7 @@ TEST(ReferenceLineTest, CompileAndEvaluateSimpleLine) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(kXml);
+  auto ast = strada::parser::ParseString(xml);
 
   // Act
   auto ref_line = ReferenceLine::Build(ast);
@@ -57,7 +57,7 @@ TEST(ReferenceLineTest, CompileAndEvaluateSimpleLine) {
 
 TEST(ReferenceLineTest, CompileAndProjectLineAndArc) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="50.0" id="1" junction="-1" rule="RHT">
@@ -79,7 +79,7 @@ TEST(ReferenceLineTest, CompileAndProjectLineAndArc) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(kXml);
+  auto ast = strada::parser::ParseString(xml);
   auto ref_line = ReferenceLine::Build(ast);
 
   EXPECT_EQ(ref_line.TotalSegmentsCount(), 2);
@@ -117,7 +117,7 @@ TEST(ReferenceLineTest, CompileAndProjectLineAndArc) {
 
 TEST(ReferenceLineTest, ComputeSegmentAabb) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="50.0" id="1" junction="-1" rule="RHT">
@@ -136,7 +136,7 @@ TEST(ReferenceLineTest, ComputeSegmentAabb) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(kXml);
+  auto ast = strada::parser::ParseString(xml);
   auto ref_line = ReferenceLine::Build(ast);
 
   // Act
@@ -151,7 +151,7 @@ TEST(ReferenceLineTest, ComputeSegmentAabb) {
 
 TEST(ReferenceLineTest, FindSegmentIndexAndCoherence) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="50.0" id="1" junction="-1" rule="RHT">
@@ -173,7 +173,7 @@ TEST(ReferenceLineTest, FindSegmentIndexAndCoherence) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(kXml);
+  auto ast = strada::parser::ParseString(xml);
   auto ref_line = ReferenceLine::Build(ast);
   QueryContext ctx;
 

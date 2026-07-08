@@ -10,42 +10,42 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     return indices;
   }
 
-  const std::size_t kN = vertices.size();
-  std::vector<std::uint32_t> v(kN);
+  const std::size_t n = vertices.size();
+  std::vector<std::uint32_t> v(n);
 
   // Compute signed area to determine winding order
   double area = 0.0;
-  for (std::size_t i = 0; i < kN; ++i) {
+  for (std::size_t i = 0; i < n; ++i) {
     const auto& p1 = vertices[i];
-    const auto& p2 = vertices[(i + 1) % kN];
+    const auto& p2 = vertices[(i + 1) % n];
     area += (static_cast<double>(p1.x) * p2.y) - (static_cast<double>(p2.x) * p1.y);
   }
 
   // Winding order: if area is negative, we want CW, if positive CCW.
   if (area < 0.0) {
-    for (std::size_t i = 0; i < kN; ++i) {
-      v[i] = static_cast<std::uint32_t>(kN - 1 - i);
+    for (std::size_t i = 0; i < n; ++i) {
+      v[i] = static_cast<std::uint32_t>(n - 1 - i);
     }
   } else {
-    for (std::size_t i = 0; i < kN; ++i) {
+    for (std::size_t i = 0; i < n; ++i) {
       v[i] = static_cast<std::uint32_t>(i);
     }
   }
 
   // Helper functions inside TriangulatePolygon
   auto inside_triangle = [](float ax, float ay, float bx, float by, float cx, float cy, float px, float py) -> bool {
-    const float kAxPx = ax - px;
-    const float kAyPy = ay - py;
-    const float kBxPx = bx - px;
-    const float kByPy = by - py;
-    const float kCxPx = cx - px;
-    const float kCyPy = cy - py;
+    const float ax_px = ax - px;
+    const float ay_py = ay - py;
+    const float bx_px = bx - px;
+    const float by_py = by - py;
+    const float cx_px = cx - px;
+    const float cy_py = cy - py;
 
-    const float kCcwAb = (kAxPx * kByPy) - (kAyPy * kBxPx);
-    const float kCcwBc = (kBxPx * kCyPy) - (kByPy * kCxPx);
-    const float kCcwCa = (kCxPx * kAyPy) - (kCyPy * kAxPx);
+    const float ccw_ab = (ax_px * by_py) - (ay_py * bx_px);
+    const float ccw_bc = (bx_px * cy_py) - (by_py * cx_px);
+    const float ccw_ca = (cx_px * ay_py) - (cy_py * ax_px);
 
-    return (kCcwAb >= 0.0F && kCcwBc >= 0.0F && kCcwCa >= 0.0F) || (kCcwAb <= 0.0F && kCcwBc <= 0.0F && kCcwCa <= 0.0F);
+    return (ccw_ab >= 0.0F && ccw_bc >= 0.0F && ccw_ca >= 0.0F) || (ccw_ab <= 0.0F && ccw_bc <= 0.0F && ccw_ca <= 0.0F);
   };
 
   auto is_ear = [&](std::size_t u, std::size_t w, std::size_t cv, const std::vector<std::uint32_t>& v_indices) -> bool {
@@ -54,8 +54,8 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     const auto& c = vertices[v_indices[cv]];
 
     // Check if triangle is convex (CCW)
-    const float kCrossProduct = ((b.x - a.x) * (c.y - b.y)) - ((b.y - a.y) * (c.x - b.x));
-    if (kCrossProduct <= 0.0F) {
+    const float cross_product = ((b.x - a.x) * (c.y - b.y)) - ((b.y - a.y) * (c.x - b.x));
+    if (cross_product <= 0.0F) {
       return false;
     }
 
@@ -72,8 +72,8 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     return true;
   };
 
-  std::size_t count = 2 * kN;  // Prevent infinite loop on degenerate polygons
-  std::size_t nv = kN;
+  std::size_t count = 2 * n;  // Prevent infinite loop on degenerate polygons
+  std::size_t nv = n;
   while (nv > 2) {
     if (count == 0) {
       // Degenerate fallback to triangle fan to avoid hanging
@@ -87,16 +87,16 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
     count--;
 
     for (std::size_t i = 0; i < nv; ++i) {
-      const std::size_t kU = (i == 0) ? (nv - 1) : (i - 1);
-      const std::size_t kW = i;
-      const std::size_t kCv = (i + 1 == nv) ? 0 : (i + 1);
+      const std::size_t u = (i == 0) ? (nv - 1) : (i - 1);
+      const std::size_t w = i;
+      const std::size_t cv = (i + 1 == nv) ? 0 : (i + 1);
 
-      if (is_ear(kU, kW, kCv, v)) {
-        indices.push_back(v[kU]);
-        indices.push_back(v[kW]);
-        indices.push_back(v[kCv]);
+      if (is_ear(u, w, cv, v)) {
+        indices.push_back(v[u]);
+        indices.push_back(v[w]);
+        indices.push_back(v[cv]);
 
-        v.erase(v.begin() + static_cast<std::vector<std::uint32_t>::difference_type>(kW));
+        v.erase(v.begin() + static_cast<std::vector<std::uint32_t>::difference_type>(w));
         nv--;
         count = 2 * nv;
         break;

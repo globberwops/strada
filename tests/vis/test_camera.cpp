@@ -31,15 +31,15 @@ TEST(CameraTest, ScreenToWorldAndWorldToScreenRoundTrip) {
   camera.rotation = 30.0F;
 
   // Pick a world coordinate
-  const float kWorldX = 12.0F;
-  const float kWorldY = -45.0F;
+  const float world_x = 12.0F;
+  const float world_y = -45.0F;
 
   // Convert to screen and back
-  const auto kScreen = camera.WorldToScreen(kWorldX, kWorldY);
-  const auto kWorldBack = camera.ScreenToWorld(static_cast<float>(kScreen.x()), static_cast<float>(kScreen.y()));
+  const auto screen = camera.WorldToScreen(world_x, world_y);
+  const auto world_back = camera.ScreenToWorld(static_cast<float>(screen.x()), static_cast<float>(screen.y()));
 
-  EXPECT_NEAR(kWorldBack.x(), kWorldX, 1e-3);
-  EXPECT_NEAR(kWorldBack.y(), kWorldY, 1e-3);
+  EXPECT_NEAR(world_back.x(), world_x, 1e-3);
+  EXPECT_NEAR(world_back.y(), world_y, 1e-3);
 }
 
 TEST(CameraTest, ZoomCenteringInvariance) {
@@ -51,21 +51,21 @@ TEST(CameraTest, ZoomCenteringInvariance) {
   camera.rotation = 15.0F;
 
   // Mouse cursor at screen (500, 400)
-  const float kPx = 500.0F;
-  const float kPy = 400.0F;
+  const float px = 500.0F;
+  const float py = 400.0F;
 
   // World point under cursor before zoom
-  const auto kW0 = camera.ScreenToWorld(kPx, kPy);
+  const auto w0 = camera.ScreenToWorld(px, py);
 
   // Zoom in centered at cursor
-  camera.ZoomAt(kPx, kPy, 1.2F);  // zoom * 1.2
+  camera.ZoomAt(px, py, 1.2F);  // zoom * 1.2
 
   // World point under cursor after zoom
-  const auto kW1 = camera.ScreenToWorld(kPx, kPy);
+  const auto w1 = camera.ScreenToWorld(px, py);
 
   // The world coordinate under the cursor must remain invariant
-  EXPECT_NEAR(kW0.x(), kW1.x(), 1e-3);
-  EXPECT_NEAR(kW0.y(), kW1.y(), 1e-3);
+  EXPECT_NEAR(w0.x(), w1.x(), 1e-3);
+  EXPECT_NEAR(w0.y(), w1.y(), 1e-3);
 }
 
 TEST(CameraTest, CameraPanning) {
@@ -97,19 +97,19 @@ TEST(CameraTest, CameraRotation) {
 
 TEST(CameraTest, ScaleSnapping) {
   // Test various zoom levels
-  constexpr std::array<double, 15> kZoomLevels = {0.001, 0.005, 0.01, 0.05, 0.1,   0.5,   1.0,   1.55,
+  constexpr std::array<double, 15> zoom_levels = {0.001, 0.005, 0.01, 0.05, 0.1,   0.5,   1.0,   1.55,
                                                   2.0,   5.0,   10.0, 50.0, 100.0, 500.0, 1000.0};
 
-  for (const double kZoom : kZoomLevels) {
-    const double kScaleLength = CalculateScaleLength(kZoom);
-    const double kWidthPixels = kScaleLength * kZoom;
+  for (const double zoom : zoom_levels) {
+    const double scale_length = CalculateScaleLength(zoom);
+    const double width_pixels = scale_length * zoom;
 
     // Check that it's strictly within the 80 to 150 pixel limit
-    EXPECT_GE(kWidthPixels, 80.0) << "Failed for zoom: " << kZoom << " (width: " << kWidthPixels << ")";
-    EXPECT_LE(kWidthPixels, 150.0) << "Failed for zoom: " << kZoom << " (width: " << kWidthPixels << ")";
+    EXPECT_GE(width_pixels, 80.0) << "Failed for zoom: " << zoom << " (width: " << width_pixels << ")";
+    EXPECT_LE(width_pixels, 150.0) << "Failed for zoom: " << zoom << " (width: " << width_pixels << ")";
 
     // Verify scale length is positive
-    EXPECT_GT(kScaleLength, 0.0);
+    EXPECT_GT(scale_length, 0.0);
   }
 }
 
@@ -120,14 +120,14 @@ TEST(CameraTest, ViewMatrixZScaleInvariant) {
   camera.zoom = 50.0F;
   camera.rotation = 30.0F;
 
-  const QMatrix4x4 kView = camera.GetViewMatrix();
+  const QMatrix4x4 view = camera.GetViewMatrix();
 
   // A point with non-zero Z elevation in world space
-  const QVector3D kPWorld(0.0F, 0.0F, 5.0F);
-  const QVector3D kPView = kView.map(kPWorld);
+  const QVector3D p_world(0.0F, 0.0F, 5.0F);
+  const QVector3D p_view = view.map(p_world);
 
   // The Z-coordinate should not be scaled by zoom and should remain 5.0f
-  EXPECT_FLOAT_EQ(kPView.z(), 5.0F);
+  EXPECT_FLOAT_EQ(p_view.z(), 5.0F);
 }
 
 }  // namespace strada::vis

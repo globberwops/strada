@@ -37,9 +37,9 @@ struct BoundingVolumeHierarchyAabb {
   }
 
   [[nodiscard]] auto Area() const noexcept -> double {
-    const double kDx = max_x - min_x;
-    const double kDy = max_y - min_y;
-    return (kDx > 0.0 ? kDx : 0.0) + (kDy > 0.0 ? kDy : 0.0);
+    const double dx = max_x - min_x;
+    const double dy = max_y - min_y;
+    return (dx > 0.0 ? dx : 0.0) + (dy > 0.0 ? dy : 0.0);
   }
 };
 
@@ -76,124 +76,124 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   BoundingVolumeHierarchyAabb bounds;
   BoundingVolumeHierarchyAabb centroid_bounds;
   for (std::uint32_t idx = start_idx; idx < end_idx; ++idx) {
-    const std::uint32_t kPrimIdx = prim_indices[idx];
-    bounds.Grow(temp_aabbs[kPrimIdx]);
-    const double kCx = 0.5 * (temp_aabbs[kPrimIdx].min_x + temp_aabbs[kPrimIdx].max_x);
-    const double kCy = 0.5 * (temp_aabbs[kPrimIdx].min_y + temp_aabbs[kPrimIdx].max_y);
-    centroid_bounds.Grow(kCx, kCy);
+    const std::uint32_t prim_idx = prim_indices[idx];
+    bounds.Grow(temp_aabbs[prim_idx]);
+    const double cx = 0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x);
+    const double cy = 0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y);
+    centroid_bounds.Grow(cx, cy);
   }
 
-  const std::uint32_t kCount = end_idx - start_idx;
-  constexpr std::uint32_t kLeafThreshold = 4;
+  const std::uint32_t count = end_idx - start_idx;
+  constexpr std::uint32_t leaf_threshold = 4;
 
-  if (kCount <= kLeafThreshold) {
-    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, kCount);
+  if (count <= leaf_threshold) {
+    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
   }
 
-  const double kExtX = centroid_bounds.max_x - centroid_bounds.min_x;
-  const double kExtY = centroid_bounds.max_y - centroid_bounds.min_y;
-  const int kAxis = (kExtX > kExtY) ? 0 : 1;
+  const double ext_x = centroid_bounds.max_x - centroid_bounds.min_x;
+  const double ext_y = centroid_bounds.max_y - centroid_bounds.min_y;
+  const int axis = (ext_x > ext_y) ? 0 : 1;
 
-  double min_coord = (kAxis == 0) ? centroid_bounds.min_x : centroid_bounds.min_y;
-  const double kMaxCoord = (kAxis == 0) ? centroid_bounds.max_x : centroid_bounds.max_y;
+  double min_coord = (axis == 0) ? centroid_bounds.min_x : centroid_bounds.min_y;
+  const double max_coord = (axis == 0) ? centroid_bounds.max_x : centroid_bounds.max_y;
 
-  if (kMaxCoord - min_coord < 1e-9) {
-    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, kCount);
+  if (max_coord - min_coord < 1e-9) {
+    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
   }
 
-  constexpr int kNumBins = 16;
+  constexpr int num_bins = 16;
   struct Bin {
     std::uint32_t count{0};
     BoundingVolumeHierarchyAabb bounds;
   };
-  std::array<Bin, kNumBins> bins{};
+  std::array<Bin, num_bins> bins{};
 
-  double scale = kNumBins / (kMaxCoord - min_coord);
+  double scale = num_bins / (max_coord - min_coord);
   for (std::uint32_t idx = start_idx; idx < end_idx; ++idx) {
-    const std::uint32_t kPrimIdx = prim_indices[idx];
-    const double kCentroid = (kAxis == 0) ? (0.5 * (temp_aabbs[kPrimIdx].min_x + temp_aabbs[kPrimIdx].max_x))
-                                          : (0.5 * (temp_aabbs[kPrimIdx].min_y + temp_aabbs[kPrimIdx].max_y));
-    int bin_idx = static_cast<int>((kCentroid - min_coord) * scale);
-    bin_idx = std::clamp(bin_idx, 0, kNumBins - 1);
+    const std::uint32_t prim_idx = prim_indices[idx];
+    const double centroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
+                                        : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
+    int bin_idx = static_cast<int>((centroid - min_coord) * scale);
+    bin_idx = std::clamp(bin_idx, 0, num_bins - 1);
     bins[bin_idx].count++;
-    bins[bin_idx].bounds.Grow(temp_aabbs[kPrimIdx]);
+    bins[bin_idx].bounds.Grow(temp_aabbs[prim_idx]);
   }
 
   double min_split_cost = std::numeric_limits<double>::max();
   int best_split_bin = -1;
 
-  std::array<BoundingVolumeHierarchyAabb, kNumBins - 1> left_bounds{};
-  std::array<std::uint32_t, kNumBins - 1> left_counts{};
+  std::array<BoundingVolumeHierarchyAabb, num_bins - 1> left_bounds{};
+  std::array<std::uint32_t, num_bins - 1> left_counts{};
   BoundingVolumeHierarchyAabb left_accum;
   std::uint32_t left_cnt = 0;
-  for (int idx = 0; idx < kNumBins - 1; ++idx) {
+  for (int idx = 0; idx < num_bins - 1; ++idx) {
     left_accum.Grow(bins[idx].bounds);
     left_cnt += bins[idx].count;
     left_bounds[idx] = left_accum;
     left_counts[idx] = left_cnt;
   }
 
-  std::array<BoundingVolumeHierarchyAabb, kNumBins - 1> right_bounds{};
-  std::array<std::uint32_t, kNumBins - 1> right_counts{};
+  std::array<BoundingVolumeHierarchyAabb, num_bins - 1> right_bounds{};
+  std::array<std::uint32_t, num_bins - 1> right_counts{};
   BoundingVolumeHierarchyAabb right_accum;
   std::uint32_t right_cnt = 0;
-  for (int idx = kNumBins - 1; idx > 0; --idx) {
+  for (int idx = num_bins - 1; idx > 0; --idx) {
     right_accum.Grow(bins[idx].bounds);
     right_cnt += bins[idx].count;
     right_bounds[idx - 1] = right_accum;
     right_counts[idx - 1] = right_cnt;
   }
 
-  const double kParentArea = bounds.Area();
-  constexpr double kCTrav = 1.0;
-  constexpr double kCIsect = 1.0;
+  const double parent_area = bounds.Area();
+  constexpr double c_trav = 1.0;
+  constexpr double c_isect = 1.0;
 
-  for (int idx = 0; idx < kNumBins - 1; ++idx) {
+  for (int idx = 0; idx < num_bins - 1; ++idx) {
     if (left_counts[idx] == 0 || right_counts[idx] == 0) {
       continue;
     }
-    const double kCost =
-        kCTrav +
-        (kCIsect * (left_bounds[idx].Area() * left_counts[idx] + right_bounds[idx].Area() * right_counts[idx]) /
-         kParentArea);
-    if (kCost < min_split_cost) {
-      min_split_cost = kCost;
+    const double cost =
+        c_trav +
+        (c_isect * (left_bounds[idx].Area() * left_counts[idx] + right_bounds[idx].Area() * right_counts[idx]) /
+         parent_area);
+    if (cost < min_split_cost) {
+      min_split_cost = cost;
       best_split_bin = idx;
     }
   }
 
-  const double kNoSplitCost = kCount * kCIsect;
+  const double no_split_cost = count * c_isect;
 
-  if (min_split_cost >= kNoSplitCost) {
-    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, kCount);
+  if (min_split_cost >= no_split_cost) {
+    return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
   }
 
   auto split_it = std::stable_partition(
       prim_indices.begin() + start_idx, prim_indices.begin() + end_idx, [&](std::uint32_t prim_idx) -> bool {
-        const double kCentroid = (kAxis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
-                                              : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
-        int bin_idx = static_cast<int>((kCentroid - min_coord) * scale);
-        bin_idx = std::clamp(bin_idx, 0, kNumBins - 1);
+        const double centroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
+                                            : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
+        int bin_idx = static_cast<int>((centroid - min_coord) * scale);
+        bin_idx = std::clamp(bin_idx, 0, num_bins - 1);
         return bin_idx <= best_split_bin;
       });
 
   auto mid_idx = static_cast<std::uint32_t>(std::distance(prim_indices.begin(), split_it));
 
   if (mid_idx == start_idx || mid_idx == end_idx) {
-    mid_idx = start_idx + (kCount / 2);
+    mid_idx = start_idx + (count / 2);
   }
 
-  const std::uint32_t kLeftChild = BuildBoundingVolumeHierarchyRecursive(
+  const std::uint32_t left_child = BuildBoundingVolumeHierarchyRecursive(
       nodes, final_primitives, prim_indices, temp_primitives, temp_aabbs, start_idx, mid_idx);
-  const std::uint32_t kRightChild = BuildBoundingVolumeHierarchyRecursive(
+  const std::uint32_t right_child = BuildBoundingVolumeHierarchyRecursive(
       nodes, final_primitives, prim_indices, temp_primitives, temp_aabbs, mid_idx, end_idx);
 
   nodes[node_idx].min_x = bounds.min_x;
   nodes[node_idx].min_y = bounds.min_y;
   nodes[node_idx].max_x = bounds.max_x;
   nodes[node_idx].max_y = bounds.max_y;
-  nodes[node_idx].left = kLeftChild;
-  nodes[node_idx].right = kRightChild;
+  nodes[node_idx].left = left_child;
+  nodes[node_idx].right = right_child;
 
   return node_idx;
 }
@@ -215,9 +215,9 @@ auto BoundingVolumeHierarchy::Build(std::vector<std::uint32_t>& prim_indices,
 
 auto BoundingVolumeHierarchy::DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x,
                                                   double max_y) noexcept -> double {
-  const double kDx = std::max({0.0, min_x - px, px - max_x});
-  const double kDy = std::max({0.0, min_y - py, py - max_y});
-  return std::sqrt((kDx * kDx) + (kDy * kDy));
+  const double dx = std::max({0.0, min_x - px, px - max_x});
+  const double dy = std::max({0.0, min_y - py, py - max_y});
+  return std::sqrt((dx * dx) + (dy * dy));
 }
 
 }  // namespace strada::cpm

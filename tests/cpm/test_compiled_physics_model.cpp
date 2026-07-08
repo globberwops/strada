@@ -7,7 +7,7 @@
 
 TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -41,7 +41,7 @@ TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(kXml);
+  auto ast = strada::parser::ParseString(xml);
 
   // Act
   auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
@@ -159,7 +159,7 @@ TEST(CompiledPhysicsModelTest, QueryMultiStripCrossSectionSurface) {
 
 TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -210,7 +210,7 @@ TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(kXml);
+  auto ast = strada::parser::ParseString(xml);
 
   // Act
   auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
@@ -514,7 +514,7 @@ TEST(CompiledPhysicsModelTest, QueryPoly3AndParamPoly3ReferenceLine) {
 
 TEST(CompiledPhysicsModelTest, BuildStaticFactory) {
   // Arrange
-  const std::string kXml = R"(<?xml version="1.0" standalone="yes"?>
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
   <road name="Road 1" length="10.0" id="1" junction="-1">
@@ -535,7 +535,7 @@ TEST(CompiledPhysicsModelTest, BuildStaticFactory) {
   </road>
 </OpenDRIVE>)";
 
-  auto ast = strada::parser::ParseString(kXml);
+  auto ast = strada::parser::ParseString(xml);
 
   // Act
   auto model = strada::cpm::CompiledPhysicsModel::Build(ast);

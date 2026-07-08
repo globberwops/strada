@@ -30,23 +30,23 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   road_max_t.reserve(map.roads.size());
 
   for (std::size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {
-    const double kMaxRoadT =
+    const double max_road_t =
         model.lane_network_.GetMaxRoadWidth(static_cast<RoadId>(road_idx), model.road_lengths_[road_idx]);
-    road_max_t.push_back(kMaxRoadT);
+    road_max_t.push_back(max_road_t);
   }
 
   std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives;
   std::vector<Aabb> temp_aabbs;
 
-  const auto kNumRoads = static_cast<std::uint32_t>(model.road_lengths_.size());
-  for (std::uint32_t road_idx = 0; road_idx < kNumRoads; ++road_idx) {
+  const auto num_roads = static_cast<std::uint32_t>(model.road_lengths_.size());
+  for (std::uint32_t road_idx = 0; road_idx < num_roads; ++road_idx) {
     const auto [first_seg, seg_count] = model.ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
-    const auto kInflation = road_max_t[road_idx];
+    const auto inflation = road_max_t[road_idx];
     for (std::uint32_t i = 0; i < seg_count; ++i) {
-      const std::uint32_t kSegIdx = first_seg + i;
-      temp_primitives.push_back(BoundingVolumeHierarchy::PrimitiveInfo{.road_idx = road_idx, .segment_idx = kSegIdx});
-      const auto kAabb = model.ref_line_.ComputeSegmentAabb(kSegIdx, kInflation);
-      temp_aabbs.push_back(kAabb);
+      const std::uint32_t seg_idx = first_seg + i;
+      temp_primitives.push_back(BoundingVolumeHierarchy::PrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
+      const auto aabb = model.ref_line_.ComputeSegmentAabb(seg_idx, inflation);
+      temp_aabbs.push_back(aabb);
     }
   }
 
@@ -63,52 +63,52 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
 
 [[gnu::hot]] auto CompiledPhysicsModel::RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept
     -> InertialPose {
-  const auto kRoadIdx = static_cast<std::uint32_t>(pose.road);
+  const auto road_idx = static_cast<std::uint32_t>(pose.road);
   const auto [first_seg, seg_count] = ref_line_.GetRoadSegments(pose.road);
   if (seg_count == 0) {
     return InertialPose{};
   }
 
   // 1. Find segment index
-  const std::uint32_t kSegIdx = ref_line_.FindSegmentIndex(pose.road, pose.s, ctx);
+  const std::uint32_t seg_idx = ref_line_.FindSegmentIndex(pose.road, pose.s, ctx);
 
   // 2. Evaluate reference line
-  const auto kPt = ref_line_.Evaluate(kSegIdx, pose.s);
+  const auto pt = ref_line_.Evaluate(seg_idx, pose.s);
 
   // 3. Evaluate vertical profile (elevation, pitch, roll, shape height)
-  const auto kVertical = elevation_profile_.Evaluate(pose.road, pose.s, pose.t);
+  const auto vertical = elevation_profile_.Evaluate(pose.road, pose.s, pose.t);
 
   // 4. Cross section surface height offset
-  const double kHSurf = lane_network_.EvaluateCrossSectionSurfaceOffset(pose.road, pose.s, pose.t);
+  const double h_surf = lane_network_.EvaluateCrossSectionSurfaceOffset(pose.road, pose.s, pose.t);
 
   // 5. Position composition
-  const auto kRRoad = Rotation::FromEuler(kPt.heading, kVertical.pitch, kVertical.roll_total);
+  const auto r_road = Rotation::FromEuler(pt.heading, vertical.pitch, vertical.roll_total);
 
-  const double kLocalT = pose.t;
-  const double kLocalH = pose.h + kHSurf + kVertical.shape_height;
+  const double local_t = pose.t;
+  const double local_h = pose.h + h_surf + vertical.shape_height;
 
-  const auto kOffset = kRRoad.Transform(0.0, kLocalT, kLocalH);
+  const auto offset = r_road.Transform(0.0, local_t, local_h);
 
   InertialPose inertial_pose;
-  inertial_pose.x = kPt.x + kOffset[0];
-  inertial_pose.y = kPt.y + kOffset[1];
-  inertial_pose.z = kVertical.elevation + kOffset[2];
+  inertial_pose.x = pt.x + offset[0];
+  inertial_pose.y = pt.y + offset[1];
+  inertial_pose.z = vertical.elevation + offset[2];
 
   // Composed orientation composition
-  const auto kROffset = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
-  const auto kRInertial = kRRoad.Compose(kROffset);
+  const auto r_offset = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
+  const auto r_inertial = r_road.Compose(r_offset);
 
-  const auto kEulerAngles = kRInertial.ToEuler();
-  inertial_pose.heading = kEulerAngles.heading;
-  inertial_pose.pitch = kEulerAngles.pitch;
-  inertial_pose.roll = kEulerAngles.roll;
+  const auto euler_angles = r_inertial.ToEuler();
+  inertial_pose.heading = euler_angles.heading;
+  inertial_pose.pitch = euler_angles.pitch;
+  inertial_pose.roll = euler_angles.roll;
 
   return inertial_pose;
 }
 
 auto CompiledPhysicsModel::LaneToInertial(LanePose pose, QueryContext& ctx) const noexcept -> InertialPose {
-  const RoadPose kRoadPose = LaneToRoad(pose, ctx);
-  return RoadToInertial(kRoadPose, ctx);
+  const RoadPose road_pose = LaneToRoad(pose, ctx);
+  return RoadToInertial(road_pose, ctx);
 }
 
 auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) const noexcept
@@ -125,71 +125,71 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
     double best_rhdg = 0.0;
 
     for (std::uint32_t i = 0; i < seg_count; ++i) {
-      const std::uint32_t kSegIdx = first_seg + i;
-      const double kRoadS = ref_line_.Project(kSegIdx, pose.x, pose.y);
-      const auto kPt = ref_line_.Evaluate(kSegIdx, kRoadS);
+      const std::uint32_t seg_idx = first_seg + i;
+      const double road_s = ref_line_.Project(seg_idx, pose.x, pose.y);
+      const auto pt = ref_line_.Evaluate(seg_idx, road_s);
 
-      const double kDx = pose.x - kPt.x;
-      const double kDy = pose.y - kPt.y;
-      const double kDistSq = (kDx * kDx) + (kDy * kDy);
-      if (kDistSq < min_dist_sq) {
-        min_dist_sq = kDistSq;
-        best_s = kRoadS;
-        best_t = (-kDx * std::sin(kPt.heading)) + (kDy * std::cos(kPt.heading));
-        best_rhdg = kPt.heading;
+      const double dx = pose.x - pt.x;
+      const double dy = pose.y - pt.y;
+      const double dist_sq = (dx * dx) + (dy * dy);
+      if (dist_sq < min_dist_sq) {
+        min_dist_sq = dist_sq;
+        best_s = road_s;
+        best_t = (-dx * std::sin(pt.heading)) + (dy * std::cos(pt.heading));
+        best_rhdg = pt.heading;
       }
     }
 
     // Evaluate base vertical profile at best_s (t=0)
-    const auto kVerticalBase = elevation_profile_.Evaluate(static_cast<RoadId>(road_idx), best_s, 0.0);
+    const auto vertical_base = elevation_profile_.Evaluate(static_cast<RoadId>(road_idx), best_s, 0.0);
 
-    const std::uint32_t kBestSegIdx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
-    const auto kPt = ref_line_.Evaluate(kBestSegIdx, best_s);
+    const std::uint32_t best_seg_idx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
+    const auto pt = ref_line_.Evaluate(best_seg_idx, best_s);
 
-    const double kDx = pose.x - kPt.x;
-    const double kDy = pose.y - kPt.y;
-    const double kDz = pose.z - kVerticalBase.elevation;
+    const double dx = pose.x - pt.x;
+    const double dy = pose.y - pt.y;
+    const double dz = pose.z - vertical_base.elevation;
 
     // Base roll calculation
-    const auto kRRoadBase = Rotation::FromEuler(best_rhdg, kVerticalBase.pitch, kVerticalBase.natural_roll);
-    const double kRoadTBase = kRRoadBase.InverseTransform(kDx, kDy, kDz)[1];
+    const auto r_road_base = Rotation::FromEuler(best_rhdg, vertical_base.pitch, vertical_base.natural_roll);
+    const double road_t_base = r_road_base.InverseTransform(dx, dy, dz)[1];
 
     // Shape evaluation and roll correction
-    const double kShapeGrad =
-        elevation_profile_.EvaluateShapeTGradient(static_cast<RoadId>(road_idx), best_s, kRoadTBase);
-    const double kRollTotal = kVerticalBase.natural_roll + std::atan(kShapeGrad);
+    const double shape_grad =
+        elevation_profile_.EvaluateShapeTGradient(static_cast<RoadId>(road_idx), best_s, road_t_base);
+    const double roll_total = vertical_base.natural_roll + std::atan(shape_grad);
 
-    const auto kRRoad = Rotation::FromEuler(best_rhdg, kVerticalBase.pitch, kRollTotal);
-    const double kRoadT = kRRoad.InverseTransform(kDx, kDy, kDz)[1];
+    const auto r_road = Rotation::FromEuler(best_rhdg, vertical_base.pitch, roll_total);
+    const double road_t = r_road.InverseTransform(dx, dy, dz)[1];
 
     double t_left = 0.0;
     double t_right = 0.0;
     lane_network_.GetRoadWidthLimits(static_cast<RoadId>(road_idx), best_s, t_left, t_right);
-    constexpr double kSnappingTolerance = 5.0;
+    constexpr double snapping_tolerance = 5.0;
 
-    const double kDsLongitudinal = std::sqrt(std::max(0.0, min_dist_sq - (kRoadT * kRoadT)));
-    if (kDsLongitudinal > kSnappingTolerance) {
+    const double ds_longitudinal = std::sqrt(std::max(0.0, min_dist_sq - (road_t * road_t)));
+    if (ds_longitudinal > snapping_tolerance) {
       return std::nullopt;
     }
 
-    if (kRoadT >= t_right - kSnappingTolerance && kRoadT <= t_left + kSnappingTolerance) {
-      const double kHSurf =
-          lane_network_.EvaluateCrossSectionSurfaceOffset(static_cast<RoadId>(road_idx), best_s, kRoadT);
-      const double kHShape = elevation_profile_.EvaluateShapeHeight(static_cast<RoadId>(road_idx), best_s, kRoadT);
+    if (road_t >= t_right - snapping_tolerance && road_t <= t_left + snapping_tolerance) {
+      const double h_surf =
+          lane_network_.EvaluateCrossSectionSurfaceOffset(static_cast<RoadId>(road_idx), best_s, road_t);
+      const double h_shape = elevation_profile_.EvaluateShapeHeight(static_cast<RoadId>(road_idx), best_s, road_t);
 
-      const double kLocalH = kRRoad.InverseTransform(kDx, kDy, kDz)[2];
-      const double kHTotal = kLocalH - kHSurf - kHShape;
+      const double local_h = r_road.InverseTransform(dx, dy, dz)[2];
+      const double h_total = local_h - h_surf - h_shape;
 
-      const auto kRInertial = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
-      const auto kROffset = kRRoad.Inverse().Compose(kRInertial);
-      const auto kOffsetAngles = kROffset.ToEuler();
+      const auto r_inertial = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
+      const auto r_offset = r_road.Inverse().Compose(r_inertial);
+      const auto offset_angles = r_offset.ToEuler();
 
       RoadPose road_pose{.s = best_s,
-                         .t = kRoadT,
-                         .h = kHTotal,
-                         .heading = kOffsetAngles.heading,
-                         .pitch = kOffsetAngles.pitch,
-                         .roll = kOffsetAngles.roll,
+                         .t = road_t,
+                         .h = h_total,
+                         .heading = offset_angles.heading,
+                         .pitch = offset_angles.pitch,
+                         .roll = offset_angles.roll,
                          .road = static_cast<RoadId>(road_idx)};
       return road_pose;
     }
@@ -198,11 +198,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
   // 1. Check temporal coherence fast path
   if (ctx.last_road.has_value()) {
-    const auto kRoadIdx = static_cast<std::uint32_t>(*ctx.last_road);
-    const auto kFastPose = snap_to_road(kRoadIdx);
-    if (kFastPose.has_value()) {
-      ref_line_.FindSegmentIndex(*ctx.last_road, kFastPose->s, ctx);
-      return kFastPose;
+    const auto road_idx = static_cast<std::uint32_t>(*ctx.last_road);
+    const auto fast_pose = snap_to_road(road_idx);
+    if (fast_pose.has_value()) {
+      ref_line_.FindSegmentIndex(*ctx.last_road, fast_pose->s, ctx);
+      return fast_pose;
     }
   }
 
@@ -212,11 +212,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
   bounding_volume_hierarchy_.Query(
       pose.x, pose.y,
       [&](const BoundingVolumeHierarchy::PrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {
-        const auto kCandidate = snap_to_road(prim.road_idx);
-        if (kCandidate.has_value()) {
-          double abs_t = std::abs(kCandidate->t);
+        const auto candidate = snap_to_road(prim.road_idx);
+        if (candidate.has_value()) {
+          double abs_t = std::abs(candidate->t);
           if (abs_t < current_min_dist) {
-            best_overall_pose = kCandidate;
+            best_overall_pose = candidate;
             return abs_t;
           }
         }
@@ -232,11 +232,11 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
 
 auto CompiledPhysicsModel::InertialToLane(InertialPose pose, QueryContext& ctx) const noexcept
     -> std::optional<LanePose> {
-  const auto kRoadPoseOpt = InertialToRoad(pose, ctx);
-  if (!kRoadPoseOpt.has_value()) {
+  const auto road_pose_opt = InertialToRoad(pose, ctx);
+  if (!road_pose_opt.has_value()) {
     return std::nullopt;
   }
-  return RoadToLane(*kRoadPoseOpt, ctx);
+  return RoadToLane(*road_pose_opt, ctx);
 }
 
 auto CompiledPhysicsModel::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept -> std::optional<LanePose> {
@@ -250,25 +250,25 @@ auto CompiledPhysicsModel::LaneToRoad(LanePose pose, QueryContext& ctx) const no
 auto CompiledPhysicsModel::RoadCount() const noexcept -> std::size_t { return road_string_ids_.size(); }
 
 auto CompiledPhysicsModel::RoadIdFromString(std::string_view original_id) const noexcept -> std::optional<RoadId> {
-  const auto kFindIt = std::ranges::find(road_string_ids_, original_id);
-  if (kFindIt != road_string_ids_.end()) {
-    return static_cast<RoadId>(std::distance(road_string_ids_.begin(), kFindIt));
+  const auto find_it = std::ranges::find(road_string_ids_, original_id);
+  if (find_it != road_string_ids_.end()) {
+    return static_cast<RoadId>(std::distance(road_string_ids_.begin(), find_it));
   }
   return std::nullopt;
 }
 
 auto CompiledPhysicsModel::OriginalRoadId(RoadId road_id) const noexcept -> std::string_view {
-  const auto kIdx = static_cast<std::uint32_t>(road_id);
-  if (kIdx < road_string_ids_.size()) {
-    return road_string_ids_[kIdx];
+  const auto idx = static_cast<std::uint32_t>(road_id);
+  if (idx < road_string_ids_.size()) {
+    return road_string_ids_[idx];
   }
   return "";
 }
 
 auto CompiledPhysicsModel::RoadLength(RoadId road_id) const noexcept -> double {
-  const auto kIdx = static_cast<std::uint32_t>(road_id);
-  if (kIdx < road_lengths_.size()) {
-    return road_lengths_[kIdx];
+  const auto idx = static_cast<std::uint32_t>(road_id);
+  if (idx < road_lengths_.size()) {
+    return road_lengths_[idx];
   }
   return 0.0;
 }
