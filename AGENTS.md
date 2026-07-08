@@ -16,6 +16,11 @@ Triage roles are mapped to default labels (needs-triage, needs-info, ready-for-a
 
 Single-context layout with one CONTEXT.md and docs/adr/ at the repository root. See `docs/agents/domain.md`.
 
+### Idea backlog
+
+Rough ideas and feature proposals that need to be fleshed out before entering the main specification flow live in [IDEAS.md](file:///workspaces/strada/IDEAS.md).
+
+
 ## Development Guidelines
 
 ### Commit Message Conventions
