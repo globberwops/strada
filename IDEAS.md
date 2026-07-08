@@ -14,6 +14,17 @@ This file tracks raw, un-fleshed-out feature ideas and architectural improvement
 - **Rough Solution**: Implement a batch coordinate transformation API in `strada::cpm` taking a `std::span` of inputs and outputs to leverage CPU vector registers (SoA alignment is already in place).
 - **Next Step**: Run a [/prototype](file:///workspaces/strada/.agents/skills/prototype/SKILL.md) session to benchmark vectorization gains on a batch coordinate lookup versus sequential lookups.
 
+### 3. German SVG Road Signs Integration
+- **Problem**: OpenDRIVE maps define German road signals and signs, but the Tessellator and visualization systems lack high-quality SVG assets to render them accurately.
+- **Rough Solution**: Integrate SVG road signs from the [Wikimedia Germany Road Signs Category](https://commons.wikimedia.org/wiki/Category:SVG_road_signs_in_Germany) into the visualization pipeline.
+- **Next Step**: Run a [/research](file:///workspaces/strada/.agents/skills/research/SKILL.md) session to identify which sign types map to the OpenDRIVE 1.9 standard and inventory available SVG assets.
+
+### 4. Switch Between Lane Layers
+- **Problem**: Downstream consumers (e.g. driver models vs rendering engines) may need to query or visualize different lane representations (e.g., topological lane graph vs physical SoA CPM lanes vs tessellated meshes) dynamically.
+- **Rough Solution**: Add API support to swap or toggle active/visible lane layers in the rendering and querying systems.
+- **Next Step**: Run a [/grill-with-docs](file:///workspaces/strada/.agents/skills/grill-with-docs/SKILL.md) session to define the requirements and target layers.
+
+
 ---
 
 ## Graduated / Completed Ideas
