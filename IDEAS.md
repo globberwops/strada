@@ -23,6 +23,10 @@ This file tracks raw, un-fleshed-out feature ideas and architectural improvement
 - **Problem**: Downstream consumers (e.g. driver models vs rendering engines) may need to query or visualize different lane representations (e.g., topological lane graph vs physical SoA CPM lanes vs tessellated meshes) dynamically.
 - **Rough Solution**: Add API support to swap or toggle active/visible lane layers in the rendering and querying systems.
 - **Next Step**: Run a [/grill-with-docs](.agents/skills/grill-with-docs/SKILL.md) session to define the requirements and target layers.
+### 5. Split ViewportWidget::paintGL Into Separate Functions
+- **Problem**: `ViewportWidget::paintGL()` has grown large (~380 lines) and mixes OpenGL 3D rendering setup, batched drawing of different geometry types (lanes, markings, objects, signals), selection highlight drawing, and QPainter 2D HUD/overlay drawing.
+- **Rough Solution**: Split `paintGL()` into distinct logical helper functions: a 3D pass delegating to methods like `Draw3DScene()`, `DrawJunctionBoundaries()`, `DrawLanes()`, `DrawMarkings()`, `DrawObjects()`, `DrawSignals()`, and `DrawHoverHighlight()`; and a 2D overlay pass delegating to `Draw2DOverlays()`, `DrawHUDCard()`, `DrawCompass()`, `DrawScaleBar()`, and `DrawShortcutsPanel()`.
+- **Next Step**: Refactor the method in `viewport_widget.cpp` and update `viewport_widget.hpp`.
 
 
 ---
