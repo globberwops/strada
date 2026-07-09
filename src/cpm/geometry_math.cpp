@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <span>
 #include <strada/cpm/geometry_math.hpp>
 
 namespace strada::cpm {
@@ -42,10 +43,10 @@ constexpr auto kGd = std::array{1.47495759925128324529E0,   3.377489891200199704
                                 4.60680728146520428211E-10, 1.10273215066240270757E-12, 1.38796531259578871258E-15,
                                 8.39158816283118707363E-19, 1.86958710162783236342E-22};
 
-constexpr double kPi{std::numbers::pi};
-constexpr double kPi2{0.5 * std::numbers::pi};
-constexpr double k1SqrtPi{std::numbers::inv_sqrtpi};
-constexpr double kNaN{std::numeric_limits<double>::quiet_NaN()};
+constexpr double kPi = std::numbers::pi;
+constexpr double kPi2 = 0.5 * std::numbers::pi;
+constexpr double k1SqrtPi = std::numbers::inv_sqrtpi;
+constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 
 constexpr auto kGaussPoints =
     std::array{-0.9061798459386640, -0.5384693101056831, 0.0, 0.5384693101056831, 0.9061798459386640};
@@ -54,21 +55,31 @@ constexpr auto kGaussWeights =
 constexpr int kNumGaussPoints = std::min(kGaussPoints.size(), kGaussWeights.size());
 
 template <std::size_t N>
-auto EvaluatePolynomial(double x, const std::array<double, N>& coef) noexcept -> double {
-  double ans{coef[0]};
-  for (std::size_t i{1}; i < N; ++i) {
+auto EvaluatePolynomial(const double x, std::span<const double, N> coef) noexcept -> double {
+  double ans = coef[0];
+  for (std::size_t i = 1; i < N; ++i) {
     ans = (ans * x) + coef[i];
   }
   return ans;
 }
 
 template <std::size_t N>
-auto EvaluateMonicPolynomial(double x, const std::array<double, N>& coef) noexcept -> double {
-  double ans{x + coef[0]};
-  for (std::size_t i{1}; i < N; ++i) {
+auto EvaluatePolynomial(const double x, const std::array<double, N>& coef) noexcept -> double {
+  return EvaluatePolynomial(x, std::span<const double, N>{coef});
+}
+
+template <std::size_t N>
+auto EvaluateMonicPolynomial(const double x, std::span<const double, N> coef) noexcept -> double {
+  double ans = x + coef[0];
+  for (std::size_t i = 1; i < N; ++i) {
     ans = (ans * x) + coef[i];
   }
   return ans;
+}
+
+template <std::size_t N>
+auto EvaluateMonicPolynomial(const double x, const std::array<double, N>& coef) noexcept -> double {
+  return EvaluateMonicPolynomial(x, std::span<const double, N>{coef});
 }
 
 auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
@@ -94,29 +105,29 @@ auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
 }  // namespace
 
 auto FresnelCS(double y) noexcept -> FresnelResult {
-  const double x{std::abs(y)};
-  const double x2{x * x};
-  double cc{0.0};
-  double ss{0.0};
+  const double x = std::abs(y);
+  const double x2 = x * x;
+  double cc = 0.0;
+  double ss = 0.0;
 
   if (x2 < 2.5625) {
-    const double t{x2 * x2};
+    const double t = x2 * x2;
     ss = x * x2 * EvaluatePolynomial(t, kSn) / EvaluateMonicPolynomial(t, kSd);
     cc = x * EvaluatePolynomial(t, kCn) / EvaluatePolynomial(t, kCd);
   } else if (x > 36974.0) {
     cc = 0.5;
     ss = 0.5;
   } else {
-    const double t_val{kPi * x2};
-    const double u{1.0 / (t_val * t_val)};
-    const double t_inv{1.0 / t_val};
-    const double f{1.0 - u * EvaluatePolynomial(u, kFn) / EvaluateMonicPolynomial(u, kFd)};
-    const double g{t_inv * EvaluatePolynomial(u, kGn) / EvaluateMonicPolynomial(u, kGd)};
+    const double t_val = kPi * x2;
+    const double u = 1.0 / (t_val * t_val);
+    const double t_inv = 1.0 / t_val;
+    const double f = 1.0 - u * EvaluatePolynomial(u, kFn) / EvaluateMonicPolynomial(u, kFd);
+    const double g = t_inv * EvaluatePolynomial(u, kGn) / EvaluateMonicPolynomial(u, kGd);
 
-    const double angle{kPi2 * x2};
-    const double sin_val{std::sin(angle)};
-    const double cos_val{std::cos(angle)};
-    const double t_denom{kPi * x};
+    const double angle = kPi2 * x2;
+    const double sin_val = std::sin(angle);
+    const double cos_val = std::cos(angle);
+    const double t_denom = kPi * x;
     cc = 0.5 + ((f * sin_val) - (g * cos_val)) / t_denom;
     ss = 0.5 - ((f * cos_val) + (g * sin_val)) / t_denom;
   }
@@ -178,8 +189,8 @@ auto SolveUForS(double s_target, double length, double b_u, double b, double c, 
     return 0.0;
   }
   double u_val = s_target * b_u;
-  constexpr double tol = 1e-12;
-  constexpr int max_iter = 100;
+  constexpr auto tol = 1e-12;
+  constexpr auto max_iter = 100;
   for (int iter = 0; iter < max_iter; ++iter) {
     const double s_val = IntegrateArcLength(u_val, b, c, d);
     const double v_prime = b + (2.0 * c * u_val) + (3.0 * d * u_val * u_val);

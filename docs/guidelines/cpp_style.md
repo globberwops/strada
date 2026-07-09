@@ -55,29 +55,33 @@ The style of a name immediately identifies the category of the entity without lo
 
 ---
 
-## 3. Type Deduction (`auto`) Guidelines
+## 3. Type Deduction (`auto`) & Variable Initialization Guidelines
 
-Type deduction should be used to make the code **clearer or safer**, and **never** merely to avoid writing an explicit type. Under Google C++ conventions, type deduction falls into two modern styles: **Auto-to-Track** and **Auto-to-Stick**.
+For all local variables and constants, type deduction via `auto` is unconditionally preferred for concrete types. Because modern IDEs display the deduced type inline, type deduction should be used even when the type of the expression is not immediately obvious in the code text.
 
-### 3.1 Auto-to-Track
-**Auto-to-Track** is using `auto` to deduce a variable's type directly from the return value of a function or expression.
+Our guidelines are built around two styles of type deduction: **Auto-to-Track** and **Auto-to-Stick**.
 
-*   **When to Use:**
-    *   For complex, long, or template-heavy types (such as iterators: `auto it = my_map.find(key);`).
-    *   In structured bindings to avoid map key mismatch errors: `const auto& [key, value] = *it;`.
-    *   When the type is fully obvious from the expression itself: `auto widget = std::make_unique<Widget>();`.
-*   **When to Avoid:**
-    *   If the type of the expression is not immediately obvious from the context: `auto foo = x.add_foo();` (bad if the reader cannot tell what `foo` is).
-    *   Avoid using it if there is a risk of unintended copy conversions (prefer `const auto&` to bind by reference).
+### 3.1 Auto-to-Track and Auto-to-Stick
+*   **Auto-to-Track:** Use `auto` to deduce a variable's type directly from the return value of a function or a complex expression (e.g., iterators or templates) where specifying the type is redundant:
+    *   `const auto segment_length = ref_line.GetLength();`
+    *   `const auto& [key, value] = *my_map.find(k);`
+*   **Auto-to-Stick:** Use `auto` to commit to a type by explicitly writing the type name on the right-hand side of the initialization. This enforces a consistent left-to-right reading syntax (`name = type_and_value`) and eliminates narrowing conversions, uninitialized variables, and the most vexing parse:
+    *   `auto name = std::string{"Arthur"};`
+    *   `auto myWidget = Widget{42};`
 
-### 3.2 Auto-to-Stick
-**Auto-to-Stick** is using `auto` with the type explicitly written on the right-hand side of the initialization using a constructor, cast, or brace-initializer.
+### 3.2 Auto for Types, but Not for Concepts
+*   **Concrete Types:** Prefer `auto` (via Auto-to-Track or Auto-to-Stick) for all concrete types.
+*   **C++20 Concepts:** Avoid unconstrained `auto` when working with concepts. When declaring function parameters, local variables, or template constraints where a concept applies, explicitly state the concept constraint (e.g., `Concept auto`) rather than plain `auto` to clearly document the requirements and constraints in the code:
+    *   `Integral auto count = GetCount();` (preferred over `auto count = GetCount();`)
+    *   `void process(Sortable auto& container);` (preferred over `void process(auto& container);`)
 
-*   **When to Use:**
-    *   For objects or custom classes to enforce a clean left-to-right reading pattern and guarantee zero-initialization: `auto options = FrobberOptions{};`.
-    *   With explicit casts or factories: `auto error_code = static_cast<int>(FrobberError::kMalformedUrl);`.
-*   **When to Avoid:**
-    *   **Prohibited for Primitives:** For simple, primitive variables (e.g. `int`, `double`, `bool`, pointers, references), **never** use the Auto-to-Stick format. Declare their types explicitly and use braced initialization: `int retries{5};` (not `auto retries = int{5};`).
+### 3.3 Variable Initialization & Literals
+*   **Local Variable Initialization:** For local variables, initialization using the equals sign (`=`) is always preferred for symmetry and readability: `auto retries = 5;`, `auto limit = 1.0;`, or `auto options = FrobberOptions{};` (never `int retries{5};` or `auto options{FrobberOptions{}};`).
+*   **Braces Reserved for Members:** Only **class/struct member variables** should be initialized with curly braces (`{}`) in their declarations, preferring default initialization without a concrete value (e.g., `int count_{};` in a class definition).
+*   **Literal Declarations:** When initializing variables or constants directly with a built-in literal (including integer, float, double, boolean, or hex literals), always use type deduction: `constexpr auto value = 1.0F;` or `constexpr auto limit = 1.0;`.
+*   **Class Template Argument Deduction (CTAD):** Rely on Class Template Argument Deduction (CTAD) wherever possible (e.g. `constexpr auto arr = std::array{1, 2, 3};` instead of `constexpr std::array<int, 3> arr{1, 2, 3};`).
+*   **Standard Literals over Explicit Declarations:** Prefer using standard library literal namespaces and literal suffixes (e.g., `using namespace std::literals;` and `1.0sv`, `10ms`, `3s`) over explicitly declaring or casting the type (e.g. `std::string_view{"foo"}` or `std::chrono::milliseconds(10)`).
+*   **Uppercase Number Literals:** Prefer using uppercase suffixes for number literals (e.g., `1.0F` instead of `1.0f`, `1ULL` instead of `1ull`, `0xAB` instead of `0xab`) to improve readability and code searchability.
 
 ---
 
@@ -303,8 +307,8 @@ UrlFrobber::UrlFrobber(const FrobberOptions& options)
 auto UrlFrobber::ProcessUrl(std::string_view url) -> bool {
   // Strada project requires curly braces on all control statements
   if (!HasValidProtocol(url)) {
-    // Declared explicitly with type and braced initialization
-    int error{static_cast<int>(FrobberError::kMalformedUrl)};
+    // Declared with type deduction and assignment initialization
+    const auto error = static_cast<int>(FrobberError::kMalformedUrl);
     last_error_code_ = error;
     return false;
   }
@@ -318,7 +322,7 @@ auto UrlFrobber::ProcessUrl(std::string_view url) -> bool {
   // Example path demonstrating hot-path non-exception error handling.
   const bool network_success = true;
   if (!network_success) {
-    int error{static_cast<int>(FrobberError::kNetworkFailure)};
+    const auto error = static_cast<int>(FrobberError::kNetworkFailure);
     last_error_code_ = error;
     return false;
   }
@@ -344,12 +348,13 @@ void UrlFrobber::ResetProcessedCount() {
 auto UrlFrobber::IsCached(std::string_view url) const -> bool {
   // Tricky implementation logic is commented here.
   // We use linear lookup as this collection is expected to remain small.
-  static const char* const kPrefetchedUrls[] = {
-      "https://example.com/index.html",
-      "https://example.com/assets.js",
+  using namespace std::literals;
+  static constexpr auto kPrefetchedUrls = std::array{
+      "https://example.com/index.html"sv,
+      "https://example.com/assets.js"sv,
   };
 
-  for (const char* cached_url : kPrefetchedUrls) {
+  for (const auto cached_url : kPrefetchedUrls) {
     if (url == cached_url) {
       return true;
     }
@@ -389,5 +394,5 @@ Strada integrates the C++ Core Guidelines to promote safety, type correctness, a
 | Core Guideline | CG Recommendation | Strada Enforcement | Rationale |
 | :--- | :--- | :--- | :--- |
 | **Error Handling (CG E.2)** | Throw exceptions for all failures | Exceptions **only in non-hot paths**. Hot-paths return `std::optional` or boolean status | Performance optimization to avoid stack unwinding tables on CPU-intensive queries |
-| **Type Initialization (CG ES.23)** | Use `{}` for all unified initialization | Primitive types use `{}` initialization. STL/class types use default constructor (`std::string s;` without `{}`) | Prevents `readability-redundant-member-init` warnings from `clang-tidy` |
+| **Type Initialization (CG ES.23)** | Use `{}` for all unified initialization | Local variables prefer `=` assignment for symmetry. Member variables must be initialized using `{}` in the header. | Enforces symmetry and readability on local variables while avoiding `readability-redundant-member-init` warnings |
 | **Function Return Syntax (CG F.21)** | Traditional leading return types (`int f();`) | Trailing return types unconditionally for all non-void functions (`auto f() -> int;`) | Enhanced readability, uniformity, and simplified template signatures |
