@@ -630,7 +630,7 @@ void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, cons
         constexpr std::size_t kSegments{12};
         std::array<std::array<double, 3>, kSegments> local_circle{};
         for (std::size_t i = 0; i < kSegments; ++i) {
-          const double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(kSegments);
+          const double theta{2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(kSegments)};
           local_circle[i] = {0.0, radius * std::cos(theta), radius * std::sin(theta)};
         }
         sig_tess.outlines.push_back(transform_and_close(local_circle));
