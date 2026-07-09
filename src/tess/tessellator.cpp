@@ -600,37 +600,39 @@ void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, cons
               .x = static_cast<float>(ip_top.x), .y = static_cast<float>(ip_top.y), .z = static_cast<float>(ip_top.z)}};
       sig_tess.outlines.push_back(pole_line);
 
-      const auto r_obj = cpm::Rotation::FromEuler(ip_top.heading, ip_top.pitch, ip_top.roll);
-      if (sig_width > 0.0 && sig_height > 0.0) {
-        const double half_w{sig_width * 0.5};
-        const double half_h{sig_height * 0.5};
-        const std::array<std::array<double, 3>, 4> local_corners = {
-            {{0.0, -half_w, -half_h}, {0.0, half_w, -half_h}, {0.0, half_w, half_h}, {0.0, -half_w, half_h}}};
+      const auto rotation = cpm::Rotation::FromEuler(ip_top.heading, ip_top.pitch, ip_top.roll);
 
-        std::vector<Vertex> board_pts;
-        board_pts.reserve(5);
-        for (std::size_t i = 0; i < 4; ++i) {
-          const auto local_pos = r_obj.Transform(local_corners[i][0], local_corners[i][1], local_corners[i][2]);
-          board_pts.push_back(Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
+      auto transform_and_close = [&](const std::vector<std::array<double, 3>>& local_points) -> std::vector<Vertex> {
+        std::vector<Vertex> world_pts;
+        world_pts.reserve(local_points.size() + 1);
+        for (const auto& local_pt : local_points) {
+          const auto local_pos = rotation.Transform(local_pt[0], local_pt[1], local_pt[2]);
+          world_pts.push_back(Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
                                      .y = static_cast<float>(ip_top.y + local_pos[1]),
                                      .z = static_cast<float>(ip_top.z + local_pos[2])});
         }
-        board_pts.push_back(board_pts.front());
-        sig_tess.outlines.push_back(board_pts);
+        if (!world_pts.empty()) {
+          world_pts.push_back(world_pts.front());
+        }
+        return world_pts;
+      };
+
+      if (sig_width > 0.0 && sig_height > 0.0) {
+        const double half_w{sig_width * 0.5};
+        const double half_h{sig_height * 0.5};
+        const std::vector<std::array<double, 3>> local_corners = {
+            {0.0, -half_w, -half_h}, {0.0, half_w, -half_h}, {0.0, half_w, half_h}, {0.0, -half_w, half_h}};
+        sig_tess.outlines.push_back(transform_and_close(local_corners));
       } else {
         const double radius{sig_width > 0.0 ? sig_width * 0.5 : 0.25};
         constexpr std::size_t kSegments{12};
-        std::vector<Vertex> circle_pts;
-        circle_pts.reserve(kSegments + 1);
+        std::vector<std::array<double, 3>> local_circle;
+        local_circle.reserve(kSegments);
         for (std::size_t i = 0; i < kSegments; ++i) {
           const double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(kSegments);
-          const auto local_pos = r_obj.Transform(0.0, radius * std::cos(theta), radius * std::sin(theta));
-          circle_pts.push_back(Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
-                                      .y = static_cast<float>(ip_top.y + local_pos[1]),
-                                      .z = static_cast<float>(ip_top.z + local_pos[2])});
+          local_circle.push_back({0.0, radius * std::cos(theta), radius * std::sin(theta)});
         }
-        circle_pts.push_back(circle_pts.front());
-        sig_tess.outlines.push_back(circle_pts);
+        sig_tess.outlines.push_back(transform_and_close(local_circle));
       }
 
       signals_.push_back(sig_tess);

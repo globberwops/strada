@@ -4,6 +4,25 @@
 
 namespace strada::vis {
 
+namespace {
+
+void BatchOutlines(const std::vector<std::vector<tess::Vertex>>& outlines, const Color& color,
+                   std::vector<Vertex>& output_vertices) {
+  for (const auto& outline : outlines) {
+    if (outline.size() < 2) {
+      continue;
+    }
+    for (std::size_t i = 0; i < outline.size() - 1; ++i) {
+      const auto& p0 = outline[i];
+      const auto& p1 = outline[i + 1];
+      output_vertices.push_back(Vertex{.x = p0.x, .y = p0.y, .z = p0.z, .r = color.r, .g = color.g, .b = color.b});
+      output_vertices.push_back(Vertex{.x = p1.x, .y = p1.y, .z = p1.z, .r = color.r, .g = color.g, .b = color.b});
+    }
+  }
+}
+
+}  // namespace
+
 auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTree& map,
                       const cpm::CompiledPhysicsModel& cpm) -> BatchedGeometry {
   BatchedGeometry batched;
@@ -75,36 +94,12 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
 
   // 4. Batch Road Objects
   for (const auto& obj : tess.Objects()) {
-    for (const auto& outline : obj.outlines) {
-      if (outline.size() < 2) {
-        continue;
-      }
-      for (std::size_t i = 0; i < outline.size() - 1; ++i) {
-        const auto& p0 = outline[i];
-        const auto& p1 = outline[i + 1];
-        batched.object_line_vertices.push_back(
-            Vertex{.x = p0.x, .y = p0.y, .z = p0.z, .r = kObjectColor.r, .g = kObjectColor.g, .b = kObjectColor.b});
-        batched.object_line_vertices.push_back(
-            Vertex{.x = p1.x, .y = p1.y, .z = p1.z, .r = kObjectColor.r, .g = kObjectColor.g, .b = kObjectColor.b});
-      }
-    }
+    BatchOutlines(obj.outlines, kObjectColor, batched.object_line_vertices);
   }
 
   // 5. Batch Road Signals and Signal References
   for (const auto& sig : tess.Signals()) {
-    for (const auto& outline : sig.outlines) {
-      if (outline.size() < 2) {
-        continue;
-      }
-      for (std::size_t i = 0; i < outline.size() - 1; ++i) {
-        const auto& p0 = outline[i];
-        const auto& p1 = outline[i + 1];
-        batched.signal_line_vertices.push_back(
-            Vertex{.x = p0.x, .y = p0.y, .z = p0.z, .r = kSignalColor.r, .g = kSignalColor.g, .b = kSignalColor.b});
-        batched.signal_line_vertices.push_back(
-            Vertex{.x = p1.x, .y = p1.y, .z = p1.z, .r = kSignalColor.r, .g = kSignalColor.g, .b = kSignalColor.b});
-      }
-    }
+    BatchOutlines(sig.outlines, kSignalColor, batched.signal_line_vertices);
   }
 
   return batched;
