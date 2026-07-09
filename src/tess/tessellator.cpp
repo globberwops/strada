@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <span>
-#include <stdexcept>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/cpm/query_context.hpp>
 #include <strada/parser/conversions.hpp>

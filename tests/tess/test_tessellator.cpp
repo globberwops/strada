@@ -661,31 +661,31 @@ TEST(TessellatorTest, RoadSignalsTessellation) {
   ASSERT_EQ(signals.size(), 2);
 
   // 1. Check signal_1
-  const auto& s1 = (signals[0].id == "signal_1") ? signals[0] : signals[1];
-  EXPECT_EQ(s1.id, "signal_1");
-  ASSERT_EQ(s1.outlines.size(), 2);
+  const auto& signal_1_tess = (signals[0].id == "signal_1") ? signals[0] : signals[1];
+  EXPECT_EQ(signal_1_tess.id, "signal_1");
+  ASSERT_EQ(signal_1_tess.outlines.size(), 2);
   // Pole has 2 vertices
-  EXPECT_EQ(s1.outlines[0].size(), 2);
+  EXPECT_EQ(signal_1_tess.outlines[0].size(), 2);
   // Board has 4 corners + closed loop -> 5 vertices
-  EXPECT_EQ(s1.outlines[1].size(), 5);
+  EXPECT_EQ(signal_1_tess.outlines[1].size(), 5);
 
   // Pole bottom should be at road level z=0, pole top at z_offset=3.0
-  EXPECT_NEAR(s1.outlines[0][0].x, 2.0F, 1e-3F);
-  EXPECT_NEAR(s1.outlines[0][0].y, 1.0F, 1e-3F);
-  EXPECT_NEAR(s1.outlines[0][0].z, 0.0F, 1e-3F);
+  EXPECT_NEAR(signal_1_tess.outlines[0][0].x, 2.0F, 1e-3F);
+  EXPECT_NEAR(signal_1_tess.outlines[0][0].y, 1.0F, 1e-3F);
+  EXPECT_NEAR(signal_1_tess.outlines[0][0].z, 0.0F, 1e-3F);
 
-  EXPECT_NEAR(s1.outlines[0][1].x, 2.0F, 1e-3F);
-  EXPECT_NEAR(s1.outlines[0][1].y, 1.0F, 1e-3F);
-  EXPECT_NEAR(s1.outlines[0][1].z, 3.0F, 1e-3F);
+  EXPECT_NEAR(signal_1_tess.outlines[0][1].x, 2.0F, 1e-3F);
+  EXPECT_NEAR(signal_1_tess.outlines[0][1].y, 1.0F, 1e-3F);
+  EXPECT_NEAR(signal_1_tess.outlines[0][1].z, 3.0F, 1e-3F);
 
   // 2. Check signal_ref_1
-  const auto& s_ref = (signals[0].id == "signal_ref_1") ? signals[0] : signals[1];
-  EXPECT_EQ(s_ref.id, "signal_ref_1");
-  ASSERT_EQ(s_ref.outlines.size(), 2);
+  const auto& signal_ref_tess = (signals[0].id == "signal_ref_1") ? signals[0] : signals[1];
+  EXPECT_EQ(signal_ref_tess.id, "signal_ref_1");
+  ASSERT_EQ(signal_ref_tess.outlines.size(), 2);
   // Pole has 2 vertices
-  EXPECT_EQ(s_ref.outlines[0].size(), 2);
+  EXPECT_EQ(signal_ref_tess.outlines[0].size(), 2);
   // Circle board has 12 segments + closed loop -> 13 vertices
-  EXPECT_EQ(s_ref.outlines[1].size(), 13);
+  EXPECT_EQ(signal_ref_tess.outlines[1].size(), 13);
 }
 
 }  // namespace strada::tess
