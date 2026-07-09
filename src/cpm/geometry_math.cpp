@@ -9,52 +9,67 @@ namespace strada::cpm {
 
 namespace {
 
-constexpr auto kFn =
-    std::array{0.49999988085884732562,  1.3511177791210715095,    1.3175407836168659241,   1.1861149300293854992,
-               0.7709627298888346769,   0.4173874338787963957,    0.19044202705272903923,  0.06655998896627697537,
-               0.022789258616785717418, 0.0040116689358507943804, 0.0012192036851249883877};
+constexpr auto kSn = std::array{-2.99181919401019853726E3, 7.08840045257738576863E5,   -6.29741486205862506537E7,
+                                2.54890880573376359104E9,  -4.42979518059697779103E10, 3.18016297876567817986E11};
 
-constexpr auto kFd = std::array{1.0,
-                                2.7022305772400260215,
-                                4.2059268151438492767,
-                                4.5221882840107715516,
-                                3.7240352281630359588,
-                                2.4589286254678152943,
-                                1.3125491629443702962,
-                                0.5997685720120932908,
-                                0.20907680750378849485,
-                                0.07159621634657901433,
-                                0.012602969513793714191,
-                                0.0038302423512931250065};
+constexpr auto kSd = std::array{2.81376268889994315696E2, 4.55847810806532581675E4,  5.17343888770096400730E6,
+                                4.19320245898111231129E8, 2.24411795645340920940E10, 6.07366389490084639049E11};
 
-constexpr auto kGn =
-    std::array{0.50000014392706344801,  0.032346434925349128728,   0.17619325157863254363,   0.038606273170706486252,
-               0.023693692309257725361, 0.007092018516845033662,   0.0012492123212412087428, 0.00044023040894778468486,
-               -8.80266827476172521e-6, -1.4033554916580018648e-8, 2.3509221782155474353e-10};
+constexpr auto kCn = std::array{-4.98843114573573548651E-8, 9.50428062829859605134E-6,  -6.45191435683965050962E-4,
+                                1.88843319396703850064E-2,  -2.05525900955013891793E-1, 9.99999999999999998822E-1};
 
-constexpr auto kGd = std::array{1.0,
-                                2.0646987497019598937,
-                                2.9109311766948031235,
-                                2.6561936751333032911,
-                                2.0195563983177268073,
-                                1.1167891129189363902,
-                                0.57267874755973172715,
-                                0.19408481169593070798,
-                                0.07634808341431248904,
-                                0.011573247407207865977,
-                                0.0044099273693067311209,
-                                -0.00009070958410429993314};
+constexpr auto kCd = std::array{3.99982968972495980367E-12, 9.15439215774657478799E-10, 1.25001862479598821474E-7,
+                                1.22262789024179030997E-5,  8.68029542941784300606E-4,  4.12142090722199792936E-2,
+                                1.00000000000000000118E0};
 
-constexpr double kPi = std::numbers::pi;
-constexpr double kPi2 = 0.5 * std::numbers::pi;
-constexpr double k1SqrtPi = std::numbers::inv_sqrtpi;
-constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
+constexpr auto kFn = std::array{4.21543555043677546506E-1,  1.43407919780758885261E-1,  1.15220955073585758835E-2,
+                                3.45017939782574027900E-4,  4.63613749287867322088E-6,  3.05568983790257605827E-8,
+                                1.02304514164907233465E-10, 1.72010743268161828879E-13, 1.34283276233062758925E-16,
+                                3.76329711269987889006E-20};
+
+constexpr auto kFd = std::array{7.51586398353378947175E-1,  1.16888925859191382142E-1,  6.44051526508858611005E-3,
+                                1.55934409164153020873E-4,  1.84627567348930545870E-6,  1.12699224763999035261E-8,
+                                3.60140029589371370404E-11, 5.88754533621578410010E-14, 4.52001434074129701496E-17,
+                                1.25443237090011264384E-20};
+
+constexpr auto kGn = std::array{5.04442073643383265887E-1,  1.97102833525523411709E-1,  1.87648584092575249293E-2,
+                                6.84079380915393090172E-4,  1.15138826111884280931E-5,  9.82852443688422223854E-8,
+                                4.45344415861750144738E-10, 1.08268041139020870318E-12, 1.37555460633261799868E-15,
+                                8.36354435630677421531E-19, 1.86958710162783235106E-22};
+
+constexpr auto kGd = std::array{1.47495759925128324529E0,   3.37748989120019970451E-1,  2.53603741420338795122E-2,
+                                8.14679107184306179049E-4,  1.27545075667729118702E-5,  1.04314589657571990585E-7,
+                                4.60680728146520428211E-10, 1.10273215066240270757E-12, 1.38796531259578871258E-15,
+                                8.39158816283118707363E-19, 1.86958710162783236342E-22};
+
+constexpr double kPi{std::numbers::pi};
+constexpr double kPi2{0.5 * std::numbers::pi};
+constexpr double k1SqrtPi{std::numbers::inv_sqrtpi};
+constexpr double kNaN{std::numeric_limits<double>::quiet_NaN()};
 
 constexpr auto kGaussPoints =
     std::array{-0.9061798459386640, -0.5384693101056831, 0.0, 0.5384693101056831, 0.9061798459386640};
 constexpr auto kGaussWeights =
     std::array{0.2369268850561891, 0.4786286704993665, 0.5688888888888889, 0.4786286704993665, 0.2369268850561891};
 constexpr int kNumGaussPoints = std::min(kGaussPoints.size(), kGaussWeights.size());
+
+template <std::size_t N>
+auto EvaluatePolynomial(double x, const std::array<double, N>& coef) noexcept -> double {
+  double ans{coef[0]};
+  for (std::size_t i{1}; i < N; ++i) {
+    ans = (ans * x) + coef[i];
+  }
+  return ans;
+}
+
+template <std::size_t N>
+auto EvaluateMonicPolynomial(double x, const std::array<double, N>& coef) noexcept -> double {
+  double ans{x + coef[0]};
+  for (std::size_t i{1}; i < N; ++i) {
+    ans = (ans * x) + coef[i];
+  }
+  return ans;
+}
 
 auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
   const double s = a > 0.0 ? 1.0 : -1.0;
@@ -79,133 +94,39 @@ auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
 }  // namespace
 
 auto FresnelCS(double y) noexcept -> FresnelResult {
-  constexpr double eps = 1e-15;
-  const double x = y > 0.0 ? y : -y;
-  double c = 0.0;
-  double s = 0.0;
+  const double x{std::abs(y)};
+  const double x2{x * x};
+  double cc{0.0};
+  double ss{0.0};
 
-  if (x < 1.0) {
-    double twofn = kNaN;
-    double fact = kNaN;
-    double denterm = kNaN;
-    double numterm = kNaN;
-    double sum = kNaN;
-    double term = kNaN;
-
-    const double s_val = kPi2 * (x * x);
-    const double t_val = -s_val * s_val;
-
-    twofn = 0.0;
-    fact = 1.0;
-    denterm = 1.0;
-    numterm = 1.0;
-    sum = 1.0;
-    do {
-      twofn += 2.0;
-      fact *= twofn * (twofn - 1.0);
-      denterm += 4.0;
-      numterm *= t_val;
-      term = numterm / (fact * denterm);
-      sum += term;
-    } while (std::abs(term) > eps * std::abs(sum));
-
-    c = x * sum;
-
-    twofn = 1.0;
-    fact = 1.0;
-    denterm = 3.0;
-    numterm = 1.0;
-    sum = 1.0 / 3.0;
-    do {
-      twofn += 2.0;
-      fact *= twofn * (twofn - 1.0);
-      denterm += 4.0;
-      numterm *= t_val;
-      term = numterm / (fact * denterm);
-      sum += term;
-    } while (std::abs(term) > eps * std::abs(sum));
-
-    s = kPi2 * sum * (x * x * x);
-
-  } else if (x < 6.0) {
-    double sumn = 0.0;
-    double sumd = kFd[11];
-    for (int k = 10; k >= 0; --k) {
-      sumn = kFn[k] + (x * sumn);
-      sumd = kFd[k] + (x * sumd);
-    }
-    const double f_val = sumn / sumd;
-
-    sumn = 0.0;
-    sumd = kGd[11];
-    for (int k = 10; k >= 0; --k) {
-      sumn = kGn[k] + (x * sumn);
-      sumd = kGd[k] + (x * sumd);
-    }
-    const double g_val = sumn / sumd;
-
-    const double u_val = kPi2 * (x * x);
-    const double sin_u = std::sin(u_val);
-    const double cos_u = std::cos(u_val);
-    c = 0.5 + (f_val * sin_u) - (g_val * cos_u);
-    s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
-
+  if (x2 < 2.5625) {
+    const double t{x2 * x2};
+    ss = x * x2 * EvaluatePolynomial(t, kSn) / EvaluateMonicPolynomial(t, kSd);
+    cc = x * EvaluatePolynomial(t, kCn) / EvaluatePolynomial(t, kCd);
+  } else if (x > 36974.0) {
+    cc = 0.5;
+    ss = 0.5;
   } else {
-    double absterm = kNaN;
-    const double s_val = kPi * x * x;
-    const double t_val = -1.0 / (s_val * s_val);
+    const double t_val{kPi * x2};
+    const double u{1.0 / (t_val * t_val)};
+    const double t_inv{1.0 / t_val};
+    const double f{1.0 - u * EvaluatePolynomial(u, kFn) / EvaluateMonicPolynomial(u, kFd)};
+    const double g{t_inv * EvaluatePolynomial(u, kGn) / EvaluateMonicPolynomial(u, kGd)};
 
-    double numterm = -1.0;
-    double term = 1.0;
-    double sum = 1.0;
-    double oldterm = 1.0;
-    const double eps10 = 0.1 * eps;
-
-    do {
-      numterm += 4.0;
-      term *= numterm * (numterm - 2.0) * t_val;
-      sum += term;
-      absterm = std::abs(term);
-      if (oldterm < absterm) {
-        break;
-      }
-      oldterm = absterm;
-    } while (absterm > eps10 * std::abs(sum));
-
-    const double f_val = sum / (kPi * x);
-
-    numterm = -1.0;
-    term = 1.0;
-    sum = 1.0;
-    oldterm = 1.0;
-
-    do {
-      numterm += 4.0;
-      term *= numterm * (numterm + 2.0) * t_val;
-      sum += term;
-      absterm = std::abs(term);
-      if (oldterm < absterm) {
-        break;
-      }
-      oldterm = absterm;
-    } while (absterm > eps10 * std::abs(sum));
-
-    double g_val = kPi * x;
-    g_val = sum / (g_val * g_val * x);
-
-    const double u_val = kPi2 * (x * x);
-    const double sin_u = std::sin(u_val);
-    const double cos_u = std::cos(u_val);
-    c = 0.5 + (f_val * sin_u) - (g_val * cos_u);
-    s = 0.5 - (f_val * cos_u) - (g_val * sin_u);
+    const double angle{kPi2 * x2};
+    const double sin_val{std::sin(angle)};
+    const double cos_val{std::cos(angle)};
+    const double t_denom{kPi * x};
+    cc = 0.5 + ((f * sin_val) - (g * cos_val)) / t_denom;
+    ss = 0.5 - ((f * cos_val) + (g * sin_val)) / t_denom;
   }
 
   if (y < 0.0) {
-    c = -c;
-    s = -s;
+    cc = -cc;
+    ss = -ss;
   }
 
-  return FresnelResult{.c = c, .s = s};
+  return FresnelResult{.c = cc, .s = ss};
 }
 
 auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> ClothoidResult {
