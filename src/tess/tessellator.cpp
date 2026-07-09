@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <span>
+#include <stdexcept>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/cpm/query_context.hpp>
 #include <strada/parser/conversions.hpp>
@@ -582,7 +584,7 @@ void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, cons
     const auto road_id = static_cast<cpm::RoadId>(road_idx);
 
     auto tessellate_single_signal = [&](std::string_view sig_id, const cpm::RoadPose& pose_top, double sig_width,
-                                        double sig_height) {
+                                        double sig_height) -> void {
       SignalTessellation sig_tess;
       sig_tess.id = sig_id;
 
@@ -602,7 +604,7 @@ void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, cons
 
       const auto rotation = cpm::Rotation::FromEuler(ip_top.heading, ip_top.pitch, ip_top.roll);
 
-      auto transform_and_close = [&](const std::vector<std::array<double, 3>>& local_points) -> std::vector<Vertex> {
+      auto transform_and_close = [&](std::span<const std::array<double, 3>> local_points) -> std::vector<Vertex> {
         std::vector<Vertex> world_pts;
         world_pts.reserve(local_points.size() + 1);
         for (const auto& local_pt : local_points) {
@@ -620,17 +622,16 @@ void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, cons
       if (sig_width > 0.0 && sig_height > 0.0) {
         const double half_w{sig_width * 0.5};
         const double half_h{sig_height * 0.5};
-        const std::vector<std::array<double, 3>> local_corners = {
-            {0.0, -half_w, -half_h}, {0.0, half_w, -half_h}, {0.0, half_w, half_h}, {0.0, -half_w, half_h}};
+        const std::array<std::array<double, 3>, 4> local_corners = {
+            {{0.0, -half_w, -half_h}, {0.0, half_w, -half_h}, {0.0, half_w, half_h}, {0.0, -half_w, half_h}}};
         sig_tess.outlines.push_back(transform_and_close(local_corners));
       } else {
         const double radius{sig_width > 0.0 ? sig_width * 0.5 : 0.25};
         constexpr std::size_t kSegments{12};
-        std::vector<std::array<double, 3>> local_circle;
-        local_circle.reserve(kSegments);
+        std::array<std::array<double, 3>, kSegments> local_circle{};
         for (std::size_t i = 0; i < kSegments; ++i) {
           const double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(kSegments);
-          local_circle.push_back({0.0, radius * std::cos(theta), radius * std::sin(theta)});
+          local_circle[i] = {0.0, radius * std::cos(theta), radius * std::sin(theta)};
         }
         sig_tess.outlines.push_back(transform_and_close(local_circle));
       }

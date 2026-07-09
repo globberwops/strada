@@ -1,12 +1,11 @@
-// SPDX-License-Identifier: BSL-1.0
-
+#include <span>
 #include <strada/vis/geometry_batcher.hpp>
 
 namespace strada::vis {
 
 namespace {
 
-void BatchOutlines(const std::vector<std::vector<tess::Vertex>>& outlines, const Color& color,
+void BatchOutlines(std::span<const std::vector<tess::Vertex>> outlines, const Color& color,
                    std::vector<Vertex>& output_vertices) {
   for (const auto& outline : outlines) {
     if (outline.size() < 2) {
