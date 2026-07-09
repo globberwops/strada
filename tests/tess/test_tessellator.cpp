@@ -605,4 +605,87 @@ TEST(TessellatorTest, RoadObjectsCornersTessellation) {
   EXPECT_NEAR(road_pts[1].z, 0.5F, 1e-3F);
 }
 
+TEST(TessellatorTest, RoadSignalsTessellation) {
+  // Arrange
+  ast::AbstractSyntaxTree map;
+
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  ast::GeometryRecord geom;
+  geom.s = 0.0;
+  geom.length = 10.0;
+  geom.x = 0.0;
+  geom.y = 0.0;
+  geom.hdg = 0.0;
+  geom.shape = ast::Line{};
+  road.plan_view.push_back(geom);
+
+  ast::LaneSection section;
+  section.s = 0.0;
+  ast::Lane lane0;
+  lane0.id = 0;
+  lane0.type = strada::ast::LaneType::kBorder;
+  section.center.push_back(lane0);
+  road.lanes.sections.push_back(section);
+
+  // Add a signal with width & height (should draw rectangular face: 4 lines * 2 = 8 vertices + 2 pole vertices = 10
+  // total)
+  ast::Signal signal;
+  signal.id = "signal_1";
+  signal.s = 2.0;
+  signal.t = 1.0;
+  signal.z_offset = 3.0;
+  signal.width = 1.0;
+  signal.height = 0.5;
+  road.signals.push_back(signal);
+
+  // Add a signal reference (should draw circular face: 12 segments * 2 = 24 vertices + 2 pole vertices = 26 total)
+  ast::SignalReference sig_ref;
+  sig_ref.id = "signal_ref_1";
+  sig_ref.s = 5.0;
+  sig_ref.t = -1.0;
+  sig_ref.z_offset = 2.0;
+  road.signal_references.push_back(sig_ref);
+
+  map.roads.push_back(road);
+
+  auto model = cpm::CompiledPhysicsModel::Build(map);
+
+  // Act
+  Tessellator tess(map, model, 0.5);
+
+  // Assert
+  const auto& signals = tess.Signals();
+  ASSERT_EQ(signals.size(), 2);
+
+  // 1. Check signal_1
+  const auto& s1 = (signals[0].id == "signal_1") ? signals[0] : signals[1];
+  EXPECT_EQ(s1.id, "signal_1");
+  ASSERT_EQ(s1.outlines.size(), 2);
+  // Pole has 2 vertices
+  EXPECT_EQ(s1.outlines[0].size(), 2);
+  // Board has 4 corners + closed loop -> 5 vertices
+  EXPECT_EQ(s1.outlines[1].size(), 5);
+
+  // Pole bottom should be at road level z=0, pole top at z_offset=3.0
+  EXPECT_NEAR(s1.outlines[0][0].x, 2.0F, 1e-3F);
+  EXPECT_NEAR(s1.outlines[0][0].y, 1.0F, 1e-3F);
+  EXPECT_NEAR(s1.outlines[0][0].z, 0.0F, 1e-3F);
+
+  EXPECT_NEAR(s1.outlines[0][1].x, 2.0F, 1e-3F);
+  EXPECT_NEAR(s1.outlines[0][1].y, 1.0F, 1e-3F);
+  EXPECT_NEAR(s1.outlines[0][1].z, 3.0F, 1e-3F);
+
+  // 2. Check signal_ref_1
+  const auto& s_ref = (signals[0].id == "signal_ref_1") ? signals[0] : signals[1];
+  EXPECT_EQ(s_ref.id, "signal_ref_1");
+  ASSERT_EQ(s_ref.outlines.size(), 2);
+  // Pole has 2 vertices
+  EXPECT_EQ(s_ref.outlines[0].size(), 2);
+  // Circle board has 12 segments + closed loop -> 13 vertices
+  EXPECT_EQ(s_ref.outlines[1].size(), 13);
+}
+
 }  // namespace strada::tess

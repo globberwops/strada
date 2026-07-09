@@ -51,6 +51,7 @@ Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, const cpm::Compiled
 
   TessellateJunctionBoundaries(map, model, ctx, chord_error);
   TessellateRoadObjects(map, model, ctx);
+  TessellateRoadSignals(map, model, ctx);
 }
 
 auto Tessellator::ComputeSamplingStations(const ast::Road& road, double chord_error) -> std::vector<double> {
@@ -570,6 +571,86 @@ void Tessellator::TessellateRoadObjects(const ast::AbstractSyntaxTree& map, cons
       }
 
       objects_.push_back(obj_tess);
+    }
+  }
+}
+
+void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, const cpm::CompiledPhysicsModel& model,
+                                        cpm::QueryContext& ctx) {
+  for (std::size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {
+    const auto& road = map.roads[road_idx];
+    const auto road_id = static_cast<cpm::RoadId>(road_idx);
+
+    auto tessellate_single_signal = [&](const std::string& sig_id, double sig_s, double sig_t, double sig_z_offset,
+                                        double sig_h_offset, double sig_pitch, double sig_roll, double sig_width,
+                                        double sig_height) {
+      SignalTessellation sig_tess;
+      sig_tess.id = sig_id;
+
+      const cpm::RoadPose pose_bottom = {
+          .s = sig_s, .t = sig_t, .h = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0, .road = road_id};
+      const cpm::RoadPose pose_top = {.s = sig_s,
+                                      .t = sig_t,
+                                      .h = sig_z_offset,
+                                      .heading = sig_h_offset,
+                                      .pitch = sig_pitch,
+                                      .roll = sig_roll,
+                                      .road = road_id};
+
+      const cpm::InertialPose ip_bottom = model.RoadToInertial(pose_bottom, ctx);
+      const cpm::InertialPose ip_top = model.RoadToInertial(pose_top, ctx);
+
+      const std::vector<Vertex> pole_line = {
+          Vertex{.x = static_cast<float>(ip_bottom.x),
+                 .y = static_cast<float>(ip_bottom.y),
+                 .z = static_cast<float>(ip_bottom.z)},
+          Vertex{
+              .x = static_cast<float>(ip_top.x), .y = static_cast<float>(ip_top.y), .z = static_cast<float>(ip_top.z)}};
+      sig_tess.outlines.push_back(pole_line);
+
+      const auto r_obj = cpm::Rotation::FromEuler(ip_top.heading, ip_top.pitch, ip_top.roll);
+      if (sig_width > 0.0 && sig_height > 0.0) {
+        const double half_w{sig_width * 0.5};
+        const double half_h{sig_height * 0.5};
+        const std::array<std::array<double, 3>, 4> local_corners = {
+            {{0.0, -half_w, -half_h}, {0.0, half_w, -half_h}, {0.0, half_w, half_h}, {0.0, -half_w, half_h}}};
+
+        std::vector<Vertex> board_pts;
+        board_pts.reserve(5);
+        for (std::size_t i = 0; i < 4; ++i) {
+          const auto local_pos = r_obj.Transform(local_corners[i][0], local_corners[i][1], local_corners[i][2]);
+          board_pts.push_back(Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
+                                     .y = static_cast<float>(ip_top.y + local_pos[1]),
+                                     .z = static_cast<float>(ip_top.z + local_pos[2])});
+        }
+        board_pts.push_back(board_pts.front());
+        sig_tess.outlines.push_back(board_pts);
+      } else {
+        const double radius{sig_width > 0.0 ? sig_width * 0.5 : 0.25};
+        constexpr std::size_t kSegments{12};
+        std::vector<Vertex> circle_pts;
+        circle_pts.reserve(kSegments + 1);
+        for (std::size_t i = 0; i < kSegments; ++i) {
+          const double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(kSegments);
+          const auto local_pos = r_obj.Transform(0.0, radius * std::cos(theta), radius * std::sin(theta));
+          circle_pts.push_back(Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
+                                      .y = static_cast<float>(ip_top.y + local_pos[1]),
+                                      .z = static_cast<float>(ip_top.z + local_pos[2])});
+        }
+        circle_pts.push_back(circle_pts.front());
+        sig_tess.outlines.push_back(circle_pts);
+      }
+
+      signals_.push_back(sig_tess);
+    };
+
+    for (const auto& signal : road.signals) {
+      tessellate_single_signal(signal.id, signal.s, signal.t, signal.z_offset, signal.h_offset, signal.pitch,
+                               signal.roll, signal.width, signal.height);
+    }
+
+    for (const auto& sig_ref : road.signal_references) {
+      tessellate_single_signal(sig_ref.id, sig_ref.s, sig_ref.t, sig_ref.z_offset, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
   }
 }

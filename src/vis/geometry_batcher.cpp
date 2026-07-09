@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: BSL-1.0
 
-#include <numbers>
-#include <strada/cpm/query_context.hpp>
 #include <strada/vis/geometry_batcher.hpp>
-
-#include "../cpm/rotation.hpp"
 
 namespace strada::vis {
 
@@ -94,148 +90,19 @@ auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTr
     }
   }
 
-  cpm::QueryContext query_ctx;
-
   // 5. Batch Road Signals and Signal References
-  for (const auto& road : map.roads) {
-    auto opt_road_id = cpm.RoadIdFromString(road.id);
-    if (!opt_road_id) {
-      continue;
-    }
-    const cpm::RoadId road_id = *opt_road_id;
-
-    for (const auto& signal : road.signals) {
-      cpm::RoadPose pose_bottom;
-      pose_bottom.road = road_id;
-      pose_bottom.s = signal.s;
-      pose_bottom.t = signal.t;
-      pose_bottom.h = 0.0;
-      pose_bottom.heading = 0.0;
-      pose_bottom.pitch = 0.0;
-      pose_bottom.roll = 0.0;
-
-      cpm::RoadPose pose_top;
-      pose_top.road = road_id;
-      pose_top.s = signal.s;
-      pose_top.t = signal.t;
-      pose_top.h = signal.z_offset;
-      pose_top.heading = signal.h_offset;
-      pose_top.pitch = signal.pitch;
-      pose_top.roll = signal.roll;
-
-      cpm::InertialPose ip_bottom = cpm.RoadToInertial(pose_bottom, query_ctx);
-      cpm::InertialPose ip_top = cpm.RoadToInertial(pose_top, query_ctx);
-
-      batched.signal_line_vertices.push_back(Vertex{.x = static_cast<float>(ip_bottom.x),
-                                                    .y = static_cast<float>(ip_bottom.y),
-                                                    .z = static_cast<float>(ip_bottom.z),
-                                                    .r = kSignalColor.r,
-                                                    .g = kSignalColor.g,
-                                                    .b = kSignalColor.b});
-      batched.signal_line_vertices.push_back(Vertex{.x = static_cast<float>(ip_top.x),
-                                                    .y = static_cast<float>(ip_top.y),
-                                                    .z = static_cast<float>(ip_top.z),
-                                                    .r = kSignalColor.r,
-                                                    .g = kSignalColor.g,
-                                                    .b = kSignalColor.b});
-
-      auto r_obj = cpm::Rotation::FromEuler(ip_top.heading, ip_top.pitch, ip_top.roll);
-      if (signal.width > 0.0 && signal.height > 0.0) {
-        double half_w = signal.width * 0.5;
-        double half_h = signal.height * 0.5;
-        std::array<std::array<double, 3>, 4> local_corners = {
-            {{0.0, -half_w, -half_h}, {0.0, half_w, -half_h}, {0.0, half_w, half_h}, {0.0, -half_w, half_h}}};
-
-        std::array<Vertex, 4> world_corners;
-        for (std::size_t i = 0; i < 4; ++i) {
-          auto local_pos = r_obj.Transform(local_corners[i][0], local_corners[i][1], local_corners[i][2]);
-          world_corners[i] = Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
-                                    .y = static_cast<float>(ip_top.y + local_pos[1]),
-                                    .z = static_cast<float>(ip_top.z + local_pos[2]),
-                                    .r = kSignalColor.r,
-                                    .g = kSignalColor.g,
-                                    .b = kSignalColor.b};
-        }
-
-        for (std::size_t i = 0; i < 4; ++i) {
-          batched.signal_line_vertices.push_back(world_corners[i]);
-          batched.signal_line_vertices.push_back(world_corners[(i + 1) % 4]);
-        }
-      } else {
-        double radius = (signal.width > 0.0) ? signal.width * 0.5 : 0.25;
-        constexpr std::size_t segments = 12;
-        std::array<Vertex, segments> world_circle;
-        for (std::size_t i = 0; i < segments; ++i) {
-          double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(segments);
-          auto local_pos = r_obj.Transform(0.0, radius * std::cos(theta), radius * std::sin(theta));
-          world_circle[i] = Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
-                                   .y = static_cast<float>(ip_top.y + local_pos[1]),
-                                   .z = static_cast<float>(ip_top.z + local_pos[2]),
-                                   .r = kSignalColor.r,
-                                   .g = kSignalColor.g,
-                                   .b = kSignalColor.b};
-        }
-
-        for (std::size_t i = 0; i < segments; ++i) {
-          batched.signal_line_vertices.push_back(world_circle[i]);
-          batched.signal_line_vertices.push_back(world_circle[(i + 1) % segments]);
-        }
+  for (const auto& sig : tess.Signals()) {
+    for (const auto& outline : sig.outlines) {
+      if (outline.size() < 2) {
+        continue;
       }
-    }
-
-    for (const auto& sig_ref : road.signal_references) {
-      cpm::RoadPose pose_bottom;
-      pose_bottom.road = road_id;
-      pose_bottom.s = sig_ref.s;
-      pose_bottom.t = sig_ref.t;
-      pose_bottom.h = 0.0;
-      pose_bottom.heading = 0.0;
-      pose_bottom.pitch = 0.0;
-      pose_bottom.roll = 0.0;
-
-      cpm::RoadPose pose_top;
-      pose_top.road = road_id;
-      pose_top.s = sig_ref.s;
-      pose_top.t = sig_ref.t;
-      pose_top.h = sig_ref.z_offset;
-      pose_top.heading = 0.0;
-      pose_top.pitch = 0.0;
-      pose_top.roll = 0.0;
-
-      cpm::InertialPose ip_bottom = cpm.RoadToInertial(pose_bottom, query_ctx);
-      cpm::InertialPose ip_top = cpm.RoadToInertial(pose_top, query_ctx);
-
-      batched.signal_line_vertices.push_back(Vertex{.x = static_cast<float>(ip_bottom.x),
-                                                    .y = static_cast<float>(ip_bottom.y),
-                                                    .z = static_cast<float>(ip_bottom.z),
-                                                    .r = kSignalColor.r,
-                                                    .g = kSignalColor.g,
-                                                    .b = kSignalColor.b});
-      batched.signal_line_vertices.push_back(Vertex{.x = static_cast<float>(ip_top.x),
-                                                    .y = static_cast<float>(ip_top.y),
-                                                    .z = static_cast<float>(ip_top.z),
-                                                    .r = kSignalColor.r,
-                                                    .g = kSignalColor.g,
-                                                    .b = kSignalColor.b});
-
-      auto r_obj = cpm::Rotation::FromEuler(ip_top.heading, ip_top.pitch, ip_top.roll);
-      double radius = 0.25;
-      constexpr std::size_t segments = 12;
-      std::array<Vertex, segments> world_circle;
-      for (std::size_t i = 0; i < segments; ++i) {
-        double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(segments);
-        auto local_pos = r_obj.Transform(0.0, radius * std::cos(theta), radius * std::sin(theta));
-        world_circle[i] = Vertex{.x = static_cast<float>(ip_top.x + local_pos[0]),
-                                 .y = static_cast<float>(ip_top.y + local_pos[1]),
-                                 .z = static_cast<float>(ip_top.z + local_pos[2]),
-                                 .r = kSignalColor.r,
-                                 .g = kSignalColor.g,
-                                 .b = kSignalColor.b};
-      }
-
-      for (std::size_t i = 0; i < segments; ++i) {
-        batched.signal_line_vertices.push_back(world_circle[i]);
-        batched.signal_line_vertices.push_back(world_circle[(i + 1) % segments]);
+      for (std::size_t i = 0; i < outline.size() - 1; ++i) {
+        const auto& p0 = outline[i];
+        const auto& p1 = outline[i + 1];
+        batched.signal_line_vertices.push_back(
+            Vertex{.x = p0.x, .y = p0.y, .z = p0.z, .r = kSignalColor.r, .g = kSignalColor.g, .b = kSignalColor.b});
+        batched.signal_line_vertices.push_back(
+            Vertex{.x = p1.x, .y = p1.y, .z = p1.z, .r = kSignalColor.r, .g = kSignalColor.g, .b = kSignalColor.b});
       }
     }
   }
