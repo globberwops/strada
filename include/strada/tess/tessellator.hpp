@@ -48,6 +48,12 @@ struct JunctionBoundaryGeometry {
   std::string junction_id;               ///< ID of the parent junction.
 };
 
+/// Represents a tessellated road object's 3D geometry outlines.
+struct ObjectTessellation {
+  std::string id;                             ///< ID of the road object.
+  std::vector<std::vector<Vertex>> outlines;  ///< Set of outline polylines.
+};
+
 /// Holds the output layers of tessellated road network geometries.
 class Tessellator {
  public:
@@ -71,6 +77,9 @@ class Tessellator {
     return junction_boundaries_;
   }
 
+  /// Returns the flat list of generated object tessellations.
+  [[nodiscard]] auto Objects() const noexcept -> const std::vector<ObjectTessellation>& { return objects_; }
+
  private:
   [[nodiscard]] static auto ComputeSamplingStations(const ast::Road& road, double chord_error) -> std::vector<double>;
 
@@ -84,9 +93,13 @@ class Tessellator {
   void TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& map, const cpm::CompiledPhysicsModel& model,
                                     cpm::QueryContext& ctx, double chord_error);
 
+  void TessellateRoadObjects(const ast::AbstractSyntaxTree& map, const cpm::CompiledPhysicsModel& model,
+                             cpm::QueryContext& ctx);
+
   std::vector<Mesh> meshes_;
   std::vector<Polyline> polylines_;
   std::vector<JunctionBoundaryGeometry> junction_boundaries_;
+  std::vector<ObjectTessellation> objects_;
 };
 
 }  // namespace strada::tess

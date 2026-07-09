@@ -416,4 +416,193 @@ TEST(TessellatorTest, JunctionBoundaryFallbackWithoutBoundaryTag) {
   EXPECT_FALSE(b.indices.empty());
 }
 
+TEST(TessellatorTest, RoadObjectsTessellation) {
+  // Arrange
+  ast::AbstractSyntaxTree map;
+
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  ast::GeometryRecord geom;
+  geom.s = 0.0;
+  geom.length = 10.0;
+  geom.x = 0.0;
+  geom.y = 0.0;
+  geom.hdg = 0.0;
+  geom.shape = ast::Line{};
+  road.plan_view.push_back(geom);
+
+  ast::LaneSection section;
+  section.s = 0.0;
+  ast::Lane lane0;
+  lane0.id = 0;
+  lane0.type = strada::ast::LaneType::kBorder;
+  section.center.push_back(lane0);
+  road.lanes.sections.push_back(section);
+
+  // 1. Add object with length/width > 0 (Oriented 2D Box)
+  ast::Object obj_box;
+  obj_box.id = "obj_box";
+  obj_box.s = 5.0;
+  obj_box.t = 0.0;
+  obj_box.z_offset = 1.0;
+  obj_box.length = 2.0;
+  obj_box.width = 1.0;
+  obj_box.hdg = 0.0;
+  obj_box.pitch = 0.0;
+  obj_box.roll = 0.0;
+  road.objects.push_back(obj_box);
+
+  // 2. Add other object (Crosshair)
+  ast::Object obj_cross;
+  obj_cross.id = "obj_cross";
+  obj_cross.s = 8.0;
+  obj_cross.t = 0.0;
+  obj_cross.z_offset = 0.0;
+  road.objects.push_back(obj_cross);
+
+  map.roads.push_back(road);
+
+  auto model = cpm::CompiledPhysicsModel::Build(map);
+
+  // Act
+  Tessellator tess(map, model, 0.5);
+
+  // Assert
+  const auto& objects = tess.Objects();
+  ASSERT_EQ(objects.size(), 2);
+
+  // 1. Check obj_box
+  const auto& o_box = (objects[0].id == "obj_box") ? objects[0] : objects[1];
+  EXPECT_EQ(o_box.id, "obj_box");
+  ASSERT_EQ(o_box.outlines.size(), 1);
+  // Box has 4 corners + closed loop -> 5 vertices
+  EXPECT_EQ(o_box.outlines[0].size(), 5);
+
+  // Check coordinates of the box corners (s=5.0, length=2.0, width=1.0, z_offset=1.0)
+  // local corners relative to obj center:
+  // (1.0, 0.5, 0.0), (1.0, -0.5, 0.0), (-1.0, -0.5, 0.0), (-1.0, 0.5, 0.0)
+  // since road is along X-axis, world corners should be:
+  // (6.0, 0.5, 1.0), (6.0, -0.5, 1.0), (4.0, -0.5, 1.0), (4.0, 0.5, 1.0)
+  const auto& box_pts = o_box.outlines[0];
+  EXPECT_NEAR(box_pts[0].x, 6.0F, 1e-3F);
+  EXPECT_NEAR(box_pts[0].y, 0.5F, 1e-3F);
+  EXPECT_NEAR(box_pts[0].z, 1.0F, 1e-3F);
+
+  EXPECT_NEAR(box_pts[4].x, 6.0F, 1e-3F);
+  EXPECT_NEAR(box_pts[4].y, 0.5F, 1e-3F);
+  EXPECT_NEAR(box_pts[4].z, 1.0F, 1e-3F);
+
+  // 2. Check obj_cross
+  const auto& o_cross = (objects[0].id == "obj_cross") ? objects[0] : objects[1];
+  EXPECT_EQ(o_cross.id, "obj_cross");
+  // Crosshair has 2 separate line segment outlines
+  ASSERT_EQ(o_cross.outlines.size(), 2);
+  EXPECT_EQ(o_cross.outlines[0].size(), 2);
+  EXPECT_EQ(o_cross.outlines[1].size(), 2);
+}
+
+TEST(TessellatorTest, RoadObjectsCornersTessellation) {
+  // Arrange
+  ast::AbstractSyntaxTree map;
+
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  ast::GeometryRecord geom;
+  geom.s = 0.0;
+  geom.length = 10.0;
+  geom.x = 0.0;
+  geom.y = 0.0;
+  geom.hdg = 0.0;
+  geom.shape = ast::Line{};
+  road.plan_view.push_back(geom);
+
+  ast::LaneSection section;
+  section.s = 0.0;
+  ast::Lane lane0;
+  lane0.id = 0;
+  lane0.type = strada::ast::LaneType::kBorder;
+  section.center.push_back(lane0);
+  road.lanes.sections.push_back(section);
+
+  // 1. Add object with local corners (Outline)
+  ast::Object obj_local;
+  obj_local.id = "obj_local";
+  obj_local.s = 2.0;
+  obj_local.t = 0.0;
+  obj_local.z_offset = 1.0;
+  obj_local.hdg = 0.0;
+  obj_local.pitch = 0.0;
+  obj_local.roll = 0.0;
+
+  ast::ObjectOutline outline_local;
+  outline_local.closed = true;
+  outline_local.corners_local.push_back(ast::ObjectCornerLocal{.u = -1.0, .v = -1.0, .z = 0.0});
+  outline_local.corners_local.push_back(ast::ObjectCornerLocal{.u = 1.0, .v = -1.0, .z = 0.0});
+  outline_local.corners_local.push_back(ast::ObjectCornerLocal{.u = 1.0, .v = 1.0, .z = 0.0});
+  outline_local.corners_local.push_back(ast::ObjectCornerLocal{.u = -1.0, .v = 1.0, .z = 0.0});
+  obj_local.outlines.push_back(outline_local);
+  road.objects.push_back(obj_local);
+
+  // 2. Add object with road corners (Outline)
+  ast::Object obj_road;
+  obj_road.id = "obj_road";
+  obj_road.s = 4.0;
+  obj_road.t = 0.0;
+  obj_road.z_offset = 0.0;
+
+  ast::ObjectOutline outline_road;
+  outline_road.closed = false;
+  outline_road.corners_road.push_back(ast::ObjectCornerRoad{.s = 4.0, .t = -1.0, .dz = 0.5});
+  outline_road.corners_road.push_back(ast::ObjectCornerRoad{.s = 5.0, .t = 1.0, .dz = 0.5});
+  obj_road.outlines.push_back(outline_road);
+  road.objects.push_back(obj_road);
+
+  map.roads.push_back(road);
+
+  auto model = cpm::CompiledPhysicsModel::Build(map);
+
+  // Act
+  Tessellator tess(map, model, 0.5);
+
+  // Assert
+  const auto& objects = tess.Objects();
+  ASSERT_EQ(objects.size(), 2);
+
+  // 1. Check obj_local
+  const auto& o_local = (objects[0].id == "obj_local") ? objects[0] : objects[1];
+  EXPECT_EQ(o_local.id, "obj_local");
+  ASSERT_EQ(o_local.outlines.size(), 1);
+  // Closed loop: 4 corners + 1 duplicate -> 5 vertices
+  EXPECT_EQ(o_local.outlines[0].size(), 5);
+
+  // check coordinates: center at (2,0,1). Heading 0.
+  // corner (-1, -1, 0) -> (2 - 1, 0 - 1, 1 + 0) = (1, -1, 1)
+  const auto& local_pts = o_local.outlines[0];
+  EXPECT_NEAR(local_pts[0].x, 1.0F, 1e-3F);
+  EXPECT_NEAR(local_pts[0].y, -1.0F, 1e-3F);
+  EXPECT_NEAR(local_pts[0].z, 1.0F, 1e-3F);
+
+  // 2. Check obj_road
+  const auto& o_road = (objects[0].id == "obj_road") ? objects[0] : objects[1];
+  EXPECT_EQ(o_road.id, "obj_road");
+  ASSERT_EQ(o_road.outlines.size(), 1);
+  // Open loop: 2 corners -> 2 vertices
+  EXPECT_EQ(o_road.outlines[0].size(), 2);
+
+  // corner 1: s=4.0, t=-1.0, dz=0.5 -> world (4.0, -1.0, 0.5)
+  const auto& road_pts = o_road.outlines[0];
+  EXPECT_NEAR(road_pts[0].x, 4.0F, 1e-3F);
+  EXPECT_NEAR(road_pts[0].y, -1.0F, 1e-3F);
+  EXPECT_NEAR(road_pts[0].z, 0.5F, 1e-3F);
+
+  // corner 2: s=5.0, t=1.0, dz=0.5 -> world (5.0, 1.0, 0.5)
+  EXPECT_NEAR(road_pts[1].x, 5.0F, 1e-3F);
+  EXPECT_NEAR(road_pts[1].y, 1.0F, 1e-3F);
+  EXPECT_NEAR(road_pts[1].z, 0.5F, 1e-3F);
+}
+
 }  // namespace strada::tess
