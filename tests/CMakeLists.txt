@@ -14,7 +14,7 @@ add_executable(
   cpm/test_reference_line.cpp cpm/test_rotation.cpp
   cpm/test_bounding_volume_hierarchy.cpp
   cpm/test_elevation_profile.cpp cpm/test_lane_network.cpp
-  cpm/test_polynomials.cpp)
+  cpm/test_polynomials.cpp cpm/test_road_projector.cpp)
 target_compile_definitions(
   test_cpm PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
 target_link_libraries(test_cpm PRIVATE Strada::strada GTest::gtest_main)

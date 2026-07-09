@@ -5,6 +5,7 @@ target_sources(
   strada
   PRIVATE parser/parser.cpp
           cpm/compiled_physics_model.cpp
+          cpm/road_projector.cpp
           cpm/geometry_math.cpp
           cpm/reference_line.cpp
           cpm/bounding_volume_hierarchy.cpp

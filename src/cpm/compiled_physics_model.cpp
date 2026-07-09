@@ -8,6 +8,7 @@
 #include <strada/cpm/geometry_math.hpp>
 #include <vector>
 
+#include "road_projector.hpp"
 #include "rotation.hpp"
 
 namespace strada::cpm {
@@ -63,7 +64,6 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
 
 [[gnu::hot]] auto CompiledPhysicsModel::RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept
     -> InertialPose {
-  const auto road_idx = static_cast<std::uint32_t>(pose.road);
   const auto [first_seg, seg_count] = ref_line_.GetRoadSegments(pose.road);
   if (seg_count == 0) {
     return InertialPose{};
@@ -113,95 +113,12 @@ auto CompiledPhysicsModel::LaneToInertial(LanePose pose, QueryContext& ctx) cons
 
 auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) const noexcept
     -> std::optional<RoadPose> {
-  auto snap_to_road = [&](std::uint32_t road_idx) noexcept -> std::optional<RoadPose> {
-    auto [first_seg, seg_count] = ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
-    if (seg_count == 0) {
-      return std::nullopt;
-    }
-
-    double min_dist_sq = std::numeric_limits<double>::max();
-    double best_s = 0.0;
-    double best_t = 0.0;
-    double best_rhdg = 0.0;
-
-    for (std::uint32_t i = 0; i < seg_count; ++i) {
-      const std::uint32_t seg_idx = first_seg + i;
-      const double road_s = ref_line_.Project(seg_idx, pose.x, pose.y);
-      const auto pt = ref_line_.Evaluate(seg_idx, road_s);
-
-      const double dx = pose.x - pt.x;
-      const double dy = pose.y - pt.y;
-      const double dist_sq = (dx * dx) + (dy * dy);
-      if (dist_sq < min_dist_sq) {
-        min_dist_sq = dist_sq;
-        best_s = road_s;
-        best_t = (-dx * std::sin(pt.heading)) + (dy * std::cos(pt.heading));
-        best_rhdg = pt.heading;
-      }
-    }
-
-    // Evaluate base vertical profile at best_s (t=0)
-    const auto vertical_base = elevation_profile_.Evaluate(static_cast<RoadId>(road_idx), best_s, 0.0);
-
-    const std::uint32_t best_seg_idx = ref_line_.FindSegmentIndex(static_cast<RoadId>(road_idx), best_s, ctx);
-    const auto pt = ref_line_.Evaluate(best_seg_idx, best_s);
-
-    const double dx = pose.x - pt.x;
-    const double dy = pose.y - pt.y;
-    const double dz = pose.z - vertical_base.elevation;
-
-    // Base roll calculation
-    const auto r_road_base = Rotation::FromEuler(best_rhdg, vertical_base.pitch, vertical_base.natural_roll);
-    const double road_t_base = r_road_base.InverseTransform(dx, dy, dz)[1];
-
-    // Shape evaluation and roll correction
-    const double shape_grad =
-        elevation_profile_.EvaluateShapeTGradient(static_cast<RoadId>(road_idx), best_s, road_t_base);
-    const double roll_total = vertical_base.natural_roll + std::atan(shape_grad);
-
-    const auto r_road = Rotation::FromEuler(best_rhdg, vertical_base.pitch, roll_total);
-    const double road_t = r_road.InverseTransform(dx, dy, dz)[1];
-
-    double t_left = 0.0;
-    double t_right = 0.0;
-    lane_network_.GetRoadWidthLimits(static_cast<RoadId>(road_idx), best_s, t_left, t_right);
-    constexpr double snapping_tolerance = 5.0;
-
-    const double ds_longitudinal = std::sqrt(std::max(0.0, min_dist_sq - (road_t * road_t)));
-    if (ds_longitudinal > snapping_tolerance) {
-      return std::nullopt;
-    }
-
-    if (road_t >= t_right - snapping_tolerance && road_t <= t_left + snapping_tolerance) {
-      const double h_surf =
-          lane_network_.EvaluateCrossSectionSurfaceOffset(static_cast<RoadId>(road_idx), best_s, road_t);
-      const double h_shape = elevation_profile_.EvaluateShapeHeight(static_cast<RoadId>(road_idx), best_s, road_t);
-
-      const double local_h = r_road.InverseTransform(dx, dy, dz)[2];
-      const double h_total = local_h - h_surf - h_shape;
-
-      const auto r_inertial = Rotation::FromEuler(pose.heading, pose.pitch, pose.roll);
-      const auto r_offset = r_road.Inverse().Compose(r_inertial);
-      const auto offset_angles = r_offset.ToEuler();
-
-      RoadPose road_pose{.s = best_s,
-                         .t = road_t,
-                         .h = h_total,
-                         .heading = offset_angles.heading,
-                         .pitch = offset_angles.pitch,
-                         .roll = offset_angles.roll,
-                         .road = static_cast<RoadId>(road_idx)};
-      return road_pose;
-    }
-    return std::nullopt;
-  };
+  const RoadProjector projector(ref_line_, elevation_profile_, lane_network_);
 
   // 1. Check temporal coherence fast path
   if (ctx.last_road.has_value()) {
-    const auto road_idx = static_cast<std::uint32_t>(*ctx.last_road);
-    const auto fast_pose = snap_to_road(road_idx);
+    const auto fast_pose = projector.Project(*ctx.last_road, pose, ctx);
     if (fast_pose.has_value()) {
-      ref_line_.FindSegmentIndex(*ctx.last_road, fast_pose->s, ctx);
       return fast_pose;
     }
   }
@@ -212,7 +129,7 @@ auto CompiledPhysicsModel::InertialToRoad(InertialPose pose, QueryContext& ctx) 
   bounding_volume_hierarchy_.Query(
       pose.x, pose.y,
       [&](const BoundingVolumeHierarchy::PrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {
-        const auto candidate = snap_to_road(prim.road_idx);
+        const auto candidate = projector.Project(static_cast<RoadId>(prim.road_idx), pose, ctx);
         if (candidate.has_value()) {
           double abs_t = std::abs(candidate->t);
           if (abs_t < current_min_dist) {
