@@ -13,6 +13,29 @@
 
 namespace strada::tess {
 
+namespace {
+
+struct ObjectPoseAndRotation {
+  cpm::InertialPose pose;
+  cpm::Rotation rotation;
+};
+
+auto ComputeObjectPoseAndRotation(const ast::Object& object, const cpm::RoadId road_id,
+                                  const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx)
+    -> ObjectPoseAndRotation {
+  const cpm::RoadPose obj_pose = {.s = object.s,
+                                  .t = object.t,
+                                  .h = object.z_offset,
+                                  .heading = object.hdg,
+                                  .pitch = object.pitch,
+                                  .roll = object.roll,
+                                  .road = road_id};
+  const cpm::InertialPose ip_obj = model.RoadToInertial(obj_pose, ctx);
+  return {.pose = ip_obj, .rotation = cpm::Rotation::FromEuler(ip_obj.heading, ip_obj.pitch, ip_obj.roll)};
+}
+
+}  // namespace
+
 Tessellator::Tessellator(const ast::AbstractSyntaxTree& map, const cpm::CompiledPhysicsModel& model,
                          double chord_error) {
   cpm::QueryContext ctx;
@@ -437,13 +460,13 @@ void Tessellator::TessellateRoadObjects(const ast::AbstractSyntaxTree& map, cons
                                         cpm::QueryContext& ctx) {
   for (std::size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {
     const auto& road = map.roads[road_idx];
-    auto road_id = static_cast<cpm::RoadId>(road_idx);
+    const auto road_id = static_cast<cpm::RoadId>(road_idx);
 
     for (const auto& object : road.objects) {
       ObjectTessellation obj_tess;
       obj_tess.id = object.id;
 
-      bool has_outlines = false;
+      bool has_outlines{false};
       for (const auto& outline : object.outlines) {
         if (!outline.corners_local.empty() || !outline.corners_road.empty()) {
           has_outlines = true;
@@ -458,20 +481,10 @@ void Tessellator::TessellateRoadObjects(const ast::AbstractSyntaxTree& map, cons
             std::vector<Vertex> world_corners;
             world_corners.reserve(num_corners + 1);
 
-            cpm::RoadPose obj_pose;
-            obj_pose.road = road_id;
-            obj_pose.s = object.s;
-            obj_pose.t = object.t;
-            obj_pose.h = object.z_offset;
-            obj_pose.heading = object.hdg;
-            obj_pose.pitch = object.pitch;
-            obj_pose.roll = object.roll;
-
-            cpm::InertialPose ip_obj = model.RoadToInertial(obj_pose, ctx);
-            auto r_obj = cpm::Rotation::FromEuler(ip_obj.heading, ip_obj.pitch, ip_obj.roll);
+            const auto [ip_obj, r_obj] = ComputeObjectPoseAndRotation(object, road_id, model, ctx);
 
             for (const auto& corner : outline.corners_local) {
-              auto local_pos = r_obj.Transform(corner.u, corner.v, corner.z);
+              const auto local_pos = r_obj.Transform(corner.u, corner.v, corner.z);
               world_corners.push_back(Vertex{.x = static_cast<float>(ip_obj.x + local_pos[0]),
                                              .y = static_cast<float>(ip_obj.y + local_pos[1]),
                                              .z = static_cast<float>(ip_obj.z + local_pos[2])});
@@ -488,16 +501,15 @@ void Tessellator::TessellateRoadObjects(const ast::AbstractSyntaxTree& map, cons
             world_corners.reserve(num_corners + 1);
 
             for (const auto& corner : outline.corners_road) {
-              cpm::RoadPose corner_pose;
-              corner_pose.road = road_id;
-              corner_pose.s = corner.s;
-              corner_pose.t = corner.t;
-              corner_pose.h = corner.dz;
-              corner_pose.heading = 0.0;
-              corner_pose.pitch = 0.0;
-              corner_pose.roll = 0.0;
+              const cpm::RoadPose corner_pose = {.s = corner.s,
+                                                 .t = corner.t,
+                                                 .h = corner.dz,
+                                                 .heading = 0.0,
+                                                 .pitch = 0.0,
+                                                 .roll = 0.0,
+                                                 .road = road_id};
 
-              cpm::InertialPose inertial_pose = model.RoadToInertial(corner_pose, ctx);
+              const cpm::InertialPose inertial_pose = model.RoadToInertial(corner_pose, ctx);
               world_corners.push_back(Vertex{.x = static_cast<float>(inertial_pose.x),
                                              .y = static_cast<float>(inertial_pose.y),
                                              .z = static_cast<float>(inertial_pose.z)});
@@ -511,28 +523,18 @@ void Tessellator::TessellateRoadObjects(const ast::AbstractSyntaxTree& map, cons
           }
         }
       } else if (object.length > 0.0 && object.width > 0.0) {
-        double half_l = object.length * 0.5;
-        double half_w = object.width * 0.5;
+        const double half_l{object.length * 0.5};
+        const double half_w{object.width * 0.5};
 
-        cpm::RoadPose obj_pose;
-        obj_pose.road = road_id;
-        obj_pose.s = object.s;
-        obj_pose.t = object.t;
-        obj_pose.h = object.z_offset;
-        obj_pose.heading = object.hdg;
-        obj_pose.pitch = object.pitch;
-        obj_pose.roll = object.roll;
+        const auto [ip_obj, r_obj] = ComputeObjectPoseAndRotation(object, road_id, model, ctx);
 
-        cpm::InertialPose ip_obj = model.RoadToInertial(obj_pose, ctx);
-        auto r_obj = cpm::Rotation::FromEuler(ip_obj.heading, ip_obj.pitch, ip_obj.roll);
-
-        std::array<std::pair<double, double>, 4> local_pts = {
+        const std::array<std::pair<double, double>, 4> local_pts = {
             {{half_l, half_w}, {half_l, -half_w}, {-half_l, -half_w}, {-half_l, half_w}}};
 
         std::vector<Vertex> world_pts;
         world_pts.reserve(5);
         for (std::size_t i = 0; i < 4; ++i) {
-          auto local_pos = r_obj.Transform(local_pts[i].first, local_pts[i].second, 0.0);
+          const auto local_pos = r_obj.Transform(local_pts[i].first, local_pts[i].second, 0.0);
           world_pts.push_back(Vertex{.x = static_cast<float>(ip_obj.x + local_pos[0]),
                                      .y = static_cast<float>(ip_obj.y + local_pos[1]),
                                      .z = static_cast<float>(ip_obj.z + local_pos[2])});
@@ -541,36 +543,27 @@ void Tessellator::TessellateRoadObjects(const ast::AbstractSyntaxTree& map, cons
 
         obj_tess.outlines.push_back(world_pts);
       } else {
-        cpm::RoadPose obj_pose;
-        obj_pose.road = road_id;
-        obj_pose.s = object.s;
-        obj_pose.t = object.t;
-        obj_pose.h = object.z_offset;
-        obj_pose.heading = object.hdg;
-        obj_pose.pitch = object.pitch;
-        obj_pose.roll = object.roll;
+        const auto [ip_obj, r_obj] = ComputeObjectPoseAndRotation(object, road_id, model, ctx);
 
-        cpm::InertialPose ip_obj = model.RoadToInertial(obj_pose, ctx);
-        auto r_obj = cpm::Rotation::FromEuler(ip_obj.heading, ip_obj.pitch, ip_obj.roll);
+        constexpr double kCrosshairHalfSize{0.25};
+        const auto local1_a = r_obj.Transform(0.0, -kCrosshairHalfSize, 0.0);
+        const auto local1_b = r_obj.Transform(0.0, kCrosshairHalfSize, 0.0);
+        const auto local2_a = r_obj.Transform(-kCrosshairHalfSize, 0.0, 0.0);
+        const auto local2_b = r_obj.Transform(kCrosshairHalfSize, 0.0, 0.0);
 
-        auto local1_a = r_obj.Transform(0.0, -0.25, 0.0);
-        auto local1_b = r_obj.Transform(0.0, 0.25, 0.0);
-        auto local2_a = r_obj.Transform(-0.25, 0.0, 0.0);
-        auto local2_b = r_obj.Transform(0.25, 0.0, 0.0);
+        const std::vector<Vertex> line1 = {Vertex{.x = static_cast<float>(ip_obj.x + local1_a[0]),
+                                                  .y = static_cast<float>(ip_obj.y + local1_a[1]),
+                                                  .z = static_cast<float>(ip_obj.z + local1_a[2])},
+                                           Vertex{.x = static_cast<float>(ip_obj.x + local1_b[0]),
+                                                  .y = static_cast<float>(ip_obj.y + local1_b[1]),
+                                                  .z = static_cast<float>(ip_obj.z + local1_b[2])}};
 
-        std::vector<Vertex> line1 = {Vertex{.x = static_cast<float>(ip_obj.x + local1_a[0]),
-                                            .y = static_cast<float>(ip_obj.y + local1_a[1]),
-                                            .z = static_cast<float>(ip_obj.z + local1_a[2])},
-                                     Vertex{.x = static_cast<float>(ip_obj.x + local1_b[0]),
-                                            .y = static_cast<float>(ip_obj.y + local1_b[1]),
-                                            .z = static_cast<float>(ip_obj.z + local1_b[2])}};
-
-        std::vector<Vertex> line2 = {Vertex{.x = static_cast<float>(ip_obj.x + local2_a[0]),
-                                            .y = static_cast<float>(ip_obj.y + local2_a[1]),
-                                            .z = static_cast<float>(ip_obj.z + local2_a[2])},
-                                     Vertex{.x = static_cast<float>(ip_obj.x + local2_b[0]),
-                                            .y = static_cast<float>(ip_obj.y + local2_b[1]),
-                                            .z = static_cast<float>(ip_obj.z + local2_b[2])}};
+        const std::vector<Vertex> line2 = {Vertex{.x = static_cast<float>(ip_obj.x + local2_a[0]),
+                                                  .y = static_cast<float>(ip_obj.y + local2_a[1]),
+                                                  .z = static_cast<float>(ip_obj.z + local2_a[2])},
+                                           Vertex{.x = static_cast<float>(ip_obj.x + local2_b[0]),
+                                                  .y = static_cast<float>(ip_obj.y + local2_b[1]),
+                                                  .z = static_cast<float>(ip_obj.z + local2_b[2])}};
 
         obj_tess.outlines.push_back(line1);
         obj_tess.outlines.push_back(line2);
