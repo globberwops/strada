@@ -18,7 +18,7 @@ Single-context layout with one CONTEXT.md and docs/adr/ at the repository root. 
 
 ### Idea backlog
 
-Rough ideas and feature proposals that need to be fleshed out before entering the main specification flow live in [IDEAS.md](IDEAS.md).
+Rough ideas and feature proposals that need to be fleshed out before entering the main specification flow live in the Wayfinder Map on the issue tracker (see [Strada Idea Backlog Wayfinder Map](https://github.com/globberwops/strada/issues/56)).
 
 
 ## Development Guidelines
