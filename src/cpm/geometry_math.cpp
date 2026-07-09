@@ -55,7 +55,7 @@ constexpr auto kGaussWeights =
 constexpr int kNumGaussPoints = std::min(kGaussPoints.size(), kGaussWeights.size());
 
 template <std::size_t N>
-constexpr auto EvaluatePolynomial(const double x, std::span<const double, N> coef) noexcept -> double {
+constexpr auto EvaluatePolynomial(const double x, const std::span<const double, N> coef) noexcept -> double {
   auto ans = coef[0];
   for (auto i = std::size_t{1}; i < N; ++i) {
     ans = (ans * x) + coef[i];
@@ -69,7 +69,7 @@ constexpr auto EvaluatePolynomial(const double x, const std::array<double, N>& c
 }
 
 template <std::size_t N>
-constexpr auto EvaluateMonicPolynomial(const double x, std::span<const double, N> coef) noexcept -> double {
+constexpr auto EvaluateMonicPolynomial(const double x, const std::span<const double, N> coef) noexcept -> double {
   auto ans = x + coef[0];
   for (auto i = std::size_t{1}; i < N; ++i) {
     ans = (ans * x) + coef[i];

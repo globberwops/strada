@@ -13,8 +13,26 @@ TEST(GeometryMathTest, FresnelCSSmallArgument) {
   auto result = FresnelCS(y);
 
   // Assert
-  EXPECT_NEAR(result.c, 0.49234422587144638, 1e-9);
-  EXPECT_NEAR(result.s, 0.06473243285999927, 1e-9);
+  EXPECT_DOUBLE_EQ(result.c, 0.49234422587144638);
+  EXPECT_DOUBLE_EQ(result.s, 0.064732432859999286);
+}
+
+TEST(GeometryMathTest, FresnelCSZeroAndVerySmall) {
+  // Arrange
+  const auto val_zero = 0.0;
+  // Act
+  const auto res_zero = FresnelCS(val_zero);
+  // Assert
+  EXPECT_DOUBLE_EQ(res_zero.c, 0.0);
+  EXPECT_DOUBLE_EQ(res_zero.s, 0.0);
+
+  // Arrange
+  const auto val_small = 1e-5;
+  // Act
+  const auto res_small = FresnelCS(val_small);
+  // Assert
+  EXPECT_NEAR(res_small.c, 1e-5, 1e-12);
+  EXPECT_NEAR(res_small.s, 5.235987755982989e-16, 1e-20);
 }
 
 TEST(GeometryMathTest, FresnelCSMediumArgument) {
@@ -22,8 +40,8 @@ TEST(GeometryMathTest, FresnelCSMediumArgument) {
   auto result = FresnelCS(3.0);
 
   // Assert (values verified from algorithm execution)
-  EXPECT_NEAR(result.c, 0.605720789297686, 1e-9);
-  EXPECT_NEAR(result.s, 0.49631299896737496, 1e-9);
+  EXPECT_DOUBLE_EQ(result.c, 0.60572078929768569);
+  EXPECT_DOUBLE_EQ(result.s, 0.49631299896737496);
 }
 
 TEST(GeometryMathTest, FresnelCSLargeArgument) {
@@ -31,8 +49,42 @@ TEST(GeometryMathTest, FresnelCSLargeArgument) {
   auto result = FresnelCS(10.0);
 
   // Assert (values verified from algorithm execution)
-  EXPECT_NEAR(result.c, 0.49989869420551575, 1e-9);
-  EXPECT_NEAR(result.s, 0.46816997858488224, 1e-9);
+  EXPECT_DOUBLE_EQ(result.c, 0.49989869420551575);
+  EXPECT_DOUBLE_EQ(result.s, 0.46816997858488224);
+}
+
+TEST(GeometryMathTest, FresnelCSClampingLimit) {
+  // Arrange
+  const auto val_pos = 37000.0;
+  // Act
+  const auto res_pos = FresnelCS(val_pos);
+  // Assert
+  EXPECT_DOUBLE_EQ(res_pos.c, 0.5);
+  EXPECT_DOUBLE_EQ(res_pos.s, 0.5);
+
+  // Arrange
+  const auto val_neg = -37000.0;
+  // Act
+  const auto res_neg = FresnelCS(val_neg);
+  // Assert
+  EXPECT_DOUBLE_EQ(res_neg.c, -0.5);
+  EXPECT_DOUBLE_EQ(res_neg.s, -0.5);
+
+  // Arrange
+  const auto val_limit_pos = 36974.01;
+  // Act
+  const auto res_limit_pos = FresnelCS(val_limit_pos);
+  // Assert
+  EXPECT_DOUBLE_EQ(res_limit_pos.c, 0.5);
+  EXPECT_DOUBLE_EQ(res_limit_pos.s, 0.5);
+
+  // Arrange
+  const auto val_limit_neg = -36974.01;
+  // Act
+  const auto res_limit_neg = FresnelCS(val_limit_neg);
+  // Assert
+  EXPECT_DOUBLE_EQ(res_limit_neg.c, -0.5);
+  EXPECT_DOUBLE_EQ(res_limit_neg.s, -0.5);
 }
 
 TEST(GeometryMathTest, FresnelCSSymmetry) {

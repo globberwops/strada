@@ -13,9 +13,11 @@
 
 namespace strada::cpm {
 
+using namespace std::string_literals;
+
 TEST(RoadProjectorTest, ProjectPointExactlyOnStraightRoad) {
   // Arrange
-  const auto xml = std::string{R"(<?xml version="1.0" standalone="yes"?>
+  const auto xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -38,7 +40,7 @@ TEST(RoadProjectorTest, ProjectPointExactlyOnStraightRoad) {
       </laneSection>
     </lanes>
   </road>
-</OpenDRIVE>)"};
+</OpenDRIVE>)"s;
 
   const auto ast = parser::ParseString(xml);
   const auto ref_line = ReferenceLine::Build(ast);
@@ -64,7 +66,7 @@ TEST(RoadProjectorTest, ProjectPointExactlyOnStraightRoad) {
 
 TEST(RoadProjectorTest, ProjectPointWithLateralOffsetWithinLanes) {
   // Arrange
-  const auto xml = std::string{R"(<?xml version="1.0" standalone="yes"?>
+  const auto xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -87,7 +89,7 @@ TEST(RoadProjectorTest, ProjectPointWithLateralOffsetWithinLanes) {
       </laneSection>
     </lanes>
   </road>
-</OpenDRIVE>)"};
+</OpenDRIVE>)"s;
 
   const auto ast = parser::ParseString(xml);
   const auto ref_line = ReferenceLine::Build(ast);
@@ -112,7 +114,7 @@ TEST(RoadProjectorTest, ProjectPointWithLateralOffsetWithinLanes) {
 
 TEST(RoadProjectorTest, ProjectPointOutsideSnappingToleranceReturnsNullopt) {
   // Arrange
-  const auto xml = std::string{R"(<?xml version="1.0" standalone="yes"?>
+  const auto xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -135,7 +137,7 @@ TEST(RoadProjectorTest, ProjectPointOutsideSnappingToleranceReturnsNullopt) {
       </laneSection>
     </lanes>
   </road>
-</OpenDRIVE>)"};
+</OpenDRIVE>)"s;
 
   const auto ast = parser::ParseString(xml);
   const auto ref_line = ReferenceLine::Build(ast);
