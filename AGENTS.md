@@ -6,7 +6,7 @@ This file provides instructions and configuration for agentic coding assistants 
 
 ### Issue tracker
 
-Issues and PRDs for this repo live as GitHub issues. External PRs are included in triage. See `docs/agents/issue-tracker.md`.
+Issues are tracked on GitHub, and external PRs are included in triage. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
@@ -15,10 +15,6 @@ Triage roles are mapped to default labels (needs-triage, needs-info, ready-for-a
 ### Domain docs
 
 Single-context layout with one CONTEXT.md and docs/adr/ at the repository root. See `docs/agents/domain.md`.
-
-### Idea backlog
-
-Rough ideas and feature proposals that need to be fleshed out before entering the main specification flow live in the Wayfinder Map on the issue tracker (see [Strada Idea Backlog Wayfinder Map](https://github.com/globberwops/strada/issues/56)).
 
 
 ## Development Guidelines
