@@ -29,6 +29,11 @@ This file tracks raw, un-fleshed-out feature ideas and architectural improvement
 - **Rough Solution**: Split `paintGL()` into distinct logical helper functions: a 3D pass delegating to methods like `Draw3DScene()`, `DrawJunctionBoundaries()`, `DrawLanes()`, `DrawMarkings()`, `DrawObjects()`, `DrawSignals()`, and `DrawHoverHighlight()`; and a 2D overlay pass delegating to `Draw2DOverlays()`, `DrawHUDCard()`, `DrawCompass()`, `DrawScaleBar()`, and `DrawShortcutsPanel()`.
 - **Next Step**: Refactor the method in `viewport_widget.cpp` and update `viewport_widget.hpp`.
 
+### 6. Verify Spiral Evaluation Directly Against Reference Implementation
+- **Problem**: We need to guarantee that our clothoid/spiral geometry evaluation matches the reference Cephes-based spiral implementation exactly without regression.
+- **Rough Solution**: Implement a verification test in our test suite that compares our spiral evaluation functions directly against the reference implementation located in `.scratch/example_implementations/spiral`.
+- **Next Step**: Run a [/prototype](.agents/skills/prototype/SKILL.md) or [/tdd](.agents/skills/tdd/SKILL.md) session to link the test suite to the reference implementation and check coordinate outcomes.
+
 
 ---
 
