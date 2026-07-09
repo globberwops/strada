@@ -581,21 +581,13 @@ void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, cons
     const auto& road = map.roads[road_idx];
     const auto road_id = static_cast<cpm::RoadId>(road_idx);
 
-    auto tessellate_single_signal = [&](const std::string& sig_id, double sig_s, double sig_t, double sig_z_offset,
-                                        double sig_h_offset, double sig_pitch, double sig_roll, double sig_width,
+    auto tessellate_single_signal = [&](std::string_view sig_id, const cpm::RoadPose& pose_top, double sig_width,
                                         double sig_height) {
       SignalTessellation sig_tess;
       sig_tess.id = sig_id;
 
       const cpm::RoadPose pose_bottom = {
-          .s = sig_s, .t = sig_t, .h = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0, .road = road_id};
-      const cpm::RoadPose pose_top = {.s = sig_s,
-                                      .t = sig_t,
-                                      .h = sig_z_offset,
-                                      .heading = sig_h_offset,
-                                      .pitch = sig_pitch,
-                                      .roll = sig_roll,
-                                      .road = road_id};
+          .s = pose_top.s, .t = pose_top.t, .h = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0, .road = road_id};
 
       const cpm::InertialPose ip_bottom = model.RoadToInertial(pose_bottom, ctx);
       const cpm::InertialPose ip_top = model.RoadToInertial(pose_top, ctx);
@@ -645,12 +637,25 @@ void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, cons
     };
 
     for (const auto& signal : road.signals) {
-      tessellate_single_signal(signal.id, signal.s, signal.t, signal.z_offset, signal.h_offset, signal.pitch,
-                               signal.roll, signal.width, signal.height);
+      const cpm::RoadPose pose_top = {.s = signal.s,
+                                      .t = signal.t,
+                                      .h = signal.z_offset,
+                                      .heading = signal.h_offset,
+                                      .pitch = signal.pitch,
+                                      .roll = signal.roll,
+                                      .road = road_id};
+      tessellate_single_signal(signal.id, pose_top, signal.width, signal.height);
     }
 
     for (const auto& sig_ref : road.signal_references) {
-      tessellate_single_signal(sig_ref.id, sig_ref.s, sig_ref.t, sig_ref.z_offset, 0.0, 0.0, 0.0, 0.0, 0.0);
+      const cpm::RoadPose pose_top = {.s = sig_ref.s,
+                                      .t = sig_ref.t,
+                                      .h = sig_ref.z_offset,
+                                      .heading = 0.0,
+                                      .pitch = 0.0,
+                                      .roll = 0.0,
+                                      .road = road_id};
+      tessellate_single_signal(sig_ref.id, pose_top, 0.0, 0.0);
     }
   }
 }
