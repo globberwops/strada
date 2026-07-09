@@ -55,30 +55,30 @@ constexpr auto kGaussWeights =
 constexpr int kNumGaussPoints = std::min(kGaussPoints.size(), kGaussWeights.size());
 
 template <std::size_t N>
-auto EvaluatePolynomial(const double x, std::span<const double, N> coef) noexcept -> double {
-  double ans = coef[0];
-  for (std::size_t i = 1; i < N; ++i) {
+constexpr auto EvaluatePolynomial(const double x, std::span<const double, N> coef) noexcept -> double {
+  auto ans = coef[0];
+  for (auto i = std::size_t{1}; i < N; ++i) {
     ans = (ans * x) + coef[i];
   }
   return ans;
 }
 
 template <std::size_t N>
-auto EvaluatePolynomial(const double x, const std::array<double, N>& coef) noexcept -> double {
+constexpr auto EvaluatePolynomial(const double x, const std::array<double, N>& coef) noexcept -> double {
   return EvaluatePolynomial(x, std::span<const double, N>{coef});
 }
 
 template <std::size_t N>
-auto EvaluateMonicPolynomial(const double x, std::span<const double, N> coef) noexcept -> double {
-  double ans = x + coef[0];
-  for (std::size_t i = 1; i < N; ++i) {
+constexpr auto EvaluateMonicPolynomial(const double x, std::span<const double, N> coef) noexcept -> double {
+  auto ans = x + coef[0];
+  for (auto i = std::size_t{1}; i < N; ++i) {
     ans = (ans * x) + coef[i];
   }
   return ans;
 }
 
 template <std::size_t N>
-auto EvaluateMonicPolynomial(const double x, const std::array<double, N>& coef) noexcept -> double {
+constexpr auto EvaluateMonicPolynomial(const double x, const std::array<double, N>& coef) noexcept -> double {
   return EvaluateMonicPolynomial(x, std::span<const double, N>{coef});
 }
 
@@ -105,29 +105,29 @@ auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
 }  // namespace
 
 auto FresnelCS(double y) noexcept -> FresnelResult {
-  const double x = std::abs(y);
-  const double x2 = x * x;
-  double cc = 0.0;
-  double ss = 0.0;
+  const auto x = std::abs(y);
+  const auto x2 = x * x;
+  auto cc = 0.0;
+  auto ss = 0.0;
 
   if (x2 < 2.5625) {
-    const double t = x2 * x2;
+    const auto t = x2 * x2;
     ss = x * x2 * EvaluatePolynomial(t, kSn) / EvaluateMonicPolynomial(t, kSd);
     cc = x * EvaluatePolynomial(t, kCn) / EvaluatePolynomial(t, kCd);
   } else if (x > 36974.0) {
     cc = 0.5;
     ss = 0.5;
   } else {
-    const double t_val = kPi * x2;
-    const double u = 1.0 / (t_val * t_val);
-    const double t_inv = 1.0 / t_val;
-    const double f = 1.0 - u * EvaluatePolynomial(u, kFn) / EvaluateMonicPolynomial(u, kFd);
-    const double g = t_inv * EvaluatePolynomial(u, kGn) / EvaluateMonicPolynomial(u, kGd);
+    const auto t_val = kPi * x2;
+    const auto u = 1.0 / (t_val * t_val);
+    const auto t_inv = 1.0 / t_val;
+    const auto f = 1.0 - u * EvaluatePolynomial(u, kFn) / EvaluateMonicPolynomial(u, kFd);
+    const auto g = t_inv * EvaluatePolynomial(u, kGn) / EvaluateMonicPolynomial(u, kGd);
 
-    const double angle = kPi2 * x2;
-    const double sin_val = std::sin(angle);
-    const double cos_val = std::cos(angle);
-    const double t_denom = kPi * x;
+    const auto angle = kPi2 * x2;
+    const auto sin_val = std::sin(angle);
+    const auto cos_val = std::cos(angle);
+    const auto t_denom = kPi * x;
     cc = 0.5 + ((f * sin_val) - (g * cos_val)) / t_denom;
     ss = 0.5 - ((f * cos_val) + (g * sin_val)) / t_denom;
   }

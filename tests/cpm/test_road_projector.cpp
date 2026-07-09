@@ -15,7 +15,7 @@ namespace strada::cpm {
 
 TEST(RoadProjectorTest, ProjectPointExactlyOnStraightRoad) {
   // Arrange
-  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+  const auto xml = std::string{R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -38,16 +38,16 @@ TEST(RoadProjectorTest, ProjectPointExactlyOnStraightRoad) {
       </laneSection>
     </lanes>
   </road>
-</OpenDRIVE>)";
+</OpenDRIVE>)"};
 
   const auto ast = parser::ParseString(xml);
   const auto ref_line = ReferenceLine::Build(ast);
   const auto elevation_profile = ElevationProfile::Build(ast);
   const auto lane_network = LaneNetwork::Build(ast);
 
-  const RoadProjector projector(ref_line, elevation_profile, lane_network);
+  const auto projector = RoadProjector{ref_line, elevation_profile, lane_network};
 
-  const InertialPose pose{.x = 50.0, .y = 20.0, .z = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0};
+  const auto pose = InertialPose{.x = 50.0, .y = 20.0, .z = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0};
   QueryContext ctx;
 
   // Act
@@ -64,7 +64,7 @@ TEST(RoadProjectorTest, ProjectPointExactlyOnStraightRoad) {
 
 TEST(RoadProjectorTest, ProjectPointWithLateralOffsetWithinLanes) {
   // Arrange
-  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+  const auto xml = std::string{R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -87,17 +87,17 @@ TEST(RoadProjectorTest, ProjectPointWithLateralOffsetWithinLanes) {
       </laneSection>
     </lanes>
   </road>
-</OpenDRIVE>)";
+</OpenDRIVE>)"};
 
   const auto ast = parser::ParseString(xml);
   const auto ref_line = ReferenceLine::Build(ast);
   const auto elevation_profile = ElevationProfile::Build(ast);
   const auto lane_network = LaneNetwork::Build(ast);
 
-  const RoadProjector projector(ref_line, elevation_profile, lane_network);
+  const auto projector = RoadProjector{ref_line, elevation_profile, lane_network};
 
   // Road goes along x axis. Point is at x = 30.0, y = -2.0 (right side, within lane width limit of 3.0)
-  const InertialPose pose{.x = 30.0, .y = -2.0, .z = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0};
+  const auto pose = InertialPose{.x = 30.0, .y = -2.0, .z = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0};
   QueryContext ctx;
 
   // Act
@@ -112,7 +112,7 @@ TEST(RoadProjectorTest, ProjectPointWithLateralOffsetWithinLanes) {
 
 TEST(RoadProjectorTest, ProjectPointOutsideSnappingToleranceReturnsNullopt) {
   // Arrange
-  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+  const auto xml = std::string{R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00" north="100.0" south="-100.0" east="200.0" west="-200.0"/>
   <road name="Road 1" length="100.0" id="1" junction="-1" rule="RHT">
@@ -135,18 +135,18 @@ TEST(RoadProjectorTest, ProjectPointOutsideSnappingToleranceReturnsNullopt) {
       </laneSection>
     </lanes>
   </road>
-</OpenDRIVE>)";
+</OpenDRIVE>)"};
 
   const auto ast = parser::ParseString(xml);
   const auto ref_line = ReferenceLine::Build(ast);
   const auto elevation_profile = ElevationProfile::Build(ast);
   const auto lane_network = LaneNetwork::Build(ast);
 
-  const RoadProjector projector(ref_line, elevation_profile, lane_network);
+  const auto projector = RoadProjector{ref_line, elevation_profile, lane_network};
 
   // Snapping tolerance is 5.0. Since lane width is 3.0, limit is -3.0.
   // A point at y = -9.0 is 6.0 units away from the lane limit, which exceeds the 5.0 snapping tolerance.
-  const InertialPose pose{.x = 30.0, .y = -9.0, .z = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0};
+  const auto pose = InertialPose{.x = 30.0, .y = -9.0, .z = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0};
   QueryContext ctx;
 
   // Act

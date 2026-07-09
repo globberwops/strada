@@ -17,7 +17,7 @@ class LaneNetwork;
 class RoadProjector {
  public:
   /// Distance threshold for snapping a coordinate onto a road.
-  static constexpr double kSnappingTolerance = 5.0;
+  static constexpr auto kSnappingTolerance = 5.0;
 
   /// Constructs a RoadProjector with references to required components.
   RoadProjector(const ReferenceLine& ref_line, const ElevationProfile& elevation_profile,
