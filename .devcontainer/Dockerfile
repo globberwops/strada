@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     doxygen \
     fd-find \
     g++ \
+    gcovr \
     gdb \
     graphviz \
     iwyu \

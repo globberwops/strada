@@ -13,27 +13,19 @@ repos:
     rev: v8.30.0
     hooks:
       - id: gitleaks
-  - repo: https://github.com/pocc/pre-commit-hooks
-    rev: v1.3.5
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.13.1-1
     hooks:
-      - id: clang-format
-        args: [-i, --style=file]
-      - id: clang-tidy
-        args: [-p=build/dev]
-        stages: [manual]
-      - id: cppcheck
-        args:
-          [
-            --project=build/dev/compile_commands.json,
-            --cppcheck-build-dir=build/dev/cppcheck_cache,
-          ]
-        pass_filenames: false
-        stages: [manual]
+      - id: shfmt
+        args: [-i, '2', -ci]
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
   - repo: local
     hooks:
-      - id: include-what-you-use
-        name: include-what-you-use
-        entry: bash -c 'iwyu_tool -p build/dev "$@" -- -Xiwyu --cxx17ns' --
-        language: system
+      - id: clang-format
+        name: clang-format
+        entry: tools/ci/run_clang_format.sh
+        language: script
         files: \.(h|hpp|c|cc|cpp)$
-        stages: [manual]
