@@ -1,3 +1,4 @@
 add_executable(visualizer main.cpp)
 
-target_link_libraries(visualizer PRIVATE Strada::vis Strada::warnings)
+target_link_libraries(visualizer PRIVATE Strada::vis)
+strada_add_warnings(visualizer)

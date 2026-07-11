@@ -1,15 +1,10 @@
 # cmake/Warnings.cmake
 #
-# Compiler Warnings Module for Strada
-# Based on the recommendations from:
+# Compiler Warnings Module for Strada Based on the recommendations from:
 # https://github.com/cpp-best-practices/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#compilers
 
 # Option to treat warnings as errors
 option(STRADA_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
-
-# Define the interface target for compiler warnings
-add_library(strada_warnings INTERFACE)
-add_library(Strada::warnings ALIAS strada_warnings)
 
 # MSVC Compiler Warnings
 set(MSVC_WARNINGS
@@ -100,5 +95,7 @@ foreach(FLAG IN LISTS PROPOSED_WARNINGS)
   endif()
 endforeach()
 
-# Apply the warning flags to the interface target
-target_compile_options(strada_warnings INTERFACE ${SUPPORTED_WARNINGS})
+# Define target helper function to apply compiler warnings
+function(strada_add_warnings target)
+  target_compile_options(${target} PRIVATE ${SUPPORTED_WARNINGS})
+endfunction()

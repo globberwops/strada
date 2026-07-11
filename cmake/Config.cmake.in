@@ -1,0 +1,11 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(pugixml)
+
+if(@STRADA_BUILD_VIS@)
+  find_dependency(Qt6 COMPONENTS Core Gui Widgets OpenGLWidgets)
+  find_dependency(OpenGL)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/StradaTargets.cmake")

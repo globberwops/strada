@@ -25,6 +25,15 @@ if(STRADA_BUILD_VIS)
   find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
   find_package(OpenGL REQUIRED)
 
-  target_link_libraries(strada_vis PUBLIC Strada::strada Qt6::Widgets Qt6::OpenGLWidgets OpenGL::GL PRIVATE Strada::warnings)
+  target_link_libraries(strada_vis PUBLIC Strada::strada Qt6::Widgets Qt6::OpenGLWidgets OpenGL::GL)
   target_compile_definitions(strada_vis PUBLIC QT_NO_KEYWORDS)
+
+  strada_add_warnings(strada_vis)
+  strada_enable_lto(strada_vis)
+  set_target_properties(strada_vis PROPERTIES EXPORT_NAME vis)
+
+  install(TARGETS strada_vis
+    EXPORT StradaTargets
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  )
 endif()
