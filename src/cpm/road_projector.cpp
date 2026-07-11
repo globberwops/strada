@@ -26,7 +26,6 @@ auto RoadProjector::Project(RoadId road_id, InertialPose pose, QueryContext& ctx
 
   auto min_dist_sq = std::numeric_limits<double>::max();
   auto best_s = 0.0;
-  auto best_t = 0.0;
   auto best_rhdg = 0.0;
 
   for (auto i = 0U; i < seg_count; ++i) {
@@ -40,7 +39,6 @@ auto RoadProjector::Project(RoadId road_id, InertialPose pose, QueryContext& ctx
     if (dist_sq < min_dist_sq) {
       min_dist_sq = dist_sq;
       best_s = road_s;
-      best_t = (-dx * std::sin(pt.heading)) + (dy * std::cos(pt.heading));
       best_rhdg = pt.heading;
     }
   }

@@ -140,7 +140,6 @@ TEST(GeometryMathTest, IntegrateArcLength) {
 TEST(GeometryMathTest, SolveUForS) {
   // Arrange
   double s_target = 4.0;
-  double length = 5.0;
   double b = 0.1;
   double c = -0.02;
   double d = 0.005;
@@ -148,10 +147,10 @@ TEST(GeometryMathTest, SolveUForS) {
   double b_u = 1.0 / den;
 
   // Act
-  double u_sol = SolveUForS(s_target, length, b_u, b, c, d);
+  const auto u_sol = SolveUForS(s_target, b_u, b, c, d);
 
   // Assert: integrating over the solved u should yield s_target
-  double integrated_s = IntegrateArcLength(u_sol, b, c, d);
+  const auto integrated_s = IntegrateArcLength(u_sol, b, c, d);
   EXPECT_NEAR(integrated_s, s_target, 1e-9);
 }
 

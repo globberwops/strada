@@ -934,7 +934,6 @@ TEST(CompiledPhysicsModelTest, CrossPoseQueries) {
   auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
 
   auto lane0 = strada::cpm::LaneId{0};  // Original ID: -1
-  auto lane1 = strada::cpm::LaneId{1};  // Original ID: 0 (center)
   auto lane2 = strada::cpm::LaneId{2};  // Original ID: 1 (left)
 
   strada::cpm::QueryContext ctx;

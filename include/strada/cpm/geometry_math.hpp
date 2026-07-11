@@ -53,7 +53,7 @@ auto IntegrateArcLength(double u, double b, double c, double d) noexcept -> doub
 /// \param c The quadratic coefficient of the polynomial curve.
 /// \param d The cubic coefficient of the polynomial curve.
 /// \return The solved parameter u.
-auto SolveUForS(double s_target, double length, double b_u, double b, double c, double d) noexcept -> double;
+auto SolveUForS(double s_target, double b_u, double b, double c, double d) noexcept -> double;
 
 /// Converts a standard cubic polynomial curve into its arc-length parameterized form.
 ///

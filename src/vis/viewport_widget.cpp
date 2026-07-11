@@ -489,7 +489,7 @@ void ViewportWidget::paintGL() {
     // 6. Draw Geographical Scale Bar in the bottom-right corner
     {
       const double scale_length = CalculateScaleLength(camera_.zoom);
-      const double s = scale_length * camera_.zoom;  // Width on screen
+      const auto s = scale_length * static_cast<double>(camera_.zoom);  // Width on screen
 
       const int num_segments = 4;
       const double seg_w = s / num_segments;
@@ -886,18 +886,18 @@ void ViewportWidget::RenderGrid() {
   std::vector<Vertex> grid_vertices;
 
   // Grid line color: subtle dark grey-blue
-  const float r = 0.16F;
-  const float g = 0.18F;
-  const float b = 0.22F;
+  constexpr auto base_r = 0.16F;
+  constexpr auto base_g = 0.18F;
+  constexpr auto base_b = 0.22F;
 
   // Vertical lines (constant x)
   const float start_x = std::floor(min_x / grid_spacing) * grid_spacing;
   const float end_x = std::ceil(max_x / grid_spacing) * grid_spacing;
   for (float x = start_x; x <= end_x; x += grid_spacing) {
     const bool is_axis = std::abs(x) < 1e-4F;
-    const float r = is_axis ? 0.35F : r;
-    const float g = is_axis ? 0.40F : g;
-    const float b = is_axis ? 0.50F : b;
+    const auto r = is_axis ? 0.35F : base_r;
+    const auto g = is_axis ? 0.40F : base_g;
+    const auto b = is_axis ? 0.50F : base_b;
     grid_vertices.push_back(Vertex{.x = x, .y = min_y, .z = 0.0F, .r = r, .g = g, .b = b});
     grid_vertices.push_back(Vertex{.x = x, .y = max_y, .z = 0.0F, .r = r, .g = g, .b = b});
   }
@@ -907,9 +907,9 @@ void ViewportWidget::RenderGrid() {
   const float end_y = std::ceil(max_y / grid_spacing) * grid_spacing;
   for (float y = start_y; y <= end_y; y += grid_spacing) {
     const bool is_axis = std::abs(y) < 1e-4F;
-    const float r = is_axis ? 0.35F : r;
-    const float g = is_axis ? 0.40F : g;
-    const float b = is_axis ? 0.50F : b;
+    const auto r = is_axis ? 0.35F : base_r;
+    const auto g = is_axis ? 0.40F : base_g;
+    const auto b = is_axis ? 0.50F : base_b;
     grid_vertices.push_back(Vertex{.x = min_x, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
     grid_vertices.push_back(Vertex{.x = max_x, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
   }

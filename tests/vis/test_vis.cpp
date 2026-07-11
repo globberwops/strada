@@ -100,7 +100,7 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
   ASSERT_EQ(tess.Meshes().size(), 1);
 
   // Act: batch geometry
-  auto batched = BatchMapGeometry(tess, map, cpm);
+  auto batched = BatchMapGeometry(tess);
 
   // Assert
   const auto& mesh = tess.Meshes()[0];
@@ -164,7 +164,7 @@ TEST(VisTest, BatchMapGeometryLines) {
   ASSERT_EQ(tess.Polylines().size(), 2);
 
   // Act: batch
-  auto batched = BatchMapGeometry(tess, map, cpm);
+  auto batched = BatchMapGeometry(tess);
 
   // Assert:
   // For each polyline of M vertices, we generate 2*(M-1) vertices for GL_LINES
@@ -241,7 +241,7 @@ TEST(VisTest, MeshRangeTracking) {
   ASSERT_EQ(tess.Meshes().size(), 1);
 
   // Act: batch geometry
-  auto batched = BatchMapGeometry(tess, map, cpm);
+  auto batched = BatchMapGeometry(tess);
 
   // Assert: we expect exactly 1 range corresponding to the single mesh
   ASSERT_EQ(batched.mesh_ranges.size(), 1);
@@ -262,7 +262,7 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
   // Act
   auto cpm = cpm::CompiledPhysicsModel::Build(map);
   tess::Tessellator tess(map, cpm, 0.5);
-  auto batched = BatchMapGeometry(tess, map, cpm);
+  auto batched = BatchMapGeometry(tess);
 
   // Assert
   EXPECT_FALSE(batched.boundary_triangle_vertices.empty());
@@ -361,7 +361,7 @@ TEST(VisTest, BatchMapGeometryObjects) {
   tess::Tessellator tess(map, cpm, 0.5);
 
   // Act
-  auto batched = BatchMapGeometry(tess, map, cpm);
+  auto batched = BatchMapGeometry(tess);
 
   // Assert
   // 1. obj_local has 4 local corners, closed -> 4 line segments -> 8 vertices
@@ -466,7 +466,7 @@ TEST(VisTest, BatchMapGeometrySignals) {
   tess::Tessellator tess(map, cpm, 0.5);
 
   // Act
-  auto batched = BatchMapGeometry(tess, map, cpm);
+  auto batched = BatchMapGeometry(tess);
 
   // Assert
   // Total expected vertices = 10 (for signal) + 26 (for signal reference) = 36 vertices.

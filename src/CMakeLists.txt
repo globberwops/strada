@@ -39,7 +39,7 @@ target_sources(
          ${PROJECT_SOURCE_DIR}/include/strada/cpm/polynomials.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/tess/tessellator.hpp)
 
-target_link_libraries(strada PRIVATE pugixml)
+target_link_libraries(strada PRIVATE pugixml Strada::warnings)
 
 if(STRADA_BUILD_VIS)
   add_subdirectory(vis)

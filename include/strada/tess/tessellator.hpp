@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <span>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/ids.hpp>
 #include <string>
@@ -96,9 +97,8 @@ class Tessellator {
   void TessellateReferenceLine(cpm::RoadId road_id, const std::vector<double>& stations,
                                const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx);
 
-  void TessellateLaneSections(const ast::Road& road, cpm::RoadId road_id, const std::vector<double>& stations,
-                              const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx,
-                              const ast::AbstractSyntaxTree& map);
+  void TessellateLaneSections(const ast::Road& road, cpm::RoadId road_id, std::span<const double> stations,
+                              const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx);
 
   void TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& map, const cpm::CompiledPhysicsModel& model,
                                     cpm::QueryContext& ctx, double chord_error);

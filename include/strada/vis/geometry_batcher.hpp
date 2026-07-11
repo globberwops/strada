@@ -43,7 +43,6 @@ struct BatchedGeometry {
 };
 
 /// Batches all map meshes and polylines into contiguous arrays.
-auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTree& map,
-                      const cpm::CompiledPhysicsModel& cpm) -> BatchedGeometry;
+auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry;
 
 }  // namespace strada::vis

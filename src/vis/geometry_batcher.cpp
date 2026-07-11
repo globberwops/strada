@@ -24,8 +24,7 @@ void BatchOutlines(std::span<const std::vector<tess::Vertex>> outlines, const Co
 
 }  // namespace
 
-auto BatchMapGeometry(const tess::Tessellator& tess, const ast::AbstractSyntaxTree& map,
-                      const cpm::CompiledPhysicsModel& cpm) -> BatchedGeometry {
+auto BatchMapGeometry(const tess::Tessellator& tess) -> BatchedGeometry {
   BatchedGeometry batched;
 
   // 1. Batch meshes for GL_TRIANGLES

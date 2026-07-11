@@ -51,7 +51,7 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     const tess::Tessellator tess(map, cpm, 0.1);  // Use 0.1m chord error for rendering quality
 
     // 4. Batch Geometry
-    auto batched = BatchMapGeometry(tess, map, cpm);
+    auto batched = BatchMapGeometry(tess);
 
     // 5. Update Viewport
     viewport_->SetGeometry(batched, map, std::move(cpm));

@@ -75,7 +75,7 @@ class BoundingVolumeHierarchy {
     }
 
     std::array<std::uint32_t, kMaxStackDepth> stack{};
-    int stack_ptr{0};
+    std::size_t stack_ptr{0};
     stack[stack_ptr++] = 0;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
     double min_distance{std::numeric_limits<double>::max()};

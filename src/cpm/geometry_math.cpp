@@ -176,7 +176,7 @@ auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> Cloth
 auto IntegrateArcLength(double u, double b, double c, double d) noexcept -> double {
   double sum = 0.0;
   const double half_u = 0.5 * u;
-  for (int i = 0; i < kNumGaussPoints; ++i) {
+  for (auto i = std::size_t{0}; i < static_cast<std::size_t>(kNumGaussPoints); ++i) {
     const double sigma = half_u * (kGaussPoints[i] + 1.0);
     const double v_prime = b + (2.0 * c * sigma) + (3.0 * d * sigma * sigma);
     sum += kGaussWeights[i] * std::sqrt(1.0 + (v_prime * v_prime));
@@ -184,7 +184,7 @@ auto IntegrateArcLength(double u, double b, double c, double d) noexcept -> doub
   return half_u * sum;
 }
 
-auto SolveUForS(double s_target, double length, double b_u, double b, double c, double d) noexcept -> double {
+auto SolveUForS(double s_target, double b_u, double b, double c, double d) noexcept -> double {
   if (s_target <= 0.0) {
     return 0.0;
   }
@@ -228,8 +228,8 @@ auto ConvertPoly3ToParamPoly3(double length, double a, double b, double c, doubl
   const double bu = 1.0 / den;
   const double bv = b / den;
 
-  const double u1 = SolveUForS(0.5 * length, length, bu, b, c, d);
-  const double u2 = SolveUForS(length, length, bu, b, c, d);
+  const double u1 = SolveUForS(0.5 * length, bu, b, c, d);
+  const double u2 = SolveUForS(length, bu, b, c, d);
 
   const double v1 = a + (u1 * (b + u1 * (c + d * u1)));
   const double v2 = a + (u2 * (b + u2 * (c + d * u2)));

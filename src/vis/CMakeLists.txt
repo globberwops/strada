@@ -25,6 +25,6 @@ if(STRADA_BUILD_VIS)
   find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
   find_package(OpenGL REQUIRED)
 
-  target_link_libraries(strada_vis PUBLIC Strada::strada Qt6::Widgets Qt6::OpenGLWidgets OpenGL::GL)
+  target_link_libraries(strada_vis PUBLIC Strada::strada Qt6::Widgets Qt6::OpenGLWidgets OpenGL::GL PRIVATE Strada::warnings)
   target_compile_definitions(strada_vis PUBLIC QT_NO_KEYWORDS)
 endif()

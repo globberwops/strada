@@ -71,8 +71,7 @@ TEST(BoundingVolumeHierarchyTest, TraversalAndPruning) {
   // Act
   std::vector<std::uint32_t> visited_roads;
   bounding_volume_hierarchy.Query(
-      0.5, 0.5,
-      [&](const BoundingVolumeHierarchy::PrimitiveInfo& prim, double current_min_dist) -> std::optional<double> {
+      0.5, 0.5, [&](const BoundingVolumeHierarchy::PrimitiveInfo& prim, double) -> std::optional<double> {
         visited_roads.push_back(prim.road_idx);
         if (prim.road_idx == 0) {
           return 0.1;

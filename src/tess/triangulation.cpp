@@ -18,7 +18,8 @@ auto TriangulatePolygon(const std::vector<Vertex>& vertices) -> std::vector<std:
   for (std::size_t i = 0; i < n; ++i) {
     const auto& p1 = vertices[i];
     const auto& p2 = vertices[(i + 1) % n];
-    area += (static_cast<double>(p1.x) * p2.y) - (static_cast<double>(p2.x) * p1.y);
+    area += (static_cast<double>(p1.x) * static_cast<double>(p2.y)) -
+            (static_cast<double>(p2.x) * static_cast<double>(p1.y));
   }
 
   // Winding order: if area is negative, we want CW, if positive CCW.

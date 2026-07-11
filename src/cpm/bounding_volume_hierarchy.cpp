@@ -109,12 +109,12 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   std::array<Bin, num_bins> bins{};
 
   double scale = num_bins / (max_coord - min_coord);
-  for (std::uint32_t idx = start_idx; idx < end_idx; ++idx) {
+  for (auto idx = start_idx; idx < end_idx; ++idx) {
     const std::uint32_t prim_idx = prim_indices[idx];
     const double centroid = (axis == 0) ? (0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x))
                                         : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
-    int bin_idx = static_cast<int>((centroid - min_coord) * scale);
-    bin_idx = std::clamp(bin_idx, 0, num_bins - 1);
+    const auto bin_idx =
+        static_cast<std::size_t>(std::clamp(static_cast<int>((centroid - min_coord) * scale), 0, num_bins - 1));
     bins[bin_idx].count++;
     bins[bin_idx].bounds.Grow(temp_aabbs[prim_idx]);
   }
@@ -126,7 +126,7 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   std::array<std::uint32_t, num_bins - 1> left_counts{};
   BoundingVolumeHierarchyAabb left_accum;
   std::uint32_t left_cnt = 0;
-  for (int idx = 0; idx < num_bins - 1; ++idx) {
+  for (auto idx = std::size_t{0}; idx < static_cast<std::size_t>(num_bins - 1); ++idx) {
     left_accum.Grow(bins[idx].bounds);
     left_cnt += bins[idx].count;
     left_bounds[idx] = left_accum;
@@ -137,7 +137,7 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   std::array<std::uint32_t, num_bins - 1> right_counts{};
   BoundingVolumeHierarchyAabb right_accum;
   std::uint32_t right_cnt = 0;
-  for (int idx = num_bins - 1; idx > 0; --idx) {
+  for (auto idx = static_cast<std::size_t>(num_bins - 1); idx > 0; --idx) {
     right_accum.Grow(bins[idx].bounds);
     right_cnt += bins[idx].count;
     right_bounds[idx - 1] = right_accum;
@@ -148,7 +148,7 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   constexpr double c_trav = 1.0;
   constexpr double c_isect = 1.0;
 
-  for (int idx = 0; idx < num_bins - 1; ++idx) {
+  for (auto idx = std::size_t{0}; idx < static_cast<std::size_t>(num_bins - 1); ++idx) {
     if (left_counts[idx] == 0 || right_counts[idx] == 0) {
       continue;
     }
@@ -158,7 +158,7 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
          parent_area);
     if (cost < min_split_cost) {
       min_split_cost = cost;
-      best_split_bin = idx;
+      best_split_bin = static_cast<int>(idx);
     }
   }
 
