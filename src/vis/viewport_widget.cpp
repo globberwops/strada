@@ -195,95 +195,7 @@ void ViewportWidget::paintGL() {
   }
 
   DrawScene();
-
-  // 4. Draw QPainter overlays (HUD, Compass, Scale Bar)
-  {
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    DrawLaneInspector(painter);
-    DrawCompass(painter);
-
-    // 6. Draw Geographical Scale Bar in the bottom-right corner
-    {
-      const double scale_length = CalculateScaleLength(camera_.zoom);
-      const auto s = scale_length * static_cast<double>(camera_.zoom);  // Width on screen
-
-      const int num_segments = 4;
-      const double seg_w = s / num_segments;
-      const double x0 = width() - 20.0 - s;
-      for (int i = 0; i < num_segments; ++i) {
-        const QRectF seg_rect(x0 + (i * seg_w), height() - 35, seg_w, 8);
-        if (i % 2 == 0) {
-          painter.setBrush(QBrush(QColor(26, 29, 36)));  // Filled dark
-        } else {
-          painter.setBrush(QBrush(QColor(240, 240, 240)));  // Light segment
-        }
-        painter.setPen(QPen(QColor(240, 240, 240), 1));  // White border for contrast
-        painter.drawRect(seg_rect);
-      }
-
-      // Draw text label centered above the scale bar
-      painter.setPen(QColor(240, 240, 240));
-      const QFont font("Segoe UI", 9, QFont::Bold);
-      painter.setFont(font);
-      QString label;
-      if (scale_length >= 1000.0) {
-        label = QString("%1 km").arg(scale_length / 1000.0);
-      } else {
-        label = QString("%1 m").arg(scale_length);
-      }
-      painter.drawText(QRectF(x0, height() - 55, s, 15), Qt::AlignCenter, label);
-    }
-
-    // 7. Draw Keyboard Shortcuts Panel in the bottom-left corner
-    {
-      const QRect rect(20, height() - 270, 310, 250);
-      painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
-      painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
-      painter.drawRoundedRect(rect, 8.0, 8.0);
-
-      // Setup font
-      QFont font("Segoe UI", 9);
-      painter.setFont(font);
-
-      const int x_offset = 35;
-      int y_offset = height() - 245;
-      const int line_height = 20;
-
-      // Header
-      font.setBold(true);
-      painter.setFont(font);
-      painter.setPen(QColor(245, 197, 61));  // Amber title color
-      painter.drawText(x_offset, y_offset, "CONTROLS & SHORTCUTS");
-      y_offset += 22;
-
-      font.setBold(false);
-      painter.setFont(font);
-
-      struct ShortcutItem {
-        QString key;
-        QString desc;
-      };
-      const std::vector<ShortcutItem> items = {{"L-Click + Drag", "Pan Map"},  {"R-Click + Drag", "Rotate Map"},
-                                               {"Scroll Wheel", "Zoom Map"},   {"Ctrl+R", "Reset View / Auto-fit"},
-                                               {"R", "Toggle Reference Line"}, {"J", "Toggle Junction Boundaries"},
-                                               {"B", "Toggle Border Lanes"},   {"O", "Toggle Objects"},
-                                               {"S", "Toggle Signals"},        {"L", "Toggle Lanes"}};
-
-      for (const auto& item : items) {
-        // Shortcut key
-        painter.setPen(QColor(100, 181, 246));  // Light blue/cyan for keys
-        painter.drawText(x_offset, y_offset, item.key);
-
-        // Description
-        painter.setPen(QColor(180, 188, 204));  // Slate white for description
-        painter.drawText(x_offset + 95, y_offset, item.desc);
-
-        y_offset += line_height;
-      }
-    }
-  }
+  DrawOverlays();
 }
 
 void ViewportWidget::SetupTriangles() {
@@ -716,9 +628,9 @@ void ViewportWidget::DrawScene() {
         continue;
       }
       if (range.index_count > 0) {
-        const void* offset = reinterpret_cast<const void*>(
-            static_cast<std::uintptr_t>(range.index_start) *
-            sizeof(std::uint32_t));  // NOLINT(performance-no-int-to-ptr, cppcoreguidelines-pro-type-reinterpret-cast)
+        const void* offset = reinterpret_cast<const void*>(  // NOLINT(performance-no-int-to-ptr,
+                                                             // cppcoreguidelines-pro-type-reinterpret-cast)
+            static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
       }
     }
@@ -772,9 +684,9 @@ void ViewportWidget::DrawScene() {
           shader_program_.setUniformValue("overrideColor", QVector4D(1.0F, 0.0F, 0.0F, 0.4F));
 
           triangles_vao_.bind();
-          const void* offset = reinterpret_cast<const void*>(
-              static_cast<std::uintptr_t>(range.index_start) *
-              sizeof(std::uint32_t));  // NOLINT(performance-no-int-to-ptr, cppcoreguidelines-pro-type-reinterpret-cast)
+          const void* offset = reinterpret_cast<const void*>(  // NOLINT(performance-no-int-to-ptr,
+                                                               // cppcoreguidelines-pro-type-reinterpret-cast)
+              static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
           glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
           triangles_vao_.release();
 
@@ -965,6 +877,94 @@ void ViewportWidget::DrawCompass(QPainter& painter) {
   painter.drawText(QRect(-8, -36, 16, 16), Qt::AlignCenter, "N");
 
   painter.restore();
+}
+
+void ViewportWidget::DrawScaleBar(QPainter& painter) {
+  const double scale_length = CalculateScaleLength(camera_.zoom);
+  const auto s = scale_length * static_cast<double>(camera_.zoom);  // Width on screen
+
+  const int num_segments = 4;
+  const double seg_w = s / num_segments;
+  const double x0 = width() - 20.0 - s;
+  for (int i = 0; i < num_segments; ++i) {
+    const QRectF seg_rect(x0 + (i * seg_w), height() - 35, seg_w, 8);
+    if (i % 2 == 0) {
+      painter.setBrush(QBrush(QColor(26, 29, 36)));  // Filled dark
+    } else {
+      painter.setBrush(QBrush(QColor(240, 240, 240)));  // Light segment
+    }
+    painter.setPen(QPen(QColor(240, 240, 240), 1));  // White border for contrast
+    painter.drawRect(seg_rect);
+  }
+
+  // Draw text label centered above the scale bar
+  painter.setPen(QColor(240, 240, 240));
+  const QFont font("Segoe UI", 9, QFont::Bold);
+  painter.setFont(font);
+  QString label;
+  if (scale_length >= 1000.0) {
+    label = QString("%1 km").arg(scale_length / 1000.0);
+  } else {
+    label = QString("%1 m").arg(scale_length);
+  }
+  painter.drawText(QRectF(x0, height() - 55, s, 15), Qt::AlignCenter, label);
+}
+
+void ViewportWidget::DrawShortcutsPanel(QPainter& painter) {
+  const QRect rect(20, height() - 270, 310, 250);
+  painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
+  painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+  painter.drawRoundedRect(rect, 8.0, 8.0);
+
+  // Setup font
+  QFont font("Segoe UI", 9);
+  painter.setFont(font);
+
+  const int x_offset = 35;
+  int y_offset = height() - 245;
+  const int line_height = 20;
+
+  // Header
+  font.setBold(true);
+  painter.setFont(font);
+  painter.setPen(QColor(245, 197, 61));  // Amber title color
+  painter.drawText(x_offset, y_offset, "CONTROLS & SHORTCUTS");
+  y_offset += 22;
+
+  font.setBold(false);
+  painter.setFont(font);
+
+  struct ShortcutItem {
+    QString key;
+    QString desc;
+  };
+  const std::vector<ShortcutItem> items = {{"L-Click + Drag", "Pan Map"},  {"R-Click + Drag", "Rotate Map"},
+                                           {"Scroll Wheel", "Zoom Map"},   {"Ctrl+R", "Reset View / Auto-fit"},
+                                           {"R", "Toggle Reference Line"}, {"J", "Toggle Junction Boundaries"},
+                                           {"B", "Toggle Border Lanes"},   {"O", "Toggle Objects"},
+                                           {"S", "Toggle Signals"},        {"L", "Toggle Lanes"}};
+
+  for (const auto& item : items) {
+    // Shortcut key
+    painter.setPen(QColor(100, 181, 246));  // Light blue/cyan for keys
+    painter.drawText(x_offset, y_offset, item.key);
+
+    // Description
+    painter.setPen(QColor(180, 188, 204));  // Slate white for description
+    painter.drawText(x_offset + 95, y_offset, item.desc);
+
+    y_offset += line_height;
+  }
+}
+
+void ViewportWidget::DrawOverlays() {
+  QPainter painter(this);
+  painter.setRenderHint(QPainter::Antialiasing);
+
+  DrawLaneInspector(painter);
+  DrawCompass(painter);
+  DrawScaleBar(painter);
+  DrawShortcutsPanel(painter);
 }
 
 }  // namespace strada::vis

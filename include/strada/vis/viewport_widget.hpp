@@ -98,6 +98,9 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   void DrawScene();
   void DrawLaneInspector(QPainter& painter);
   void DrawCompass(QPainter& painter);
+  void DrawScaleBar(QPainter& painter);
+  void DrawShortcutsPanel(QPainter& painter);
+  void DrawOverlays();
 };
 
 }  // namespace strada::vis
