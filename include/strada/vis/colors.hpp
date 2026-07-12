@@ -13,6 +13,14 @@ struct Color {
   float b{};
 };
 
+/// Curated premium color palette with alpha channel support.
+struct ColorA {
+  float r{};
+  float g{};
+  float b{};
+  float a{1.0F};
+};
+
 // Premium dark-mode palette colors
 constexpr Color kLaneDrivingLeft{.r = 239.0F / 255.0F, .g = 215.0F / 255.0F, .b = 171.0F / 255.0F};
 constexpr Color kLaneDrivingRight{.r = 205.0F / 255.0F, .g = 216.0F / 255.0F, .b = 232.0F / 255.0F};
@@ -40,6 +48,27 @@ constexpr Color kReferenceLineColor{.r = 1.0F, .g = 0.0F, .b = 0.0F};
 constexpr Color kJunctionBoundaryColor{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F};
 constexpr Color kObjectColor{.r = 1.0F, .g = 145.0F / 255.0F, .b = 0.0F};
 constexpr Color kSignalColor{.r = 0.0F, .g = 229.0F / 255.0F, .b = 1.0F};
+
+// UI Glassmorphic panel styling colors
+constexpr ColorA kUIBorder{.r = 45.0F / 255.0F, .g = 51.0F / 255.0F, .b = 64.0F / 255.0F, .a = 1.0F};
+constexpr ColorA kUIBackground{.r = 26.0F / 255.0F, .g = 29.0F / 255.0F, .b = 36.0F / 255.0F, .a = 220.0F / 255.0F};
+constexpr Color kUIBackgroundOpaque{.r = 26.0F / 255.0F, .g = 29.0F / 255.0F, .b = 36.0F / 255.0F};
+
+// UI Text and Label colors
+constexpr Color kTextGold{.r = 255.0F / 255.0F, .g = 204.0F / 255.0F, .b = 0.0F};
+constexpr Color kTextAmber{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F};
+constexpr Color kTextLabel{.r = 160.0F / 255.0F, .g = 170.0F / 255.0F, .b = 184.0F / 255.0F};
+constexpr Color kTextValue{.r = 100.0F / 255.0F, .g = 181.0F / 255.0F, .b = 246.0F / 255.0F};
+constexpr Color kTextDescription{.r = 180.0F / 255.0F, .g = 188.0F / 255.0F, .b = 204.0F / 255.0F};
+constexpr Color kTextLight{.r = 240.0F / 255.0F, .g = 240.0F / 255.0F, .b = 240.0F / 255.0F};
+
+// Compass and scale bar specific colors
+constexpr ColorA kCompassEast{.r = 100.0F / 255.0F, .g = 181.0F / 255.0F, .b = 246.0F / 255.0F, .a = 1.0F};
+constexpr ColorA kCompassNorth{.r = 255.0F / 255.0F, .g = 110.0F / 255.0F, .b = 110.0F / 255.0F, .a = 1.0F};
+
+// 3D Scene overlays
+constexpr ColorA kHoverHighlight{.r = 1.0F, .g = 0.0F, .b = 0.0F, .a = 0.4F};
+constexpr ColorA kJunctionHighlight{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F, .a = 0.12F};
 
 /// Color lookup helper based on lane type and original lane ID.
 constexpr auto GetLaneColor(ast::LaneType lane_type, int original_lane_id) noexcept -> Color {

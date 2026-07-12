@@ -16,7 +16,16 @@
 #include <cmath>
 #include <limits>
 #include <strada/parser/conversions.hpp>
+#include <strada/vis/colors.hpp>
 #include <strada/vis/viewport_widget.hpp>
+
+namespace {
+
+auto ToQColor(strada::vis::Color c) noexcept -> QColor { return QColor::fromRgbF(c.r, c.g, c.b, 1.0F); }
+
+auto ToQColor(strada::vis::ColorA c) noexcept -> QColor { return QColor::fromRgbF(c.r, c.g, c.b, c.a); }
+
+}  // namespace
 
 namespace strada::vis {
 
@@ -339,7 +348,7 @@ void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
         }
       }
     }
-    pose.z = best_z;
+    pose.z = static_cast<double>(best_z);
 
     pose.heading = 0.0;
     pose.pitch = 0.0;
@@ -495,7 +504,7 @@ auto ViewportWidget::event(QEvent* event) -> bool {
 }
 
 void ViewportWidget::RenderGrid() {
-  const double scale_length = CalculateScaleLength(camera_.zoom);
+  const double scale_length = CalculateScaleLength(static_cast<double>(camera_.zoom));
   if (scale_length <= 0.0) {
     return;
   }
@@ -609,8 +618,8 @@ void ViewportWidget::DrawScene() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     shader_program_.setUniformValue("useOverrideColor", 1);
-    shader_program_.setUniformValue("overrideColor",
-                                    QVector4D(245.0F / 255.0F, 197.0F / 255.0F, 61.0F / 255.0F, 0.12F));
+    shader_program_.setUniformValue("overrideColor", QVector4D{kJunctionHighlight.r, kJunctionHighlight.g,
+                                                               kJunctionHighlight.b, kJunctionHighlight.a});
     boundaries_vao_.bind();
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(geometry_.boundary_triangle_indices.size()), GL_UNSIGNED_INT,
                    nullptr);
@@ -628,7 +637,7 @@ void ViewportWidget::DrawScene() {
         continue;
       }
       if (range.index_count > 0) {
-        const void* offset = reinterpret_cast<const void*>(  // NOLINT(performance-no-int-to-ptr,
+        const auto* offset = reinterpret_cast<const void*>(  // NOLINT(performance-no-int-to-ptr,
                                                              // cppcoreguidelines-pro-type-reinterpret-cast)
             static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
@@ -681,10 +690,11 @@ void ViewportWidget::DrawScene() {
           glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
           shader_program_.setUniformValue("useOverrideColor", 1);
-          shader_program_.setUniformValue("overrideColor", QVector4D(1.0F, 0.0F, 0.0F, 0.4F));
+          shader_program_.setUniformValue(
+              "overrideColor", QVector4D{kHoverHighlight.r, kHoverHighlight.g, kHoverHighlight.b, kHoverHighlight.a});
 
           triangles_vao_.bind();
-          const void* offset = reinterpret_cast<const void*>(  // NOLINT(performance-no-int-to-ptr,
+          const auto* offset = reinterpret_cast<const void*>(  // NOLINT(performance-no-int-to-ptr,
                                                                // cppcoreguidelines-pro-type-reinterpret-cast)
               static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
           glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
@@ -708,24 +718,24 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
   }
 
   // Draw dark glassmorphic card container in the top-left corner
-  const QRect rect(20, 20, 270, 204);
-  painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
-  painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+  const auto rect = QRect{20, 20, 270, 204};
+  painter.setPen(QPen(ToQColor(kUIBorder), 1));
+  painter.setBrush(QBrush(ToQColor(kUIBackground)));
   painter.drawRoundedRect(rect, 8.0, 8.0);
 
   // Setup font
-  QFont font("Segoe UI", 10);
+  auto font = QFont{"Segoe UI", 10};
   painter.setFont(font);
 
   // Draw details
-  const int x_offset = 35;
-  int y_offset = 45;
-  const int line_height = 22;
+  const auto x_offset = 35;
+  auto y_offset = 45;
+  const auto line_height = 22;
 
   // Header / Title
   font.setBold(true);
   painter.setFont(font);
-  painter.setPen(QColor(255, 204, 0));  // Gold title color matching highlight
+  painter.setPen(ToQColor(kTextGold));  // Gold title color matching highlight
   painter.drawText(x_offset, y_offset, "LANE INSPECTOR");
 
   font.setBold(false);
@@ -733,7 +743,7 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
   y_offset += line_height;
 
   // Road ID
-  painter.setPen(QColor(160, 170, 184));
+  painter.setPen(ToQColor(kTextLabel));
   painter.drawText(x_offset, y_offset, "Road ID:");
   painter.setPen(Qt::white);
   if (hovered_pose_) {
@@ -744,11 +754,11 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
   y_offset += line_height;
 
   // Road Type
-  painter.setPen(QColor(160, 170, 184));
+  painter.setPen(ToQColor(kTextLabel));
   painter.drawText(x_offset, y_offset, "Road Type:");
   painter.setPen(Qt::white);
   if (hovered_pose_) {
-    ast::RoadType road_type = ast::RoadType::kUnknown;
+    auto road_type = ast::RoadType::kUnknown;
     for (const auto& road : map_.roads) {
       if (road.id == hovered_road_name_) {
         road_type = FindActiveRoadType(road, hovered_pose_->s);
@@ -762,7 +772,7 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
   y_offset += line_height;
 
   // Lane ID
-  painter.setPen(QColor(160, 170, 184));
+  painter.setPen(ToQColor(kTextLabel));
   painter.drawText(x_offset, y_offset, "Lane ID:");
   painter.setPen(Qt::white);
   if (hovered_pose_) {
@@ -773,11 +783,11 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
   y_offset += line_height;
 
   // Lane Type
-  painter.setPen(QColor(160, 170, 184));
+  painter.setPen(ToQColor(kTextLabel));
   painter.drawText(x_offset, y_offset, "Lane Type:");
   painter.setPen(Qt::white);
   if (hovered_pose_) {
-    ast::LaneType hovered_lane_type = ast::LaneType::kNone;
+    auto hovered_lane_type = ast::LaneType::kNone;
     for (const auto& range : geometry_.mesh_ranges) {
       if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
         hovered_lane_type = range.lane_type;
@@ -793,141 +803,142 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
   if (hovered_pose_) {
     // Obtain road-level and inertial-level coordinates from LanePose
     cpm::QueryContext temp_ctx;
-    const cpm::RoadPose rp = cpm_model_.LaneToRoad(*hovered_pose_, temp_ctx);
-    const cpm::InertialPose ip = cpm_model_.LaneToInertial(*hovered_pose_, temp_ctx);
+    const auto rp = cpm_model_.LaneToRoad(*hovered_pose_, temp_ctx);
+    const auto ip = cpm_model_.LaneToInertial(*hovered_pose_, temp_ctx);
 
     // Track Coordinates (s, t)
-    painter.setPen(QColor(160, 170, 184));
+    painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Track (s, t):");
-    painter.setPen(QColor(100, 181, 246));  // Light blue for values
-    const QString track_coords = QString("%1 m, %2 m").arg(rp.s, 0, 'f', 3).arg(rp.t, 0, 'f', 3);
+    painter.setPen(ToQColor(kTextValue));  // Light blue for values
+    const auto track_coords = QString{"%1 m, %2 m"}.arg(rp.s, 0, 'f', 3).arg(rp.t, 0, 'f', 3);
     painter.drawText(x_offset + 95, y_offset, track_coords);
     y_offset += line_height;
 
     // Lane Coordinates (s, t)
-    painter.setPen(QColor(160, 170, 184));
+    painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Lane (s, t):");
-    painter.setPen(QColor(100, 181, 246));  // Light blue for values
-    const QString lane_coords = QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
+    painter.setPen(ToQColor(kTextValue));  // Light blue for values
+    const auto lane_coords = QString{"%1 m, %2 m"}.arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
     painter.drawText(x_offset + 95, y_offset, lane_coords);
     y_offset += line_height;
 
     // Inertial Coordinates (x, y)
-    painter.setPen(QColor(160, 170, 184));
+    painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Inertial (x, y):");
-    painter.setPen(QColor(100, 181, 246));  // Light blue for values
-    const QString inertial_coords = QString("%1 m, %2 m").arg(ip.x, 0, 'f', 3).arg(ip.y, 0, 'f', 3);
+    painter.setPen(ToQColor(kTextValue));  // Light blue for values
+    const auto inertial_coords = QString{"%1 m, %2 m"}.arg(ip.x, 0, 'f', 3).arg(ip.y, 0, 'f', 3);
     painter.drawText(x_offset + 95, y_offset, inertial_coords);
   } else {
     // Track Coordinates (s, t)
-    painter.setPen(QColor(160, 170, 184));
+    painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Track (s, t):");
-    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    painter.setPen(ToQColor(kTextValue));  // Light blue for values
     painter.drawText(x_offset + 95, y_offset, "--");
     y_offset += line_height;
 
     // Lane Coordinates (s, t)
-    painter.setPen(QColor(160, 170, 184));
+    painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Lane (s, t):");
-    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    painter.setPen(ToQColor(kTextValue));  // Light blue for values
     painter.drawText(x_offset + 95, y_offset, "--");
     y_offset += line_height;
 
     // Inertial Coordinates (x, y)
-    painter.setPen(QColor(160, 170, 184));
+    painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Inertial (x, y):");
-    painter.setPen(QColor(100, 181, 246));  // Light blue for values
-    const QString inertial_coords = QString("%1 m, %2 m").arg(hovered_x_, 0, 'f', 3).arg(hovered_y_, 0, 'f', 3);
+    painter.setPen(ToQColor(kTextValue));  // Light blue for values
+    const auto inertial_coords = QString{"%1 m, %2 m"}.arg(hovered_x_, 0, 'f', 3).arg(hovered_y_, 0, 'f', 3);
     painter.drawText(x_offset + 95, y_offset, inertial_coords);
   }
 }
 
 void ViewportWidget::DrawCompass(QPainter& painter) {
-  const int cx = width() - 50;
-  const int cy = 50;
+  const auto cx = width() - 50;
+  const auto cy = 50;
 
   // Draw dark glassmorphic circular background
-  painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
-  painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+  painter.setPen(QPen(ToQColor(kUIBorder), 1));
+  painter.setBrush(QBrush(ToQColor(kUIBackground)));
   painter.drawEllipse(QPoint(cx, cy), 28, 28);
 
   // Save painter state to apply rotation
   painter.save();
   painter.translate(cx, cy);
-  painter.rotate(-camera_.rotation);
+  painter.rotate(-static_cast<qreal>(camera_.rotation));
 
   // Draw East axis (positive X) - Slate Blue / Premium Cyan
-  painter.setPen(QPen(QColor(100, 181, 246, 255), 2));
+  painter.setPen(QPen(ToQColor(kCompassEast), 2));
   painter.drawLine(0, 0, 20, 0);
 
   // Draw North axis (positive Y, which is up, so -20 in QPainter screen Y) - Red / Premium Coral
-  painter.setPen(QPen(QColor(255, 110, 110, 255), 2));
+  painter.setPen(QPen(ToQColor(kCompassNorth), 2));
   painter.drawLine(0, 0, 0, -20);
 
   // Draw Labels E and N
-  const QFont font("Segoe UI", 9, QFont::Bold);
+  const auto font = QFont{"Segoe UI", 9, QFont::Bold};
   painter.setFont(font);
 
   // E Label
-  painter.setPen(QColor(100, 181, 246));
-  painter.drawText(QRect(22, -8, 16, 16), Qt::AlignCenter, "E");
+  painter.setPen(ToQColor(kCompassEast));
+  painter.drawText(QRect{22, -8, 16, 16}, Qt::AlignCenter, "E");
 
   // N Label
-  painter.setPen(QColor(255, 110, 110));
-  painter.drawText(QRect(-8, -36, 16, 16), Qt::AlignCenter, "N");
+  painter.setPen(ToQColor(kCompassNorth));
+  painter.drawText(QRect{-8, -36, 16, 16}, Qt::AlignCenter, "N");
 
   painter.restore();
 }
 
 void ViewportWidget::DrawScaleBar(QPainter& painter) {
-  const double scale_length = CalculateScaleLength(camera_.zoom);
-  const auto s = scale_length * static_cast<double>(camera_.zoom);  // Width on screen
+  const auto scale_length = CalculateScaleLength(static_cast<double>(camera_.zoom));
+  const auto bar_width = scale_length * static_cast<double>(camera_.zoom);  // Width on screen
 
-  const int num_segments = 4;
-  const double seg_w = s / num_segments;
-  const double x0 = width() - 20.0 - s;
-  for (int i = 0; i < num_segments; ++i) {
-    const QRectF seg_rect(x0 + (i * seg_w), height() - 35, seg_w, 8);
+  const auto num_segments = 4;
+  const auto seg_width = bar_width / static_cast<double>(num_segments);
+  const auto bar_start_x = static_cast<double>(width()) - 20.0 - bar_width;
+  for (auto i = 0; i < num_segments; ++i) {
+    const auto seg_rect = QRectF{bar_start_x + (static_cast<double>(i) * seg_width),
+                                 static_cast<double>(height()) - 35.0, seg_width, 8.0};
     if (i % 2 == 0) {
-      painter.setBrush(QBrush(QColor(26, 29, 36)));  // Filled dark
+      painter.setBrush(QBrush(ToQColor(kUIBackgroundOpaque)));  // Filled dark
     } else {
-      painter.setBrush(QBrush(QColor(240, 240, 240)));  // Light segment
+      painter.setBrush(QBrush(ToQColor(kTextLight)));  // Light segment
     }
-    painter.setPen(QPen(QColor(240, 240, 240), 1));  // White border for contrast
+    painter.setPen(QPen(ToQColor(kTextLight), 1));  // White border for contrast
     painter.drawRect(seg_rect);
   }
 
   // Draw text label centered above the scale bar
-  painter.setPen(QColor(240, 240, 240));
-  const QFont font("Segoe UI", 9, QFont::Bold);
+  painter.setPen(ToQColor(kTextLight));
+  const auto font = QFont{"Segoe UI", 9, QFont::Bold};
   painter.setFont(font);
-  QString label;
+  auto label = QString{};
   if (scale_length >= 1000.0) {
-    label = QString("%1 km").arg(scale_length / 1000.0);
+    label = QString{"%1 km"}.arg(scale_length / 1000.0);
   } else {
-    label = QString("%1 m").arg(scale_length);
+    label = QString{"%1 m"}.arg(scale_length);
   }
-  painter.drawText(QRectF(x0, height() - 55, s, 15), Qt::AlignCenter, label);
+  painter.drawText(QRectF{bar_start_x, static_cast<double>(height()) - 55.0, bar_width, 15.0}, Qt::AlignCenter, label);
 }
 
 void ViewportWidget::DrawShortcutsPanel(QPainter& painter) {
-  const QRect rect(20, height() - 270, 310, 250);
-  painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
-  painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+  const auto rect = QRect{20, height() - 270, 310, 250};
+  painter.setPen(QPen(ToQColor(kUIBorder), 1));
+  painter.setBrush(QBrush(ToQColor(kUIBackground)));
   painter.drawRoundedRect(rect, 8.0, 8.0);
 
   // Setup font
-  QFont font("Segoe UI", 9);
+  auto font = QFont{"Segoe UI", 9};
   painter.setFont(font);
 
-  const int x_offset = 35;
-  int y_offset = height() - 245;
-  const int line_height = 20;
+  const auto x_offset = 35;
+  auto y_offset = height() - 245;
+  const auto line_height = 20;
 
   // Header
   font.setBold(true);
   painter.setFont(font);
-  painter.setPen(QColor(245, 197, 61));  // Amber title color
+  painter.setPen(ToQColor(kTextAmber));  // Amber title color
   painter.drawText(x_offset, y_offset, "CONTROLS & SHORTCUTS");
   y_offset += 22;
 
@@ -946,11 +957,11 @@ void ViewportWidget::DrawShortcutsPanel(QPainter& painter) {
 
   for (const auto& item : items) {
     // Shortcut key
-    painter.setPen(QColor(100, 181, 246));  // Light blue/cyan for keys
+    painter.setPen(ToQColor(kTextValue));  // Light blue/cyan for keys
     painter.drawText(x_offset, y_offset, item.key);
 
     // Description
-    painter.setPen(QColor(180, 188, 204));  // Slate white for description
+    painter.setPen(ToQColor(kTextDescription));  // Slate white for description
     painter.drawText(x_offset + 95, y_offset, item.desc);
 
     y_offset += line_height;

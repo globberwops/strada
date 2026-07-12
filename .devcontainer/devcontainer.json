@@ -30,7 +30,7 @@
         },
         "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
         "C_Cpp.intelliSenseEngine": "disabled",
-        "cmake.copyCompileCommands": "${workspaceFolder}/build"
+        "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json"
       },
       "extensions": [
         "cheshirekow.cmake-format",
