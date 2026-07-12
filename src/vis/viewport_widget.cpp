@@ -201,181 +201,8 @@ void ViewportWidget::paintGL() {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    if (has_model_) {
-      // Draw dark glassmorphic card container in the top-left corner
-      const QRect rect(20, 20, 270, 204);
-      painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
-      painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
-      painter.drawRoundedRect(rect, 8.0, 8.0);
-
-      // Setup font
-      QFont font("Segoe UI", 10);
-      painter.setFont(font);
-
-      // Draw details
-      const int x_offset = 35;
-      int y_offset = 45;
-      const int line_height = 22;
-
-      // Header / Title
-      font.setBold(true);
-      painter.setFont(font);
-      painter.setPen(QColor(255, 204, 0));  // Gold title color matching highlight
-      painter.drawText(x_offset, y_offset, "LANE INSPECTOR");
-
-      font.setBold(false);
-      painter.setFont(font);
-      y_offset += line_height;
-
-      // Road ID
-      painter.setPen(QColor(160, 170, 184));
-      painter.drawText(x_offset, y_offset, "Road ID:");
-      painter.setPen(Qt::white);
-      if (hovered_pose_) {
-        painter.drawText(x_offset + 70, y_offset, QString::fromStdString(hovered_road_name_));
-      } else {
-        painter.drawText(x_offset + 70, y_offset, "--");
-      }
-      y_offset += line_height;
-
-      // Road Type
-      painter.setPen(QColor(160, 170, 184));
-      painter.drawText(x_offset, y_offset, "Road Type:");
-      painter.setPen(Qt::white);
-      if (hovered_pose_) {
-        ast::RoadType road_type = ast::RoadType::kUnknown;
-        for (const auto& road : map_.roads) {
-          if (road.id == hovered_road_name_) {
-            road_type = FindActiveRoadType(road, hovered_pose_->s);
-            break;
-          }
-        }
-        painter.drawText(x_offset + 80, y_offset, QString::fromStdString(std::string(parser::ToString(road_type))));
-      } else {
-        painter.drawText(x_offset + 80, y_offset, "--");
-      }
-      y_offset += line_height;
-
-      // Lane ID
-      painter.setPen(QColor(160, 170, 184));
-      painter.drawText(x_offset, y_offset, "Lane ID:");
-      painter.setPen(Qt::white);
-      if (hovered_pose_) {
-        painter.drawText(x_offset + 70, y_offset, QString::number(hovered_lane_original_id_));
-      } else {
-        painter.drawText(x_offset + 70, y_offset, "--");
-      }
-      y_offset += line_height;
-
-      // Lane Type
-      painter.setPen(QColor(160, 170, 184));
-      painter.drawText(x_offset, y_offset, "Lane Type:");
-      painter.setPen(Qt::white);
-      if (hovered_pose_) {
-        ast::LaneType hovered_lane_type = ast::LaneType::kNone;
-        for (const auto& range : geometry_.mesh_ranges) {
-          if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
-            hovered_lane_type = range.lane_type;
-            break;
-          }
-        }
-        painter.drawText(x_offset + 80, y_offset,
-                         QString::fromStdString(std::string(parser::ToString(hovered_lane_type))));
-      } else {
-        painter.drawText(x_offset + 80, y_offset, "--");
-      }
-      y_offset += line_height;
-
-      if (hovered_pose_) {
-        // Obtain road-level and inertial-level coordinates from LanePose
-        cpm::QueryContext temp_ctx;
-        const cpm::RoadPose rp = cpm_model_.LaneToRoad(*hovered_pose_, temp_ctx);
-        const cpm::InertialPose ip = cpm_model_.LaneToInertial(*hovered_pose_, temp_ctx);
-
-        // Track Coordinates (s, t)
-        painter.setPen(QColor(160, 170, 184));
-        painter.drawText(x_offset, y_offset, "Track (s, t):");
-        painter.setPen(QColor(100, 181, 246));  // Light blue for values
-        const QString track_coords = QString("%1 m, %2 m").arg(rp.s, 0, 'f', 3).arg(rp.t, 0, 'f', 3);
-        painter.drawText(x_offset + 95, y_offset, track_coords);
-        y_offset += line_height;
-
-        // Lane Coordinates (s, t)
-        painter.setPen(QColor(160, 170, 184));
-        painter.drawText(x_offset, y_offset, "Lane (s, t):");
-        painter.setPen(QColor(100, 181, 246));  // Light blue for values
-        const QString lane_coords =
-            QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
-        painter.drawText(x_offset + 95, y_offset, lane_coords);
-        y_offset += line_height;
-
-        // Inertial Coordinates (x, y)
-        painter.setPen(QColor(160, 170, 184));
-        painter.drawText(x_offset, y_offset, "Inertial (x, y):");
-        painter.setPen(QColor(100, 181, 246));  // Light blue for values
-        const QString inertial_coords = QString("%1 m, %2 m").arg(ip.x, 0, 'f', 3).arg(ip.y, 0, 'f', 3);
-        painter.drawText(x_offset + 95, y_offset, inertial_coords);
-      } else {
-        // Track Coordinates (s, t)
-        painter.setPen(QColor(160, 170, 184));
-        painter.drawText(x_offset, y_offset, "Track (s, t):");
-        painter.setPen(QColor(100, 181, 246));  // Light blue for values
-        painter.drawText(x_offset + 95, y_offset, "--");
-        y_offset += line_height;
-
-        // Lane Coordinates (s, t)
-        painter.setPen(QColor(160, 170, 184));
-        painter.drawText(x_offset, y_offset, "Lane (s, t):");
-        painter.setPen(QColor(100, 181, 246));  // Light blue for values
-        painter.drawText(x_offset + 95, y_offset, "--");
-        y_offset += line_height;
-
-        // Inertial Coordinates (x, y)
-        painter.setPen(QColor(160, 170, 184));
-        painter.drawText(x_offset, y_offset, "Inertial (x, y):");
-        painter.setPen(QColor(100, 181, 246));  // Light blue for values
-        const QString inertial_coords = QString("%1 m, %2 m").arg(hovered_x_, 0, 'f', 3).arg(hovered_y_, 0, 'f', 3);
-        painter.drawText(x_offset + 95, y_offset, inertial_coords);
-      }
-    }
-
-    // 5. Draw Compass Gizmo in the top-right corner
-    {
-      const int cx = width() - 50;
-      const int cy = 50;
-
-      // Draw dark glassmorphic circular background
-      painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
-      painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
-      painter.drawEllipse(QPoint(cx, cy), 28, 28);
-
-      // Save painter state to apply rotation
-      painter.save();
-      painter.translate(cx, cy);
-      painter.rotate(-camera_.rotation);
-
-      // Draw East axis (positive X) - Slate Blue / Premium Cyan
-      painter.setPen(QPen(QColor(100, 181, 246, 255), 2));
-      painter.drawLine(0, 0, 20, 0);
-
-      // Draw North axis (positive Y, which is up, so -20 in QPainter screen Y) - Red / Premium Coral
-      painter.setPen(QPen(QColor(255, 110, 110, 255), 2));
-      painter.drawLine(0, 0, 0, -20);
-
-      // Draw Labels E and N
-      const QFont font("Segoe UI", 9, QFont::Bold);
-      painter.setFont(font);
-
-      // E Label
-      painter.setPen(QColor(100, 181, 246));
-      painter.drawText(QRect(22, -8, 16, 16), Qt::AlignCenter, "E");
-
-      // N Label
-      painter.setPen(QColor(255, 110, 110));
-      painter.drawText(QRect(-8, -36, 16, 16), Qt::AlignCenter, "N");
-
-      painter.restore();
-    }
+    DrawLaneInspector(painter);
+    DrawCompass(painter);
 
     // 6. Draw Geographical Scale Bar in the bottom-right corner
     {
@@ -961,6 +788,183 @@ void ViewportWidget::DrawScene() {
   }
 
   shader_program_.release();
+}
+
+void ViewportWidget::DrawLaneInspector(QPainter& painter) {
+  if (!has_model_) {
+    return;
+  }
+
+  // Draw dark glassmorphic card container in the top-left corner
+  const QRect rect(20, 20, 270, 204);
+  painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
+  painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+  painter.drawRoundedRect(rect, 8.0, 8.0);
+
+  // Setup font
+  QFont font("Segoe UI", 10);
+  painter.setFont(font);
+
+  // Draw details
+  const int x_offset = 35;
+  int y_offset = 45;
+  const int line_height = 22;
+
+  // Header / Title
+  font.setBold(true);
+  painter.setFont(font);
+  painter.setPen(QColor(255, 204, 0));  // Gold title color matching highlight
+  painter.drawText(x_offset, y_offset, "LANE INSPECTOR");
+
+  font.setBold(false);
+  painter.setFont(font);
+  y_offset += line_height;
+
+  // Road ID
+  painter.setPen(QColor(160, 170, 184));
+  painter.drawText(x_offset, y_offset, "Road ID:");
+  painter.setPen(Qt::white);
+  if (hovered_pose_) {
+    painter.drawText(x_offset + 70, y_offset, QString::fromStdString(hovered_road_name_));
+  } else {
+    painter.drawText(x_offset + 70, y_offset, "--");
+  }
+  y_offset += line_height;
+
+  // Road Type
+  painter.setPen(QColor(160, 170, 184));
+  painter.drawText(x_offset, y_offset, "Road Type:");
+  painter.setPen(Qt::white);
+  if (hovered_pose_) {
+    ast::RoadType road_type = ast::RoadType::kUnknown;
+    for (const auto& road : map_.roads) {
+      if (road.id == hovered_road_name_) {
+        road_type = FindActiveRoadType(road, hovered_pose_->s);
+        break;
+      }
+    }
+    painter.drawText(x_offset + 80, y_offset, QString::fromStdString(std::string(parser::ToString(road_type))));
+  } else {
+    painter.drawText(x_offset + 80, y_offset, "--");
+  }
+  y_offset += line_height;
+
+  // Lane ID
+  painter.setPen(QColor(160, 170, 184));
+  painter.drawText(x_offset, y_offset, "Lane ID:");
+  painter.setPen(Qt::white);
+  if (hovered_pose_) {
+    painter.drawText(x_offset + 70, y_offset, QString::number(hovered_lane_original_id_));
+  } else {
+    painter.drawText(x_offset + 70, y_offset, "--");
+  }
+  y_offset += line_height;
+
+  // Lane Type
+  painter.setPen(QColor(160, 170, 184));
+  painter.drawText(x_offset, y_offset, "Lane Type:");
+  painter.setPen(Qt::white);
+  if (hovered_pose_) {
+    ast::LaneType hovered_lane_type = ast::LaneType::kNone;
+    for (const auto& range : geometry_.mesh_ranges) {
+      if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
+        hovered_lane_type = range.lane_type;
+        break;
+      }
+    }
+    painter.drawText(x_offset + 80, y_offset, QString::fromStdString(std::string(parser::ToString(hovered_lane_type))));
+  } else {
+    painter.drawText(x_offset + 80, y_offset, "--");
+  }
+  y_offset += line_height;
+
+  if (hovered_pose_) {
+    // Obtain road-level and inertial-level coordinates from LanePose
+    cpm::QueryContext temp_ctx;
+    const cpm::RoadPose rp = cpm_model_.LaneToRoad(*hovered_pose_, temp_ctx);
+    const cpm::InertialPose ip = cpm_model_.LaneToInertial(*hovered_pose_, temp_ctx);
+
+    // Track Coordinates (s, t)
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Track (s, t):");
+    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    const QString track_coords = QString("%1 m, %2 m").arg(rp.s, 0, 'f', 3).arg(rp.t, 0, 'f', 3);
+    painter.drawText(x_offset + 95, y_offset, track_coords);
+    y_offset += line_height;
+
+    // Lane Coordinates (s, t)
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Lane (s, t):");
+    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    const QString lane_coords = QString("%1 m, %2 m").arg(hovered_pose_->s, 0, 'f', 3).arg(hovered_pose_->t, 0, 'f', 3);
+    painter.drawText(x_offset + 95, y_offset, lane_coords);
+    y_offset += line_height;
+
+    // Inertial Coordinates (x, y)
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Inertial (x, y):");
+    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    const QString inertial_coords = QString("%1 m, %2 m").arg(ip.x, 0, 'f', 3).arg(ip.y, 0, 'f', 3);
+    painter.drawText(x_offset + 95, y_offset, inertial_coords);
+  } else {
+    // Track Coordinates (s, t)
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Track (s, t):");
+    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    painter.drawText(x_offset + 95, y_offset, "--");
+    y_offset += line_height;
+
+    // Lane Coordinates (s, t)
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Lane (s, t):");
+    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    painter.drawText(x_offset + 95, y_offset, "--");
+    y_offset += line_height;
+
+    // Inertial Coordinates (x, y)
+    painter.setPen(QColor(160, 170, 184));
+    painter.drawText(x_offset, y_offset, "Inertial (x, y):");
+    painter.setPen(QColor(100, 181, 246));  // Light blue for values
+    const QString inertial_coords = QString("%1 m, %2 m").arg(hovered_x_, 0, 'f', 3).arg(hovered_y_, 0, 'f', 3);
+    painter.drawText(x_offset + 95, y_offset, inertial_coords);
+  }
+}
+
+void ViewportWidget::DrawCompass(QPainter& painter) {
+  const int cx = width() - 50;
+  const int cy = 50;
+
+  // Draw dark glassmorphic circular background
+  painter.setPen(QPen(QColor(45, 51, 64, 255), 1));
+  painter.setBrush(QBrush(QColor(26, 29, 36, 220)));
+  painter.drawEllipse(QPoint(cx, cy), 28, 28);
+
+  // Save painter state to apply rotation
+  painter.save();
+  painter.translate(cx, cy);
+  painter.rotate(-camera_.rotation);
+
+  // Draw East axis (positive X) - Slate Blue / Premium Cyan
+  painter.setPen(QPen(QColor(100, 181, 246, 255), 2));
+  painter.drawLine(0, 0, 20, 0);
+
+  // Draw North axis (positive Y, which is up, so -20 in QPainter screen Y) - Red / Premium Coral
+  painter.setPen(QPen(QColor(255, 110, 110, 255), 2));
+  painter.drawLine(0, 0, 0, -20);
+
+  // Draw Labels E and N
+  const QFont font("Segoe UI", 9, QFont::Bold);
+  painter.setFont(font);
+
+  // E Label
+  painter.setPen(QColor(100, 181, 246));
+  painter.drawText(QRect(22, -8, 16, 16), Qt::AlignCenter, "E");
+
+  // N Label
+  painter.setPen(QColor(255, 110, 110));
+  painter.drawText(QRect(-8, -36, 16, 16), Qt::AlignCenter, "N");
+
+  painter.restore();
 }
 
 }  // namespace strada::vis
