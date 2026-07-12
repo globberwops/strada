@@ -39,8 +39,7 @@ class CompiledPhysicsModel {
   /// Compiles the abstract syntax tree (AST) into a highly optimised CompiledPhysicsModel.
   ///
   /// \param map The parsed AST of the road network map.
-  /// \return The compiled physics model ready for query execution.
-  static auto Build(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel;
+  explicit CompiledPhysicsModel(const ast::AbstractSyntaxTree& map);
 
   /// Converts a pose from road-local coordinates (s, t, h) to global inertial coordinates (x, y, z).
   ///

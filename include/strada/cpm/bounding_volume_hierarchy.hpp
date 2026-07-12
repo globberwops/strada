@@ -51,14 +51,13 @@ class BoundingVolumeHierarchy {
   BoundingVolumeHierarchy(BoundingVolumeHierarchy&&) noexcept = default;
   auto operator=(BoundingVolumeHierarchy&&) noexcept -> BoundingVolumeHierarchy& = default;
 
-  /// Builds a BoundingVolumeHierarchy from a set of primitives and their AABBs.
+  /// Constructs a BoundingVolumeHierarchy from a set of primitives and their AABBs.
   ///
   /// \param prim_indices A list of primitive indices that will be partition-sorted during build.
   /// \param temp_primitives A view over the source primitives info.
   /// \param temp_aabbs A view over the corresponding source plan-view AABBs.
-  /// \return The fully constructed BoundingVolumeHierarchy.
-  static auto Build(std::vector<std::uint32_t>& prim_indices, std::span<const PrimitiveInfo> temp_primitives,
-                    std::span<const Aabb> temp_aabbs) -> BoundingVolumeHierarchy;
+  explicit BoundingVolumeHierarchy(std::vector<std::uint32_t>& prim_indices,
+                                   std::span<const PrimitiveInfo> temp_primitives, std::span<const Aabb> temp_aabbs);
 
   /// Queries the hierarchy for primitives that contain or are close to a given point.
   ///

@@ -12,7 +12,7 @@ TEST(BoundingVolumeHierarchyTest, SingleNodeConstruction) {
   std::vector<Aabb> temp_aabbs = {{.min_x = 10.0, .min_y = 20.0, .max_x = 30.0, .max_y = 40.0}};
 
   // Act
-  auto bounding_volume_hierarchy = BoundingVolumeHierarchy::Build(prim_indices, temp_primitives, temp_aabbs);
+  BoundingVolumeHierarchy bounding_volume_hierarchy(prim_indices, temp_primitives, temp_aabbs);
 
   // Assert
   ASSERT_EQ(bounding_volume_hierarchy.Nodes().size(), 1);
@@ -41,7 +41,7 @@ TEST(BoundingVolumeHierarchyTest, RecursiveSplitting) {
                                   {.min_x = 40.0, .min_y = 0.0, .max_x = 41.0, .max_y = 1.0}};
 
   // Act
-  auto bounding_volume_hierarchy = BoundingVolumeHierarchy::Build(prim_indices, temp_primitives, temp_aabbs);
+  BoundingVolumeHierarchy bounding_volume_hierarchy(prim_indices, temp_primitives, temp_aabbs);
 
   // Assert
   ASSERT_GT(bounding_volume_hierarchy.Nodes().size(), 1);
@@ -66,7 +66,7 @@ TEST(BoundingVolumeHierarchyTest, TraversalAndPruning) {
                                   {.min_x = 30.0, .min_y = 0.0, .max_x = 31.0, .max_y = 1.0},
                                   {.min_x = 40.0, .min_y = 0.0, .max_x = 41.0, .max_y = 1.0}};
 
-  auto bounding_volume_hierarchy = BoundingVolumeHierarchy::Build(prim_indices, temp_primitives, temp_aabbs);
+  BoundingVolumeHierarchy bounding_volume_hierarchy(prim_indices, temp_primitives, temp_aabbs);
 
   // Act
   std::vector<std::uint32_t> visited_roads;

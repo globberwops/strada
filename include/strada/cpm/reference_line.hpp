@@ -57,11 +57,10 @@ class ReferenceLine {
   /// Destructor.
   ~ReferenceLine() = default;
 
-  /// Static factory function to construct ReferenceLine from the AST.
+  /// Constructs ReferenceLine from the AST.
   ///
   /// \param map The parsed AST of the road network map.
-  /// \return The compiled ReferenceLine database.
-  static auto Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine;
+  explicit ReferenceLine(const ast::AbstractSyntaxTree& map);
 
   // Move-only semantics
   ReferenceLine(const ReferenceLine&) = delete;

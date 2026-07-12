@@ -18,7 +18,7 @@ TEST(LaneNetworkTest, LanesCompilationAndInspection) {
   auto ast = strada::parser::ParseFile(file_path);
 
   // Act
-  auto lane_network = strada::cpm::LaneNetwork::Build(ast);
+  strada::cpm::LaneNetwork lane_network(ast);
 
   // Assert
   EXPECT_EQ(lane_network.LaneCount(), 3);
@@ -51,7 +51,7 @@ TEST(LaneNetworkTest, LaneTransforms) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto lane_network = strada::cpm::LaneNetwork::Build(ast);
+  strada::cpm::LaneNetwork lane_network(ast);
 
   auto lane0 = strada::cpm::LaneId{0};  // Original ID: -1
   auto lane2 = strada::cpm::LaneId{2};  // Original ID: 1
@@ -118,7 +118,7 @@ TEST(LaneNetworkTest, FindLaneIdLookup) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto lane_network = strada::cpm::LaneNetwork::Build(ast);
+  strada::cpm::LaneNetwork lane_network(ast);
 
   // Act
   auto lane0_opt = lane_network.FindLaneId(RoadId{0}, 0, -1);
@@ -144,7 +144,7 @@ TEST(LaneNetworkTest, GetMaxRoadWidthCalculation) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto lane_network = strada::cpm::LaneNetwork::Build(ast);
+  strada::cpm::LaneNetwork lane_network(ast);
 
   // Act
   double max_width = lane_network.GetMaxRoadWidth(RoadId{0}, 100.0);

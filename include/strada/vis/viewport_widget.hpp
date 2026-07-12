@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <QObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>

@@ -43,9 +43,9 @@ TEST(RoadProjectorTest, ProjectPointExactlyOnStraightRoad) {
 </OpenDRIVE>)"s;
 
   const auto ast = parser::ParseString(xml);
-  const auto ref_line = ReferenceLine::Build(ast);
-  const auto elevation_profile = ElevationProfile::Build(ast);
-  const auto lane_network = LaneNetwork::Build(ast);
+  const ReferenceLine ref_line(ast);
+  const ElevationProfile elevation_profile(ast);
+  const LaneNetwork lane_network(ast);
 
   const auto projector = RoadProjector{ref_line, elevation_profile, lane_network};
 
@@ -92,9 +92,9 @@ TEST(RoadProjectorTest, ProjectPointWithLateralOffsetWithinLanes) {
 </OpenDRIVE>)"s;
 
   const auto ast = parser::ParseString(xml);
-  const auto ref_line = ReferenceLine::Build(ast);
-  const auto elevation_profile = ElevationProfile::Build(ast);
-  const auto lane_network = LaneNetwork::Build(ast);
+  const ReferenceLine ref_line(ast);
+  const ElevationProfile elevation_profile(ast);
+  const LaneNetwork lane_network(ast);
 
   const auto projector = RoadProjector{ref_line, elevation_profile, lane_network};
 
@@ -140,9 +140,9 @@ TEST(RoadProjectorTest, ProjectPointOutsideSnappingToleranceReturnsNullopt) {
 </OpenDRIVE>)"s;
 
   const auto ast = parser::ParseString(xml);
-  const auto ref_line = ReferenceLine::Build(ast);
-  const auto elevation_profile = ElevationProfile::Build(ast);
-  const auto lane_network = LaneNetwork::Build(ast);
+  const ReferenceLine ref_line(ast);
+  const ElevationProfile elevation_profile(ast);
+  const LaneNetwork lane_network(ast);
 
   const auto projector = RoadProjector{ref_line, elevation_profile, lane_network};
 

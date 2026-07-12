@@ -200,17 +200,14 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
 
 }  // namespace
 
-auto BoundingVolumeHierarchy::Build(std::vector<std::uint32_t>& prim_indices,
-                                    std::span<const PrimitiveInfo> temp_primitives, std::span<const Aabb> temp_aabbs)
-    -> BoundingVolumeHierarchy {
-  BoundingVolumeHierarchy bounding_volume_hierarchy;
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(std::vector<std::uint32_t>& prim_indices,
+                                                 std::span<const PrimitiveInfo> temp_primitives,
+                                                 std::span<const Aabb> temp_aabbs) {
   if (temp_primitives.empty()) {
-    return bounding_volume_hierarchy;
+    return;
   }
-  BuildBoundingVolumeHierarchyRecursive(bounding_volume_hierarchy.nodes_, bounding_volume_hierarchy.primitives_,
-                                        prim_indices, temp_primitives, temp_aabbs, 0,
+  BuildBoundingVolumeHierarchyRecursive(nodes_, primitives_, prim_indices, temp_primitives, temp_aabbs, 0,
                                         static_cast<std::uint32_t>(temp_primitives.size()));
-  return bounding_volume_hierarchy;
 }
 
 auto BoundingVolumeHierarchy::DistancePointToAabb(double px, double py, double min_x, double min_y, double max_x,

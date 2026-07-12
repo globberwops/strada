@@ -103,8 +103,7 @@ class LaneNetwork {
   /// Builds the LaneNetwork database from the map abstract syntax tree.
   ///
   /// \param map The map AST.
-  /// \return Compiled LaneNetwork.
-  static auto Build(const ast::AbstractSyntaxTree& map) -> LaneNetwork;
+  explicit LaneNetwork(const ast::AbstractSyntaxTree& map);
 
   /// Translates a road-local pose to the corresponding lane-local pose.
   ///

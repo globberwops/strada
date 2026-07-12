@@ -40,7 +40,7 @@ TEST(ElevationProfileTest, CompileAndEvaluateElevationAndSuperelevation) {
   auto ast = parser::ParseString(xml);
 
   // Act
-  auto profile = ElevationProfile::Build(ast);
+  ElevationProfile profile(ast);
   RoadId road{0};
 
   // Assert at s = 10.0, t = 0.0
@@ -92,7 +92,7 @@ TEST(ElevationProfileTest, SuperelevationIsZeroIfCrossSectionSurfacePresent) {
   auto ast = parser::ParseString(xml);
 
   // Act
-  auto profile = ElevationProfile::Build(ast);
+  ElevationProfile profile(ast);
   RoadId road{0};
 
   // Assert
@@ -129,7 +129,7 @@ TEST(ElevationProfileTest, ShapeProfileEvaluation) {
   auto ast = parser::ParseString(xml);
 
   // Act
-  auto profile = ElevationProfile::Build(ast);
+  ElevationProfile profile(ast);
   RoadId road{0};
 
   // Assert

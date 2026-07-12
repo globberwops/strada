@@ -44,7 +44,7 @@ TEST(CompiledPhysicsModelTest, CompileAndQueryConstantCrossSectionSurface) {
   auto ast = strada::parser::ParseString(xml);
 
   // Act
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
 
   // Assert basic inspection
   EXPECT_EQ(cpm_model.RoadCount(), 1);
@@ -85,7 +85,7 @@ TEST(CompiledPhysicsModelTest, QueryMultiStripCrossSectionSurface) {
   auto ast = strada::parser::ParseFile(file_path);
 
   // Act
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
   auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
   if (!road_id_opt.has_value()) {
@@ -213,7 +213,7 @@ TEST(CompiledPhysicsModelTest, QueryRelativeModeCrossSectionSurface) {
   auto ast = strada::parser::ParseString(xml);
 
   // Act
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
   auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
   if (!road_id_opt.has_value()) {
@@ -252,7 +252,7 @@ TEST(CompiledPhysicsModelTest, QueryLineAndArcReferenceLine) {
   auto ast = strada::parser::ParseFile(file_path);
 
   // Act
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
   auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
   if (!road_id_opt.has_value()) {
@@ -347,7 +347,7 @@ TEST(CompiledPhysicsModelTest, QuerySpiralReferenceLine) {
   auto ast = strada::parser::ParseFile(file_path);
 
   // Act
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
   auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
   if (!road_id_opt.has_value()) {
@@ -415,7 +415,7 @@ TEST(CompiledPhysicsModelTest, QueryPoly3AndParamPoly3ReferenceLine) {
   auto ast = strada::parser::ParseFile(file_path);
 
   // Act
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
   auto road_id_opt = cpm_model.RoadIdFromString("1");
   ASSERT_TRUE(road_id_opt.has_value());
   if (!road_id_opt.has_value()) {
@@ -512,7 +512,7 @@ TEST(CompiledPhysicsModelTest, QueryPoly3AndParamPoly3ReferenceLine) {
   }
 }
 
-TEST(CompiledPhysicsModelTest, BuildStaticFactory) {
+TEST(CompiledPhysicsModelTest, ConstructorDirect) {
   // Arrange
   const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
 <OpenDRIVE>
@@ -538,7 +538,7 @@ TEST(CompiledPhysicsModelTest, BuildStaticFactory) {
   auto ast = strada::parser::ParseString(xml);
 
   // Act
-  auto model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel model(ast);
 
   // Assert
   EXPECT_EQ(model.RoadCount(), 1);
@@ -549,7 +549,7 @@ TEST(CompiledPhysicsModelTest, LaneTransforms) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
 
   auto lane0 = strada::cpm::LaneId{0};  // Original ID: -1
   auto lane2 = strada::cpm::LaneId{2};  // Original ID: 1
@@ -628,7 +628,7 @@ TEST(CompiledPhysicsModelTest, BoundingVolumeHierarchyConstructionAndLayout) {
   auto ast = strada::parser::ParseFile(file_path);
 
   // Act
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
   const auto& nodes = cpm_model.GetBoundingVolumeHierarchyNodes();
   const auto& primitives = cpm_model.GetBoundingVolumeHierarchyPrimitives();
 
@@ -668,7 +668,7 @@ TEST(CompiledPhysicsModelTest, InertialToRoadSnapping) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "geometry.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
   auto road_id = *cpm_model.RoadIdFromString("1");
 
   strada::cpm::QueryContext ctx;
@@ -755,7 +755,7 @@ TEST(CompiledPhysicsModelTest, OrientationStripping) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "geometry.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
 
   strada::cpm::QueryContext ctx;
 
@@ -813,7 +813,7 @@ TEST(CompiledPhysicsModelTest, BoundingVolumeHierarchyQueryContextFastPath) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "geometry.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
   auto road_id = *cpm_model.RoadIdFromString("1");
 
   strada::cpm::QueryContext ctx;
@@ -859,7 +859,7 @@ TEST(CompiledPhysicsModelTest, RoundTripInertialRoadInertial) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "geometry.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
 
   strada::cpm::QueryContext ctx;
 
@@ -931,7 +931,7 @@ TEST(CompiledPhysicsModelTest, CrossPoseQueries) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "lanes_and_profiles.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
 
   auto lane0 = strada::cpm::LaneId{0};  // Original ID: -1
   auto lane2 = strada::cpm::LaneId{2};  // Original ID: 1 (left)
@@ -1023,7 +1023,7 @@ TEST(CompiledPhysicsModelTest, RoundTripLaneInertialLane) {
   std::filesystem::path data_dir = STRADA_TEST_DATA_DIR;
   std::filesystem::path file_path = data_dir / "lanes_flat.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
 
   auto lane2 = strada::cpm::LaneId{2};  // Original ID: 1
 
@@ -1062,7 +1062,7 @@ TEST(CompiledPhysicsModelTest, BivariateShapeProfile) {
   // Note: bivariate_shape_road.xodr is located in tests/cpm/data/
   std::filesystem::path file_path = data_dir / ".." / "cpm" / "data" / "bivariate_shape_road.xodr";
   auto ast = strada::parser::ParseFile(file_path);
-  auto cpm_model = strada::cpm::CompiledPhysicsModel::Build(ast);
+  strada::cpm::CompiledPhysicsModel cpm_model(ast);
 
   strada::cpm::QueryContext ctx;
 

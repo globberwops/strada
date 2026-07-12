@@ -45,7 +45,7 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
     auto map = parser::ParseFile(file_path);
 
     // 2. Compile Physics Model once
-    auto cpm = cpm::CompiledPhysicsModel::Build(map);
+    cpm::CompiledPhysicsModel cpm(map);
 
     // 3. Build Tessellator
     const tess::Tessellator tess(map, cpm, 0.1);  // Use 0.1m chord error for rendering quality

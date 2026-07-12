@@ -22,7 +22,7 @@ static auto GetTestDataPath(const std::string& filename) -> std::filesystem::pat
 TEST(TessellatorTest, EmptyMap) {
   // Arrange: empty AST
   ast::AbstractSyntaxTree map;
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act: tessellate
   Tessellator tess(map, model, 0.5);
@@ -36,7 +36,7 @@ TEST(TessellatorTest, StraightRoadReferenceLine) {
   // Arrange: parse roads.xodr containing two straight line roads
   auto map_path = GetTestDataPath("roads.xodr");
   auto map = parser::ParseFile(map_path);
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act: tessellate with 0.5m chord error
   Tessellator tess(map, model, 0.5);
@@ -85,7 +85,7 @@ TEST(TessellatorTest, LaneBoundariesAndMarkingTypes) {
   // Arrange: parse lanes_flat.xodr containing a multi-lane road
   auto map_path = GetTestDataPath("lanes_flat.xodr");
   auto map = parser::ParseFile(map_path);
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act: tessellate
   Tessellator tess(map, model, 0.5);
@@ -175,7 +175,7 @@ TEST(TessellatorTest, MultipleLanesMarkingTypes) {
 
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act: tessellate
   Tessellator tess(map, model, 0.5);
@@ -201,7 +201,7 @@ TEST(TessellatorTest, LaneSurfaceTriangulation) {
   // Arrange: parse lanes_flat.xodr
   auto map_path = GetTestDataPath("lanes_flat.xodr");
   auto map = parser::ParseFile(map_path);
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act: tessellate
   Tessellator tess(map, model, 0.5);
@@ -253,7 +253,7 @@ TEST(TessellatorTest, JunctionBoundaryTessellation) {
   // Arrange
   auto map_path = GetTestDataPath("junction_boundary.xodr");
   auto map = parser::ParseFile(map_path);
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act
   Tessellator tess(map, model, 0.5);
@@ -346,7 +346,7 @@ TEST(TessellatorTest, JunctionJointBoundaryTessellation) {
 
   junction.boundary = boundary;
   map.junctions.push_back(junction);
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act
   Tessellator tess(map, model, 0.5);
@@ -402,7 +402,7 @@ TEST(TessellatorTest, JunctionBoundaryFallbackWithoutBoundaryTag) {
   junction.id = "100";
   // NO boundary set
   map.junctions.push_back(junction);
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act
   Tessellator tess(map, model, 0.5);
@@ -464,7 +464,7 @@ TEST(TessellatorTest, RoadObjectsTessellation) {
 
   map.roads.push_back(road);
 
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act
   Tessellator tess(map, model, 0.5);
@@ -563,7 +563,7 @@ TEST(TessellatorTest, RoadObjectsCornersTessellation) {
 
   map.roads.push_back(road);
 
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act
   Tessellator tess(map, model, 0.5);
@@ -651,7 +651,7 @@ TEST(TessellatorTest, RoadSignalsTessellation) {
 
   map.roads.push_back(road);
 
-  auto model = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel model(map);
 
   // Act
   Tessellator tess(map, model, 0.5);

@@ -95,7 +95,7 @@ TEST(VisTest, BatchMapGeometryTriangulation) {
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
 
-  auto cpm = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel cpm(map);
   tess::Tessellator tess(map, cpm, 0.5);
   ASSERT_EQ(tess.Meshes().size(), 1);
 
@@ -158,7 +158,7 @@ TEST(VisTest, BatchMapGeometryLines) {
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
 
-  auto cpm = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel cpm(map);
   tess::Tessellator tess(map, cpm, 0.5);
   // Expect 1 reference line polyline and 1 outer boundary polyline
   ASSERT_EQ(tess.Polylines().size(), 2);
@@ -236,7 +236,7 @@ TEST(VisTest, MeshRangeTracking) {
   road.lanes.sections.push_back(section);
   map.roads.push_back(road);
 
-  auto cpm = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel cpm(map);
   tess::Tessellator tess(map, cpm, 0.5);
   ASSERT_EQ(tess.Meshes().size(), 1);
 
@@ -260,7 +260,7 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
   auto map = parser::ParseFile(map_path);
 
   // Act
-  auto cpm = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel cpm(map);
   tess::Tessellator tess(map, cpm, 0.5);
   auto batched = BatchMapGeometry(tess);
 
@@ -357,7 +357,7 @@ TEST(VisTest, BatchMapGeometryObjects) {
 
   map.roads.push_back(road);
 
-  cpm::CompiledPhysicsModel cpm = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel cpm(map);
   tess::Tessellator tess(map, cpm, 0.5);
 
   // Act
@@ -462,7 +462,7 @@ TEST(VisTest, BatchMapGeometrySignals) {
 
   map.roads.push_back(road);
 
-  cpm::CompiledPhysicsModel cpm = cpm::CompiledPhysicsModel::Build(map);
+  cpm::CompiledPhysicsModel cpm(map);
   tess::Tessellator tess(map, cpm, 0.5);
 
   // Act

@@ -122,9 +122,7 @@ auto EvaluateGroupTGradient(const ShapesSoA& shapes, const ShapeGroup& group, do
 
 }  // namespace
 
-auto ElevationProfile::Build(const ast::AbstractSyntaxTree& map) -> ElevationProfile {
-  ElevationProfile profile;
-
+ElevationProfile::ElevationProfile(const ast::AbstractSyntaxTree& map) {
   for (const auto& road : map.roads) {
     // Elevation profile compilation
     {
@@ -133,9 +131,9 @@ auto ElevationProfile::Build(const ast::AbstractSyntaxTree& map) -> ElevationPro
       for (const auto& elev : road.elevation_profile.elevations) {
         coeffs.push_back({elev.s, elev.a, elev.b, elev.c, elev.d});
       }
-      auto [first_idx, count] = profile.polynomials_.Compile(coeffs);
-      profile.elevation_.road_elevation_first_idx.push_back(first_idx);
-      profile.elevation_.road_elevation_count.push_back(count);
+      auto [first_idx, count] = polynomials_.Compile(coeffs);
+      elevation_.road_elevation_first_idx.push_back(first_idx);
+      elevation_.road_elevation_count.push_back(count);
     }
 
     // Superelevation profile compilation
@@ -145,33 +143,31 @@ auto ElevationProfile::Build(const ast::AbstractSyntaxTree& map) -> ElevationPro
       for (const auto& super : road.lateral_profile.superelevations) {
         coeffs.push_back({super.s, super.a, super.b, super.c, super.d});
       }
-      auto [first_idx, count] = profile.polynomials_.Compile(coeffs);
-      profile.elevation_.road_superelevation_first_idx.push_back(first_idx);
-      profile.elevation_.road_superelevation_count.push_back(count);
+      auto [first_idx, count] = polynomials_.Compile(coeffs);
+      elevation_.road_superelevation_first_idx.push_back(first_idx);
+      elevation_.road_superelevation_count.push_back(count);
     }
 
     // Shape profile compilation
     {
-      auto first_idx = static_cast<std::uint32_t>(profile.shapes_.s.size());
+      auto first_idx = static_cast<std::uint32_t>(shapes_.s.size());
       auto count = static_cast<std::uint32_t>(road.lateral_profile.shapes.size());
       for (const auto& shape : road.lateral_profile.shapes) {
-        profile.shapes_.s.push_back(shape.s);
-        profile.shapes_.t.push_back(shape.t);
-        profile.shapes_.a.push_back(shape.a);
-        profile.shapes_.b.push_back(shape.b);
-        profile.shapes_.c.push_back(shape.c);
-        profile.shapes_.d.push_back(shape.d);
+        shapes_.s.push_back(shape.s);
+        shapes_.t.push_back(shape.t);
+        shapes_.a.push_back(shape.a);
+        shapes_.b.push_back(shape.b);
+        shapes_.c.push_back(shape.c);
+        shapes_.d.push_back(shape.d);
       }
-      profile.shapes_.road_shape_first_idx.push_back(first_idx);
-      profile.shapes_.road_shape_count.push_back(count);
+      shapes_.road_shape_first_idx.push_back(first_idx);
+      shapes_.road_shape_count.push_back(count);
     }
 
     // Record whether road has cross section surface strips
     bool has_css = road.lateral_profile.cross_section_surface.has_value();
-    profile.road_has_css_.push_back(static_cast<std::uint8_t>(has_css));
+    road_has_css_.push_back(static_cast<std::uint8_t>(has_css));
   }
-
-  return profile;
 }
 
 auto ElevationProfile::Evaluate(RoadId road, double s, double t) const noexcept -> VerticalProfile {

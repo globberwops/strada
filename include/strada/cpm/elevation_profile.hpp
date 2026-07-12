@@ -58,8 +58,7 @@ class ElevationProfile {
   /// Builds the ElevationProfile database from the map abstract syntax tree.
   ///
   /// \param map The map AST.
-  /// \return Compiled ElevationProfile.
-  static auto Build(const ast::AbstractSyntaxTree& map) -> ElevationProfile;
+  explicit ElevationProfile(const ast::AbstractSyntaxTree& map);
 
   /// Evaluates the vertical profile properties at the specified s and t coordinates on a road.
   ///

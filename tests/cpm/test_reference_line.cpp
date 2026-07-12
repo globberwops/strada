@@ -30,7 +30,7 @@ TEST(ReferenceLineTest, CompileAndEvaluateSimpleLine) {
   auto ast = strada::parser::ParseString(xml);
 
   // Act
-  auto ref_line = ReferenceLine::Build(ast);
+  ReferenceLine ref_line(ast);
 
   // Assert structure
   EXPECT_EQ(ref_line.TotalSegmentsCount(), 1);
@@ -80,7 +80,7 @@ TEST(ReferenceLineTest, CompileAndProjectLineAndArc) {
 </OpenDRIVE>)";
 
   auto ast = strada::parser::ParseString(xml);
-  auto ref_line = ReferenceLine::Build(ast);
+  ReferenceLine ref_line(ast);
 
   EXPECT_EQ(ref_line.TotalSegmentsCount(), 2);
 
@@ -137,7 +137,7 @@ TEST(ReferenceLineTest, ComputeSegmentAabb) {
 </OpenDRIVE>)";
 
   auto ast = strada::parser::ParseString(xml);
-  auto ref_line = ReferenceLine::Build(ast);
+  ReferenceLine ref_line(ast);
 
   // Act
   auto aabb = ref_line.ComputeSegmentAabb(0, 0.5);
@@ -174,7 +174,7 @@ TEST(ReferenceLineTest, FindSegmentIndexAndCoherence) {
 </OpenDRIVE>)";
 
   auto ast = strada::parser::ParseString(xml);
-  auto ref_line = ReferenceLine::Build(ast);
+  ReferenceLine ref_line(ast);
   QueryContext ctx;
 
   // 1. Initial query: empty cache, should look up and find segment 0, and update cache

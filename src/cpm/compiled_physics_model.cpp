@@ -15,15 +15,11 @@ namespace strada::cpm {
 
 namespace {}  // namespace
 
-auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> CompiledPhysicsModel {
-  CompiledPhysicsModel model;
-  model.ref_line_ = ReferenceLine::Build(map);
-  model.elevation_profile_ = ElevationProfile::Build(map);
-  model.lane_network_ = LaneNetwork::Build(map);
-
+CompiledPhysicsModel::CompiledPhysicsModel(const ast::AbstractSyntaxTree& map)
+    : ref_line_(map), elevation_profile_(map), lane_network_(map) {
   for (const auto& road : map.roads) {
-    model.road_string_ids_.push_back(road.id);
-    model.road_lengths_.push_back(road.length);
+    road_string_ids_.push_back(road.id);
+    road_lengths_.push_back(road.length);
   }
 
   // Global bounding volume hierarchy construction
@@ -31,22 +27,21 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
   road_max_t.reserve(map.roads.size());
 
   for (std::size_t road_idx = 0; road_idx < map.roads.size(); ++road_idx) {
-    const double max_road_t =
-        model.lane_network_.GetMaxRoadWidth(static_cast<RoadId>(road_idx), model.road_lengths_[road_idx]);
+    const double max_road_t = lane_network_.GetMaxRoadWidth(static_cast<RoadId>(road_idx), road_lengths_[road_idx]);
     road_max_t.push_back(max_road_t);
   }
 
   std::vector<BoundingVolumeHierarchy::PrimitiveInfo> temp_primitives;
   std::vector<Aabb> temp_aabbs;
 
-  const auto num_roads = static_cast<std::uint32_t>(model.road_lengths_.size());
+  const auto num_roads = static_cast<std::uint32_t>(road_lengths_.size());
   for (std::uint32_t road_idx = 0; road_idx < num_roads; ++road_idx) {
-    const auto [first_seg, seg_count] = model.ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
+    const auto [first_seg, seg_count] = ref_line_.GetRoadSegments(static_cast<RoadId>(road_idx));
     const auto inflation = road_max_t[road_idx];
     for (std::uint32_t i = 0; i < seg_count; ++i) {
       const std::uint32_t seg_idx = first_seg + i;
       temp_primitives.push_back(BoundingVolumeHierarchy::PrimitiveInfo{.road_idx = road_idx, .segment_idx = seg_idx});
-      const auto aabb = model.ref_line_.ComputeSegmentAabb(seg_idx, inflation);
+      const auto aabb = ref_line_.ComputeSegmentAabb(seg_idx, inflation);
       temp_aabbs.push_back(aabb);
     }
   }
@@ -56,10 +51,8 @@ auto CompiledPhysicsModel::Build(const ast::AbstractSyntaxTree& map) -> Compiled
     for (std::uint32_t i = 0; i < prim_indices.size(); ++i) {
       prim_indices[i] = i;
     }
-    model.bounding_volume_hierarchy_ = BoundingVolumeHierarchy::Build(prim_indices, temp_primitives, temp_aabbs);
+    bounding_volume_hierarchy_ = BoundingVolumeHierarchy(prim_indices, temp_primitives, temp_aabbs);
   }
-
-  return model;
 }
 
 [[gnu::hot]] auto CompiledPhysicsModel::RoadToInertial(RoadPose pose, QueryContext& ctx) const noexcept

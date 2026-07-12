@@ -15,100 +15,96 @@ constexpr double kPolyCoeff3 = 3.0;
 
 }  // namespace
 
-auto ReferenceLine::Build(const ast::AbstractSyntaxTree& map) -> ReferenceLine {
-  ReferenceLine rl;
-
+ReferenceLine::ReferenceLine(const ast::AbstractSyntaxTree& map) {
   for (const auto& road : map.roads) {
-    rl.road_ref_line_first_idx_.push_back(static_cast<std::uint32_t>(rl.s_offset_.size()));
-    rl.road_ref_line_count_.push_back(static_cast<std::uint32_t>(road.plan_view.size()));
+    road_ref_line_first_idx_.push_back(static_cast<std::uint32_t>(s_offset_.size()));
+    road_ref_line_count_.push_back(static_cast<std::uint32_t>(road.plan_view.size()));
 
     for (const auto& geom : road.plan_view) {
-      rl.s_offset_.push_back(geom.s);
-      rl.length_.push_back(geom.length);
-      rl.x_.push_back(geom.x);
-      rl.y_.push_back(geom.y);
-      rl.hdg_.push_back(geom.hdg);
+      s_offset_.push_back(geom.s);
+      length_.push_back(geom.length);
+      x_.push_back(geom.x);
+      y_.push_back(geom.y);
+      hdg_.push_back(geom.hdg);
 
       if (std::holds_alternative<ast::Line>(geom.shape)) {
-        rl.type_.push_back(GeometryType::kLine);
-        rl.type_index_.push_back(0);
-        rl.spiral_curv_start_.push_back(0.0);
-        rl.spiral_curv_end_.push_back(0.0);
-        rl.pp3_a_u_.push_back(0.0);
-        rl.pp3_b_u_.push_back(0.0);
-        rl.pp3_c_u_.push_back(0.0);
-        rl.pp3_d_u_.push_back(0.0);
-        rl.pp3_a_v_.push_back(0.0);
-        rl.pp3_b_v_.push_back(0.0);
-        rl.pp3_c_v_.push_back(0.0);
-        rl.pp3_d_v_.push_back(0.0);
-        rl.pp3_p_range_.push_back(0);
+        type_.push_back(GeometryType::kLine);
+        type_index_.push_back(0);
+        spiral_curv_start_.push_back(0.0);
+        spiral_curv_end_.push_back(0.0);
+        pp3_a_u_.push_back(0.0);
+        pp3_b_u_.push_back(0.0);
+        pp3_c_u_.push_back(0.0);
+        pp3_d_u_.push_back(0.0);
+        pp3_a_v_.push_back(0.0);
+        pp3_b_v_.push_back(0.0);
+        pp3_c_v_.push_back(0.0);
+        pp3_d_v_.push_back(0.0);
+        pp3_p_range_.push_back(0);
       } else if (std::holds_alternative<ast::Arc>(geom.shape)) {
-        rl.type_.push_back(GeometryType::kArc);
-        rl.type_index_.push_back(static_cast<std::uint32_t>(rl.arc_curvature_.size()));
-        rl.arc_curvature_.push_back(std::get<ast::Arc>(geom.shape).curvature);
-        rl.spiral_curv_start_.push_back(0.0);
-        rl.spiral_curv_end_.push_back(0.0);
-        rl.pp3_a_u_.push_back(0.0);
-        rl.pp3_b_u_.push_back(0.0);
-        rl.pp3_c_u_.push_back(0.0);
-        rl.pp3_d_u_.push_back(0.0);
-        rl.pp3_a_v_.push_back(0.0);
-        rl.pp3_b_v_.push_back(0.0);
-        rl.pp3_c_v_.push_back(0.0);
-        rl.pp3_d_v_.push_back(0.0);
-        rl.pp3_p_range_.push_back(0);
+        type_.push_back(GeometryType::kArc);
+        type_index_.push_back(static_cast<std::uint32_t>(arc_curvature_.size()));
+        arc_curvature_.push_back(std::get<ast::Arc>(geom.shape).curvature);
+        spiral_curv_start_.push_back(0.0);
+        spiral_curv_end_.push_back(0.0);
+        pp3_a_u_.push_back(0.0);
+        pp3_b_u_.push_back(0.0);
+        pp3_c_u_.push_back(0.0);
+        pp3_d_u_.push_back(0.0);
+        pp3_a_v_.push_back(0.0);
+        pp3_b_v_.push_back(0.0);
+        pp3_c_v_.push_back(0.0);
+        pp3_d_v_.push_back(0.0);
+        pp3_p_range_.push_back(0);
       } else if (std::holds_alternative<ast::Spiral>(geom.shape)) {
-        rl.type_.push_back(GeometryType::kSpiral);
-        rl.type_index_.push_back(0);
+        type_.push_back(GeometryType::kSpiral);
+        type_index_.push_back(0);
         const auto& spiral = std::get<ast::Spiral>(geom.shape);
-        rl.spiral_curv_start_.push_back(spiral.curv_start);
-        rl.spiral_curv_end_.push_back(spiral.curv_end);
-        rl.pp3_a_u_.push_back(0.0);
-        rl.pp3_b_u_.push_back(0.0);
-        rl.pp3_c_u_.push_back(0.0);
-        rl.pp3_d_u_.push_back(0.0);
-        rl.pp3_a_v_.push_back(0.0);
-        rl.pp3_b_v_.push_back(0.0);
-        rl.pp3_c_v_.push_back(0.0);
-        rl.pp3_d_v_.push_back(0.0);
-        rl.pp3_p_range_.push_back(0);
+        spiral_curv_start_.push_back(spiral.curv_start);
+        spiral_curv_end_.push_back(spiral.curv_end);
+        pp3_a_u_.push_back(0.0);
+        pp3_b_u_.push_back(0.0);
+        pp3_c_u_.push_back(0.0);
+        pp3_d_u_.push_back(0.0);
+        pp3_a_v_.push_back(0.0);
+        pp3_b_v_.push_back(0.0);
+        pp3_c_v_.push_back(0.0);
+        pp3_d_v_.push_back(0.0);
+        pp3_p_range_.push_back(0);
       } else if (std::holds_alternative<ast::Poly3>(geom.shape)) {
-        rl.type_.push_back(GeometryType::kParamPoly3);
-        rl.type_index_.push_back(0);
-        rl.spiral_curv_start_.push_back(0.0);
-        rl.spiral_curv_end_.push_back(0.0);
+        type_.push_back(GeometryType::kParamPoly3);
+        type_index_.push_back(0);
+        spiral_curv_start_.push_back(0.0);
+        spiral_curv_end_.push_back(0.0);
         const auto& poly = std::get<ast::Poly3>(geom.shape);
         const ast::ParamPoly3 param = ConvertPoly3ToParamPoly3(geom.length, poly.a, poly.b, poly.c, poly.d);
-        rl.pp3_a_u_.push_back(param.a_u);
-        rl.pp3_b_u_.push_back(param.b_u);
-        rl.pp3_c_u_.push_back(param.c_u);
-        rl.pp3_d_u_.push_back(param.d_u);
-        rl.pp3_a_v_.push_back(param.a_v);
-        rl.pp3_b_v_.push_back(param.b_v);
-        rl.pp3_c_v_.push_back(param.c_v);
-        rl.pp3_d_v_.push_back(param.d_v);
-        rl.pp3_p_range_.push_back(1);
+        pp3_a_u_.push_back(param.a_u);
+        pp3_b_u_.push_back(param.b_u);
+        pp3_c_u_.push_back(param.c_u);
+        pp3_d_u_.push_back(param.d_u);
+        pp3_a_v_.push_back(param.a_v);
+        pp3_b_v_.push_back(param.b_v);
+        pp3_c_v_.push_back(param.c_v);
+        pp3_d_v_.push_back(param.d_v);
+        pp3_p_range_.push_back(1);
       } else if (std::holds_alternative<ast::ParamPoly3>(geom.shape)) {
-        rl.type_.push_back(GeometryType::kParamPoly3);
-        rl.type_index_.push_back(0);
-        rl.spiral_curv_start_.push_back(0.0);
-        rl.spiral_curv_end_.push_back(0.0);
+        type_.push_back(GeometryType::kParamPoly3);
+        type_index_.push_back(0);
+        spiral_curv_start_.push_back(0.0);
+        spiral_curv_end_.push_back(0.0);
         const auto& param = std::get<ast::ParamPoly3>(geom.shape);
-        rl.pp3_a_u_.push_back(param.a_u);
-        rl.pp3_b_u_.push_back(param.b_u);
-        rl.pp3_c_u_.push_back(param.c_u);
-        rl.pp3_d_u_.push_back(param.d_u);
-        rl.pp3_a_v_.push_back(param.a_v);
-        rl.pp3_b_v_.push_back(param.b_v);
-        rl.pp3_c_v_.push_back(param.c_v);
-        rl.pp3_d_v_.push_back(param.d_v);
-        rl.pp3_p_range_.push_back(param.p_range == ast::PRange::kArcLength ? 1 : 0);
+        pp3_a_u_.push_back(param.a_u);
+        pp3_b_u_.push_back(param.b_u);
+        pp3_c_u_.push_back(param.c_u);
+        pp3_d_u_.push_back(param.d_u);
+        pp3_a_v_.push_back(param.a_v);
+        pp3_b_v_.push_back(param.b_v);
+        pp3_c_v_.push_back(param.c_v);
+        pp3_d_v_.push_back(param.d_v);
+        pp3_p_range_.push_back(param.p_range == ast::PRange::kArcLength ? 1 : 0);
       }
     }
   }
-
-  return rl;
 }
 
 auto ReferenceLine::Evaluate(std::uint32_t seg_idx, double road_s) const noexcept -> ReferenceLinePoint {
