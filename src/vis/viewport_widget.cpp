@@ -190,120 +190,11 @@ void ViewportWidget::paintGL() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   if (geometry_dirty_) {
-    SetupTriangles();
-    SetupLines();
-    SetupBoundaries();
-    SetupObjects();
-    SetupSignals();
+    UpdateGeometryBuffers();
     geometry_dirty_ = false;
   }
 
-  shader_program_.bind();
-  shader_program_.setUniformValue("useOverrideColor", 0);
-  shader_program_.setUniformValue("projection", camera_.GetProjectionMatrix());
-  shader_program_.setUniformValue("view", camera_.GetViewMatrix());
-
-  // Draw Grid first in the background (no depth test/write)
-  glDisable(GL_DEPTH_TEST);
-  glDepthMask(GL_FALSE);
-  RenderGrid();
-  glDepthMask(GL_TRUE);
-  glEnable(GL_DEPTH_TEST);
-
-  // Draw Filled Junction Boundaries in the background (below lane meshes)
-  if (show_junction_boundaries_ && !geometry_.boundary_triangle_indices.empty()) {
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    shader_program_.setUniformValue("useOverrideColor", 1);
-    shader_program_.setUniformValue("overrideColor",
-                                    QVector4D(245.0F / 255.0F, 197.0F / 255.0F, 61.0F / 255.0F, 0.12F));
-    boundaries_vao_.bind();
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(geometry_.boundary_triangle_indices.size()), GL_UNSIGNED_INT,
-                   nullptr);
-    boundaries_vao_.release();
-    shader_program_.setUniformValue("useOverrideColor", 0);
-    glDisable(GL_BLEND);
-  }
-
-  // 1. Draw Road Surface Meshes
-  if (show_lanes_ && !geometry_.triangle_indices.empty()) {
-    triangles_vao_.bind();
-    for (const auto& range : geometry_.mesh_ranges) {
-      if (!show_border_lanes_ &&
-          (range.lane_type == ast::LaneType::kBorder || range.lane_type == ast::LaneType::kNone)) {
-        continue;
-      }
-      if (range.index_count > 0) {
-        const void* offset =
-            reinterpret_cast<const void*>(static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
-      }
-    }
-    triangles_vao_.release();
-  }
-
-  // 2. Draw Boundaries/Markings in a Single batched call
-  if (show_reference_lines_ && !geometry_.line_vertices.empty()) {
-    glDisable(GL_DEPTH_TEST);
-    lines_vao_.bind();
-    glLineWidth(2.0F);
-    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.line_vertices.size()));
-    lines_vao_.release();
-    glEnable(GL_DEPTH_TEST);
-  }
-
-  // Draw Objects in a Single batched call
-  if (show_objects_ && !geometry_.object_line_vertices.empty()) {
-    glDisable(GL_DEPTH_TEST);
-    objects_vao_.bind();
-    glLineWidth(2.0F);
-    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.object_line_vertices.size()));
-    objects_vao_.release();
-    glEnable(GL_DEPTH_TEST);
-  }
-
-  // Draw Signals in a Single batched call
-  if (show_signals_ && !geometry_.signal_line_vertices.empty()) {
-    glDisable(GL_DEPTH_TEST);
-    signals_vao_.bind();
-    glLineWidth(2.0F);
-    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.signal_line_vertices.size()));
-    signals_vao_.release();
-    glEnable(GL_DEPTH_TEST);
-  }
-
-  // 3. Draw Hover Highlight Overlay
-  if (show_lanes_ && has_model_ && hovered_pose_) {
-    for (const auto& range : geometry_.mesh_ranges) {
-      if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
-        if (!show_border_lanes_ &&
-            (range.lane_type == ast::LaneType::kBorder || range.lane_type == ast::LaneType::kNone)) {
-          break;
-        }
-        if (range.index_count > 0) {
-          glDisable(GL_DEPTH_TEST);
-          glEnable(GL_BLEND);
-          glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-          shader_program_.setUniformValue("useOverrideColor", 1);
-          shader_program_.setUniformValue("overrideColor", QVector4D(1.0F, 0.0F, 0.0F, 0.4F));
-
-          triangles_vao_.bind();
-          const void* offset =
-              reinterpret_cast<const void*>(static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
-          glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
-          triangles_vao_.release();
-
-          shader_program_.setUniformValue("useOverrideColor", 0);
-          glDisable(GL_BLEND);
-          glEnable(GL_DEPTH_TEST);
-        }
-        break;
-      }
-    }
-  }
-
-  shader_program_.release();
+  DrawScene();
 
   // 4. Draw QPainter overlays (HUD, Compass, Scale Bar)
   {
@@ -951,6 +842,125 @@ void ViewportWidget::RenderGrid() {
   glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(grid_vertices.size()));
 
   grid_vao_.release();
+}
+
+void ViewportWidget::UpdateGeometryBuffers() {
+  SetupTriangles();
+  SetupLines();
+  SetupBoundaries();
+  SetupObjects();
+  SetupSignals();
+}
+
+void ViewportWidget::DrawScene() {
+  shader_program_.bind();
+  shader_program_.setUniformValue("useOverrideColor", 0);
+  shader_program_.setUniformValue("projection", camera_.GetProjectionMatrix());
+  shader_program_.setUniformValue("view", camera_.GetViewMatrix());
+
+  // Draw Grid first in the background (no depth test/write)
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+  RenderGrid();
+  glDepthMask(GL_TRUE);
+  glEnable(GL_DEPTH_TEST);
+
+  // Draw Filled Junction Boundaries in the background (below lane meshes)
+  if (show_junction_boundaries_ && !geometry_.boundary_triangle_indices.empty()) {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    shader_program_.setUniformValue("useOverrideColor", 1);
+    shader_program_.setUniformValue("overrideColor",
+                                    QVector4D(245.0F / 255.0F, 197.0F / 255.0F, 61.0F / 255.0F, 0.12F));
+    boundaries_vao_.bind();
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(geometry_.boundary_triangle_indices.size()), GL_UNSIGNED_INT,
+                   nullptr);
+    boundaries_vao_.release();
+    shader_program_.setUniformValue("useOverrideColor", 0);
+    glDisable(GL_BLEND);
+  }
+
+  // 1. Draw Road Surface Meshes
+  if (show_lanes_ && !geometry_.triangle_indices.empty()) {
+    triangles_vao_.bind();
+    for (const auto& range : geometry_.mesh_ranges) {
+      if (!show_border_lanes_ &&
+          (range.lane_type == ast::LaneType::kBorder || range.lane_type == ast::LaneType::kNone)) {
+        continue;
+      }
+      if (range.index_count > 0) {
+        const void* offset = reinterpret_cast<const void*>(
+            static_cast<std::uintptr_t>(range.index_start) *
+            sizeof(std::uint32_t));  // NOLINT(performance-no-int-to-ptr, cppcoreguidelines-pro-type-reinterpret-cast)
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
+      }
+    }
+    triangles_vao_.release();
+  }
+
+  // 2. Draw Boundaries/Markings in a Single batched call
+  if (show_reference_lines_ && !geometry_.line_vertices.empty()) {
+    glDisable(GL_DEPTH_TEST);
+    lines_vao_.bind();
+    glLineWidth(2.0F);
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.line_vertices.size()));
+    lines_vao_.release();
+    glEnable(GL_DEPTH_TEST);
+  }
+
+  // Draw Objects in a Single batched call
+  if (show_objects_ && !geometry_.object_line_vertices.empty()) {
+    glDisable(GL_DEPTH_TEST);
+    objects_vao_.bind();
+    glLineWidth(2.0F);
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.object_line_vertices.size()));
+    objects_vao_.release();
+    glEnable(GL_DEPTH_TEST);
+  }
+
+  // Draw Signals in a Single batched call
+  if (show_signals_ && !geometry_.signal_line_vertices.empty()) {
+    glDisable(GL_DEPTH_TEST);
+    signals_vao_.bind();
+    glLineWidth(2.0F);
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(geometry_.signal_line_vertices.size()));
+    signals_vao_.release();
+    glEnable(GL_DEPTH_TEST);
+  }
+
+  // 3. Draw Hover Highlight Overlay
+  if (show_lanes_ && has_model_ && hovered_pose_) {
+    for (const auto& range : geometry_.mesh_ranges) {
+      if (range.road_id == hovered_pose_->road && range.lane_id == hovered_pose_->lane) {
+        if (!show_border_lanes_ &&
+            (range.lane_type == ast::LaneType::kBorder || range.lane_type == ast::LaneType::kNone)) {
+          break;
+        }
+        if (range.index_count > 0) {
+          glDisable(GL_DEPTH_TEST);
+          glEnable(GL_BLEND);
+          glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+          shader_program_.setUniformValue("useOverrideColor", 1);
+          shader_program_.setUniformValue("overrideColor", QVector4D(1.0F, 0.0F, 0.0F, 0.4F));
+
+          triangles_vao_.bind();
+          const void* offset = reinterpret_cast<const void*>(
+              static_cast<std::uintptr_t>(range.index_start) *
+              sizeof(std::uint32_t));  // NOLINT(performance-no-int-to-ptr, cppcoreguidelines-pro-type-reinterpret-cast)
+          glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
+          triangles_vao_.release();
+
+          shader_program_.setUniformValue("useOverrideColor", 0);
+          glDisable(GL_BLEND);
+          glEnable(GL_DEPTH_TEST);
+        }
+        break;
+      }
+    }
+  }
+
+  shader_program_.release();
 }
 
 }  // namespace strada::vis

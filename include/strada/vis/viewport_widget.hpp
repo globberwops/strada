@@ -94,6 +94,8 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   void SetupSignals();
 
   void RenderGrid();
+  void UpdateGeometryBuffers();
+  void DrawScene();
 };
 
 }  // namespace strada::vis
