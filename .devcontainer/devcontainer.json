@@ -29,7 +29,8 @@
           "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
         },
         "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-        "C_Cpp.intelliSenseEngine": "disabled"
+        "C_Cpp.intelliSenseEngine": "disabled",
+        "cmake.copyCompileCommands": "${workspaceFolder}/build"
       },
       "extensions": [
         "cheshirekow.cmake-format",
