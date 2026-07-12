@@ -1,4 +1,4 @@
-FROM ubuntu:26.04
+FROM ubuntu:26.04 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -30,6 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-utils \
     lldb \
     ninja-build \
+    nodejs \
+    npm \
     pkg-config \
     python3-full \
     python3-pip \
@@ -43,6 +45,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install python-based linting/formatting tools
 RUN pip3 install --break-system-packages --no-cache-dir cmakelang cpplint gcovr pre-commit
 
+# ==============================================================================
+# CI Target (Optimized for CI runner, keeps image lightweight)
+# ==============================================================================
+FROM base AS ci
+
+# Any CI-specific packages or variables can go here.
+# (Currently, CI uses root and only requires the core build and static tools)
+
+# ==============================================================================
+# Development Target (Customized for local developer setup)
+# ==============================================================================
+FROM base AS dev
+
 # Switch to the default ubuntu user to handle user-space configurations and CLI installations
 USER ubuntu
 ENV HOME=/home/ubuntu
@@ -54,12 +69,11 @@ RUN mkdir -p ${HOME}/.local/bin \
 # Ensure user-local binaries (including agy and our fd symlink) are explicitly on the PATH
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
+# Install the native Herdr installation directly into the user space
+RUN curl -fsSL https://herdr.dev/install.sh | sh
+
 # Run the native Google Antigravity installation directly into the user space
-# The script defaults to extracting the binary to ~/.local/bin/agy
 RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
 
-# RUN curl -fsSL https://pi.dev/install.sh | sh
-# RUN pi install npm:pi-intercom \
-#     && pi install npm:pi-lens \
-#     && pi install npm:pi-subagents \
-#     && pi install npm:pi-web-access
+# Run the native Pi installation directly into the user space
+RUN curl -fsSL https://pi.dev/install.sh | sh

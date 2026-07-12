@@ -1,0 +1,8 @@
+{
+  "name": "Strada C++ CI Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "target": "ci"
+  }
+}

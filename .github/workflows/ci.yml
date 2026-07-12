@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   check-changes:
@@ -48,6 +48,7 @@ jobs:
         with:
           imageName: ghcr.io/${{ github.repository }}/devcontainer
           imageTag: latest
+          configFile: .devcontainer/devcontainer-ci.json
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
   static-checks:
@@ -82,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset: [ default-debug, default-release, san-debug, cov-debug ]
+        preset: [default-debug, default-release, san-debug, cov-debug]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7

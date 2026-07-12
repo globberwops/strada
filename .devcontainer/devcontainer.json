@@ -2,7 +2,8 @@
   "name": "Strada C++ Environment",
   "build": {
     "dockerfile": "Dockerfile",
-    "context": "."
+    "context": ".",
+    "target": "dev"
   },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {
@@ -11,9 +12,6 @@
     "ghcr.io/devcontainers/features/common-utils:2": {
       "configureZshAsDefaultShell": true,
       "username": "ubuntu"
-    },
-    "ghcr.io/devcontainers/features/node:2.1.0": {
-      "version": "lts"
     }
   },
   "customizations": {
@@ -48,9 +46,13 @@
   "containerEnv": {
     "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
     "XDG_RUNTIME_DIR": "/tmp",
-    "QT_QPA_PLATFORM": "wayland"
+    "QT_QPA_PLATFORM": "wayland",
+    "SHELL": "/usr/bin/zsh"
   },
   "mounts": [
+    "source=${localEnv:HOME}/.agents,target=/home/ubuntu/.agents,type=bind",
+    "source=${localEnv:HOME}/.gemini,target=/home/ubuntu/.gemini,type=bind",
+    "source=${localEnv:HOME}/.pi,target=/home/ubuntu/.pi,type=bind",
     "source=${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY},target=/tmp/${localEnv:WAYLAND_DISPLAY},type=bind"
   ],
   "runArgs": [
