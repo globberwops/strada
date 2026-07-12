@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: BSL-1.0
-
 #include <QFileInfo>
 #include <QStatusBar>
 #include <strada/cpm/compiled_physics_model.hpp>

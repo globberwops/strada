@@ -44,10 +44,11 @@ target_link_libraries(strada PRIVATE pugixml)
 strada_add_warnings(strada)
 strada_enable_lto(strada)
 
-install(TARGETS strada
+install(
+  TARGETS strada
   EXPORT StradaTargets
-  FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+  FILE_SET HEADERS
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 if(STRADA_BUILD_VIS)
   add_subdirectory(vis)

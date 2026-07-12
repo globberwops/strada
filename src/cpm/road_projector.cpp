@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: BSL-1.0
-
 #include "road_projector.hpp"
 
 #include <algorithm>

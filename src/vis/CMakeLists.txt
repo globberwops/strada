@@ -32,8 +32,9 @@ if(STRADA_BUILD_VIS)
   strada_enable_lto(strada_vis)
   set_target_properties(strada_vis PROPERTIES EXPORT_NAME vis)
 
-  install(TARGETS strada_vis
+  install(
+    TARGETS strada_vis
     EXPORT StradaTargets
-    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  )
+    FILE_SET HEADERS
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()

@@ -9,7 +9,9 @@ project(
   LANGUAGES CXX)
 
 include(GNUInstallDirs)
-set(STRADA_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/Strada" CACHE STRING "Directory for CMake package files")
+set(STRADA_INSTALL_CMAKEDIR
+    "${CMAKE_INSTALL_LIBDIR}/cmake/Strada"
+    CACHE STRING "Directory for CMake package files")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

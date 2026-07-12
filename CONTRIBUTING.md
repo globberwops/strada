@@ -25,18 +25,17 @@ Common types:
 * **Testing & Benchmarks**: Use **GoogleTest / GoogleMock** for TDD and **Google Benchmark** for performance regressions.
 * **Commit Strategy**: Create exactly **one commit per issue** following the Conventional Commits specification (squash commits before merging if necessary).
 * **CMake & Dependencies**: `FetchContent` must try to find the respective system package first using `FIND_PACKAGE_ARGS` (e.g., `FIND_PACKAGE_ARGS NAMES GTest`).
+* **Pre-commit Hooks**: The repository uses `pre-commit` hooks for automatic style enforcement, formatting, and linting (including `clang-format`, `cmake-format`, `cmake-lint`, `shfmt`, `shellcheck`, `check-license-headers`, `gitleaks`, and cached `cppcheck`). These run automatically on `git commit` to ensure rapid feedback during local development.
 * **Devcontainer**: All library dependencies must be pre-installed in the devcontainer `Dockerfile`.
-* **Pre-commit Hooks**: The repository uses `pre-commit` hooks for automatic style enforcement, formatting, and linting (including `clang-format`, `clang-tidy`, `cppcheck`, `cpplint`, `include-what-you-use`, and `gitleaks`). To ensure commit hooks pass successfully, run formatting and linting tools locally (e.g., `pre-commit run --files <files>`) before staging and committing changes.
 
 ### Local Validation Scripts
 To easily run the exact same checks locally that are executed on CI, several utility scripts are provided in the [tools/ci/](file:///workspaces/strada/tools/ci/) directory:
-*   [run_static_checks.sh](file:///workspaces/strada/tools/ci/run_static_checks.sh): Configures the project under the `dev` preset and runs formatting/linting and manual static analysis checks.
+*   [run_static_checks.sh](file:///workspaces/strada/tools/ci/run_static_checks.sh): Configures the project under the `dev` preset, runs all pre-commit checks on all files, and runs deep static analysis (`clang-tidy` and `include-what-you-use`) on changed files.
 *   [build_and_test.sh <preset>](file:///workspaces/strada/tools/ci/build_and_test.sh): Configures, compiles, and runs tests for a specific CMake preset (`default-debug`, `default-release`, `san-debug`, or `cov-debug`).
 *   [generate_coverage.sh](file:///workspaces/strada/tools/ci/generate_coverage.sh): Collects test coverage data and generates an HTML report under `build/cov/coverage_report/index.html`.
 *   [run_all.sh](file:///workspaces/strada/tools/ci/run_all.sh): Runs all validation stages sequentially.
 
 Individual tool-specific wrappers (which accept a list of files as arguments, or scan the codebase if none are provided):
-*   [run_clang_format.sh](file:///workspaces/strada/tools/ci/run_clang_format.sh): Runs formatting check.
 *   [run_clang_tidy.sh](file:///workspaces/strada/tools/ci/run_clang_tidy.sh): Runs clang-tidy using the `dev` compilation database.
 *   [run_cppcheck.sh](file:///workspaces/strada/tools/ci/run_cppcheck.sh): Runs cppcheck using the `dev` compilation database.
 *   [run_iwyu.sh](file:///workspaces/strada/tools/ci/run_iwyu.sh): Runs include-what-you-use check.

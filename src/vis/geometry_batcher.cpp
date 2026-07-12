@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: BSL-1.0
-
 #include <span>
 #include <strada/vis/geometry_batcher.hpp>
 

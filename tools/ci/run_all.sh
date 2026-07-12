@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: BSL-1.0
-#
 # Local orchestrator script to run format checking, builds, tests, and coverage sequentially.
 
 set -e

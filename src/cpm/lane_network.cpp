@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: BSL-1.0
-
 #include <algorithm>
 #include <cmath>
 #include <limits>

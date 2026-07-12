@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: BSL-1.0
-#
 # This script captures code coverage, filters out external/test files,
 # generates an HTML report, and outputs a terminal summary.
 

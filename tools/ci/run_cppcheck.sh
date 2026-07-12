@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: BSL-1.0
-#
 # Runs cppcheck using the dev build compilation database.
 
 set -e

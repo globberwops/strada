@@ -1,3 +1,9 @@
 # cmake-format configuration file
 format:
   line_width: 120
+
+lint:
+  disabled_codes:
+    - C0111  # Missing docstring on function or macro
+    - C0103  # Invalid variable/argument name convention
+    - E1126  # Outdated CMake command signature parsing errors

@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: BSL-1.0
-
 #include <QApplication>
 #include <iostream>
 #include <strada/vis/visualizer_window.hpp>

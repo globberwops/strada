@@ -1,6 +1,7 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 fail_fast: false
+exclude: ^(\.agents/)
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -13,19 +14,35 @@ repos:
     rev: v8.30.0
     hooks:
       - id: gitleaks
-  - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.13.1-1
-    hooks:
-      - id: shfmt
-        args: [-i, '2', -ci]
-  - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
-    hooks:
-      - id: shellcheck
   - repo: local
     hooks:
       - id: clang-format
         name: clang-format
-        entry: tools/ci/run_clang_format.sh
+        entry: clang-format -i
+        language: system
+        files: \.(h|hpp|c|cc|cpp)$
+      - id: shfmt
+        name: shfmt
+        entry: shfmt -i 2 -ci -w
+        language: system
+        files: \.sh$
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck
+        language: system
+        files: \.sh$
+      - id: cmake-format
+        name: cmake-format
+        entry: cmake-format -i
+        language: system
+        files: (CMakeLists\.txt|\.cmake)$
+      - id: cmake-lint
+        name: cmake-lint
+        entry: cmake-lint
+        language: system
+        files: (CMakeLists\.txt|\.cmake)$
+      - id: cppcheck
+        name: cppcheck
+        entry: tools/ci/run_cppcheck.sh
         language: script
         files: \.(h|hpp|c|cc|cpp)$

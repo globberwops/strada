@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: BSL-1.0
-
 #include <gtest/gtest.h>
 
 #include <cmath>

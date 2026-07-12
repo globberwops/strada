@@ -40,6 +40,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ripgrep \
     uncrustify \
     valgrind \
+    shellcheck \
+    shfmt \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install python-based linting/formatting tools

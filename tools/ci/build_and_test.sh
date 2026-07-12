@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: BSL-1.0
-#
 # This script configures, builds, and runs tests for a specified CMake preset.
 # Usage: ./build_and_test.sh <preset-name>
 # Examples:
@@ -21,7 +19,7 @@ PRESET=$1
 
 # Determine the corresponding configure preset
 case "$PRESET" in
-  default-debug|default-release)
+  default-debug | default-release)
     CONF_PRESET="default"
     ;;
   san-debug)
