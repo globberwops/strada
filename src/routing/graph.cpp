@@ -38,13 +38,13 @@ auto HasDrivableLane(const ast::Road& road, bool forward) -> bool {
 }  // namespace
 
 Graph::Graph(const ast::AbstractSyntaxTree& ast) {
-  size_t num_roads = ast.roads.size();
+  std::size_t num_roads = ast.roads.size();
   nodes_.resize(2 * num_roads);
   idx_to_road_id_.resize(num_roads);
 
-  for (size_t i = 0; i < num_roads; ++i) {
+  for (std::size_t i = 0; i < num_roads; ++i) {
     const auto& road = ast.roads[i];
-    road_id_to_idx_[road.id] = static_cast<uint32_t>(i);
+    road_id_to_idx_[road.id] = static_cast<std::uint32_t>(i);
     idx_to_road_id_[i] = road.id;
 
     bool is_junc = (road.junction != "-1" && !road.junction.empty());
@@ -63,14 +63,14 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
   }
 
   // 1. Direct Road Links
-  for (size_t i = 0; i < num_roads; ++i) {
+  for (std::size_t i = 0; i < num_roads; ++i) {
     const auto& road = ast.roads[i];
 
     // Successor Link
     if (road.link.successor && road.link.successor->element_type == ast::RoadLinkType::kRoad) {
       auto target_it = road_id_to_idx_.find(road.link.successor->element_id);
       if (target_it != road_id_to_idx_.end()) {
-        uint32_t j = target_it->second;
+        std::uint32_t j = target_it->second;
         ast::ContactPoint cp = road.link.successor->contact_point.value_or(ast::ContactPoint::kStart);
 
         if (cp == ast::ContactPoint::kStart) {
@@ -78,14 +78,14 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
             nodes_[2 * i].successors.push_back(2 * j);
           }
           if (nodes_[2 * i + 1].is_drivable && nodes_[2 * j + 1].is_drivable) {
-            nodes_[2 * j + 1].successors.push_back(static_cast<uint32_t>(2 * i + 1));
+            nodes_[2 * j + 1].successors.push_back(static_cast<std::uint32_t>(2 * i + 1));
           }
         } else {  // cp == ContactPoint::kEnd
           if (nodes_[2 * i].is_drivable && nodes_[2 * j + 1].is_drivable) {
             nodes_[2 * i].successors.push_back(2 * j + 1);
           }
           if (nodes_[2 * i + 1].is_drivable && nodes_[2 * j].is_drivable) {
-            nodes_[2 * j].successors.push_back(static_cast<uint32_t>(2 * i + 1));
+            nodes_[2 * j].successors.push_back(static_cast<std::uint32_t>(2 * i + 1));
           }
         }
       }
@@ -95,7 +95,7 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
     if (road.link.predecessor && road.link.predecessor->element_type == ast::RoadLinkType::kRoad) {
       auto target_it = road_id_to_idx_.find(road.link.predecessor->element_id);
       if (target_it != road_id_to_idx_.end()) {
-        uint32_t j = target_it->second;
+        std::uint32_t j = target_it->second;
         ast::ContactPoint cp = road.link.predecessor->contact_point.value_or(ast::ContactPoint::kStart);
 
         if (cp == ast::ContactPoint::kStart) {
@@ -103,14 +103,14 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
             nodes_[2 * i + 1].successors.push_back(2 * j);
           }
           if (nodes_[2 * i].is_drivable && nodes_[2 * j + 1].is_drivable) {
-            nodes_[2 * j + 1].successors.push_back(static_cast<uint32_t>(2 * i));
+            nodes_[2 * j + 1].successors.push_back(static_cast<std::uint32_t>(2 * i));
           }
         } else {  // cp == ContactPoint::kEnd
           if (nodes_[2 * i + 1].is_drivable && nodes_[2 * j + 1].is_drivable) {
             nodes_[2 * i + 1].successors.push_back(2 * j + 1);
           }
           if (nodes_[2 * i].is_drivable && nodes_[2 * j].is_drivable) {
-            nodes_[2 * j].successors.push_back(static_cast<uint32_t>(2 * i));
+            nodes_[2 * j].successors.push_back(static_cast<std::uint32_t>(2 * i));
           }
         }
       }
@@ -125,8 +125,8 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
       if (A_it == road_id_to_idx_.end() || C_it == road_id_to_idx_.end()) {
         continue;
       }
-      uint32_t a = A_it->second;
-      uint32_t c = C_it->second;
+      std::uint32_t a = A_it->second;
+      std::uint32_t c = C_it->second;
 
       bool incoming_is_successor = true;
       const ast::Road* road_A = nullptr;
@@ -143,36 +143,38 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
         }
       }
 
-      ast::ContactPoint cp = conn.contact_point;
+      {
+        ast::ContactPoint cp = conn.contact_point;
 
-      if (incoming_is_successor) {
-        if (nodes_[2 * a].is_drivable) {
-          if (cp == ast::ContactPoint::kStart && nodes_[2 * c].is_drivable) {
-            nodes_[2 * a].successors.push_back(2 * c);
-          } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c + 1].is_drivable) {
-            nodes_[2 * a].successors.push_back(2 * c + 1);
+        if (incoming_is_successor) {
+          if (nodes_[2 * a].is_drivable) {
+            if (cp == ast::ContactPoint::kStart && nodes_[2 * c].is_drivable) {
+              nodes_[2 * a].successors.push_back(2 * c);
+            } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c + 1].is_drivable) {
+              nodes_[2 * a].successors.push_back(2 * c + 1);
+            }
           }
-        }
-        if (nodes_[2 * a + 1].is_drivable) {
-          if (cp == ast::ContactPoint::kStart && nodes_[2 * c + 1].is_drivable) {
-            nodes_[2 * c + 1].successors.push_back(2 * a + 1);
-          } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c].is_drivable) {
-            nodes_[2 * c].successors.push_back(2 * a + 1);
+          if (nodes_[2 * a + 1].is_drivable) {
+            if (cp == ast::ContactPoint::kStart && nodes_[2 * c + 1].is_drivable) {
+              nodes_[2 * c + 1].successors.push_back(2 * a + 1);
+            } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c].is_drivable) {
+              nodes_[2 * c].successors.push_back(2 * a + 1);
+            }
           }
-        }
-      } else {
-        if (nodes_[2 * a + 1].is_drivable) {
-          if (cp == ast::ContactPoint::kStart && nodes_[2 * c].is_drivable) {
-            nodes_[2 * a + 1].successors.push_back(2 * c);
-          } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c + 1].is_drivable) {
-            nodes_[2 * a + 1].successors.push_back(2 * c + 1);
+        } else {
+          if (nodes_[2 * a + 1].is_drivable) {
+            if (cp == ast::ContactPoint::kStart && nodes_[2 * c].is_drivable) {
+              nodes_[2 * a + 1].successors.push_back(2 * c);
+            } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c + 1].is_drivable) {
+              nodes_[2 * a + 1].successors.push_back(2 * c + 1);
+            }
           }
-        }
-        if (nodes_[2 * a].is_drivable) {
-          if (cp == ast::ContactPoint::kStart && nodes_[2 * c + 1].is_drivable) {
-            nodes_[2 * c + 1].successors.push_back(2 * a);
-          } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c].is_drivable) {
-            nodes_[2 * c].successors.push_back(2 * a);
+          if (nodes_[2 * a].is_drivable) {
+            if (cp == ast::ContactPoint::kStart && nodes_[2 * c + 1].is_drivable) {
+              nodes_[2 * c + 1].successors.push_back(2 * a);
+            } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c].is_drivable) {
+              nodes_[2 * c].successors.push_back(2 * a);
+            }
           }
         }
       }
@@ -187,25 +189,25 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
   }
 }
 
-auto Graph::FindPath(const std::string& start_road_id, const std::string& end_road_id) const
+auto Graph::FindPath(std::string_view start_road_id, std::string_view end_road_id) const
     -> std::optional<std::vector<std::string>> {
-  return FindPath(start_road_id, end_road_id, [this](const std::string& road_id) { return GetRoadLength(road_id); });
+  return FindPath(start_road_id, end_road_id, [this](std::string_view road_id) { return GetRoadLength(road_id); });
 }
 
-auto Graph::HasRoad(const std::string& road_id) const -> bool { return road_id_to_idx_.contains(road_id); }
+auto Graph::HasRoad(std::string_view road_id) const -> bool { return road_id_to_idx_.contains(road_id); }
 
-auto Graph::GetRoadSuccessors(const std::string& road_id) const -> std::vector<std::string> {
+auto Graph::GetRoadSuccessors(std::string_view road_id) const -> std::vector<std::string> {
   auto it = road_id_to_idx_.find(road_id);
   if (it == road_id_to_idx_.end()) {
     return {};
   }
-  size_t idx = it->second;
+  std::size_t idx = it->second;
   std::vector<std::string> successors;
 
-  for (uint32_t v : nodes_[2 * idx].successors) {
+  for (std::uint32_t v : nodes_[2 * idx].successors) {
     successors.push_back(nodes_[v].road_id);
   }
-  for (uint32_t v : nodes_[2 * idx + 1].successors) {
+  for (std::uint32_t v : nodes_[2 * idx + 1].successors) {
     successors.push_back(nodes_[v].road_id);
   }
 
@@ -216,7 +218,7 @@ auto Graph::GetRoadSuccessors(const std::string& road_id) const -> std::vector<s
   return successors;
 }
 
-auto Graph::IsJunctionRoad(const std::string& road_id) const -> bool {
+auto Graph::IsJunctionRoad(std::string_view road_id) const -> bool {
   auto it = road_id_to_idx_.find(road_id);
   if (it == road_id_to_idx_.end()) {
     return false;
@@ -224,7 +226,7 @@ auto Graph::IsJunctionRoad(const std::string& road_id) const -> bool {
   return nodes_[2 * it->second].is_junction;
 }
 
-auto Graph::GetRoadLength(const std::string& road_id) const -> double {
+auto Graph::GetRoadLength(std::string_view road_id) const -> double {
   auto it = road_id_to_idx_.find(road_id);
   if (it == road_id_to_idx_.end()) {
     return 0.0;
@@ -232,12 +234,12 @@ auto Graph::GetRoadLength(const std::string& road_id) const -> double {
   return nodes_[2 * it->second].length;
 }
 
-auto Graph::FindPathImpl(const std::string& start_road_id, const std::string& end_road_id,
-                         const std::function<double(const std::string&)>& cost_fn) const
+auto Graph::FindPathImpl(std::string_view start_road_id, std::string_view end_road_id,
+                         const std::function<double(std::string_view)>& cost_fn) const
     -> std::optional<std::vector<std::string>> {
   if (start_road_id == end_road_id) {
     if (HasRoad(start_road_id)) {
-      return std::vector<std::string>{start_road_id};
+      return std::vector<std::string>{std::string(start_road_id)};
     }
     return std::nullopt;
   }
@@ -248,14 +250,14 @@ auto Graph::FindPathImpl(const std::string& start_road_id, const std::string& en
     return std::nullopt;
   }
 
-  uint32_t start_idx = start_it->second;
-  uint32_t end_idx = end_it->second;
+  std::uint32_t start_idx = start_it->second;
+  std::uint32_t end_idx = end_it->second;
 
-  size_t num_states = nodes_.size();
+  std::size_t num_states = nodes_.size();
   std::vector<double> dist(num_states, std::numeric_limits<double>::infinity());
-  std::vector<uint32_t> parent(num_states, std::numeric_limits<uint32_t>::max());
+  std::vector<std::uint32_t> parent(num_states, std::numeric_limits<std::uint32_t>::max());
 
-  using StatePair = std::pair<double, uint32_t>;
+  using StatePair = std::pair<double, std::uint32_t>;
   std::priority_queue<StatePair, std::vector<StatePair>, std::greater<StatePair>> pq;
 
   // Initialize start states
@@ -287,8 +289,8 @@ auto Graph::FindPathImpl(const std::string& start_road_id, const std::string& en
 
     if (u / 2 == end_idx) {
       std::vector<std::string> path;
-      uint32_t curr = u;
-      while (curr != std::numeric_limits<uint32_t>::max()) {
+      std::uint32_t curr = u;
+      while (curr != std::numeric_limits<std::uint32_t>::max()) {
         path.push_back(nodes_[curr].road_id);
         curr = parent[curr];
       }
@@ -296,7 +298,7 @@ auto Graph::FindPathImpl(const std::string& start_road_id, const std::string& en
       return path;
     }
 
-    for (uint32_t v : nodes_[u].successors) {
+    for (std::uint32_t v : nodes_[u].successors) {
       double weight = cost_fn(nodes_[v].road_id);
       if (dist[u] + weight < dist[v]) {
         dist[v] = dist[u] + weight;
