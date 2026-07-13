@@ -814,7 +814,7 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
   }
 
   // Draw dark glassmorphic card container in the top-left corner
-  const auto rect = QRect{20, 20, 270, 204};
+  const auto rect = QRect{20, 20, 270, 226};
   painter.setPen(QPen(ToQColor(kUIBorder), 1));
   painter.setBrush(QBrush(ToQColor(kUIBackground)));
   painter.drawRoundedRect(rect, 8.0, 8.0);
@@ -918,6 +918,24 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
     painter.drawText(x_offset + 95, y_offset, lane_coords);
     y_offset += line_height;
 
+    // Route Coordinates (s, t)
+    painter.setPen(ToQColor(kTextLabel));
+    painter.drawText(x_offset, y_offset, "Route (s, t):");
+    painter.setPen(ToQColor(kTextValue));
+    if (active_route_.has_value()) {
+      const auto route_coords_opt = active_route_->ToRouteCoordinates(hovered_road_name_, rp.s, rp.t);
+      if (route_coords_opt.has_value()) {
+        const auto route_coords_str =
+            QString{"%1 m, %2 m"}.arg(route_coords_opt->first, 0, 'f', 3).arg(route_coords_opt->second, 0, 'f', 3);
+        painter.drawText(x_offset + 95, y_offset, route_coords_str);
+      } else {
+        painter.drawText(x_offset + 95, y_offset, "--");
+      }
+    } else {
+      painter.drawText(x_offset + 95, y_offset, "--");
+    }
+    y_offset += line_height;
+
     // Inertial Coordinates (x, y)
     painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Inertial (x, y):");
@@ -935,6 +953,13 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
     // Lane Coordinates (s, t)
     painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Lane (s, t):");
+    painter.setPen(ToQColor(kTextValue));  // Light blue for values
+    painter.drawText(x_offset + 95, y_offset, "--");
+    y_offset += line_height;
+
+    // Route Coordinates (s, t)
+    painter.setPen(ToQColor(kTextLabel));
+    painter.drawText(x_offset, y_offset, "Route (s, t):");
     painter.setPen(ToQColor(kTextValue));  // Light blue for values
     painter.drawText(x_offset + 95, y_offset, "--");
     y_offset += line_height;

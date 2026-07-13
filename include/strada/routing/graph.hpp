@@ -26,6 +26,15 @@ struct RouteSegment {
 /// Represents a planned route consisting of multiple segments.
 struct Route {
   std::vector<RouteSegment> segments;
+
+  /// Translates road-local coordinates to route-local coordinates.
+  ///
+  /// \param road_id The original string ID of the road.
+  /// \param s_local The longitudinal coordinate along the road.
+  /// \param t_local The lateral offset from the road reference line.
+  /// \return A pair of (s_route, t_route) if the road is part of the route, or std::nullopt otherwise.
+  [[nodiscard]] auto ToRouteCoordinates(std::string_view road_id, double s_local, double t_local) const noexcept
+      -> std::optional<std::pair<double, double>>;
 };
 
 /// Represents the road-level topological graph of the OpenDRIVE map.

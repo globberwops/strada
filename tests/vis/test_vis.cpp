@@ -662,4 +662,44 @@ TEST(VisTest, WaypointSnappingAndShortcuts) {
   EXPECT_FALSE(widget.IsRouteCreationMode());
 }
 
+TEST(VisTest, RouteCoordinateMapping) {
+  // Arrange
+  routing::Route route;
+
+  routing::RouteSegment seg1;
+  seg1.road_id = "1";
+  seg1.forward = true;
+  seg1.length = 10.0;
+
+  routing::RouteSegment seg2;
+  seg2.road_id = "2";
+  seg2.forward = false;
+  seg2.length = 15.0;
+
+  route.segments.push_back(seg1);
+  route.segments.push_back(seg2);
+
+  // Act & Assert
+  // 1. Test translation on forward segment (Road 1)
+  // start_s = 0.0, s_local = 3.0, t_local = 1.5
+  // Expect: s_route = 3.0, t_route = 1.5
+  auto opt1 = route.ToRouteCoordinates("1", 3.0, 1.5);
+  ASSERT_TRUE(opt1.has_value());
+  EXPECT_DOUBLE_EQ(opt1->first, 3.0);
+  EXPECT_DOUBLE_EQ(opt1->second, 1.5);
+
+  // 2. Test translation on backward segment (Road 2)
+  // start_s = 10.0, s_local = 4.0, t_local = 1.5
+  // Expect: s_route = start_s + (L_seg2 - s_local) = 10.0 + (15.0 - 4.0) = 21.0
+  // Expect: t_route = -t_local = -1.5
+  auto opt2 = route.ToRouteCoordinates("2", 4.0, 1.5);
+  ASSERT_TRUE(opt2.has_value());
+  EXPECT_DOUBLE_EQ(opt2->first, 21.0);
+  EXPECT_DOUBLE_EQ(opt2->second, -1.5);
+
+  // 3. Test road not in route
+  auto opt3 = route.ToRouteCoordinates("3", 5.0, 0.0);
+  EXPECT_FALSE(opt3.has_value());
+}
+
 }  // namespace strada::vis

@@ -385,4 +385,25 @@ auto Graph::FindPathImpl(std::string_view start_road_id, std::string_view end_ro
   return std::nullopt;
 }
 
+auto Route::ToRouteCoordinates(std::string_view road_id, double s_local, double t_local) const noexcept
+    -> std::optional<std::pair<double, double>> {
+  double start_s = 0.0;
+  for (const auto& seg : segments) {
+    if (seg.road_id == road_id) {
+      double s_route = 0.0;
+      double t_route = 0.0;
+      if (seg.forward) {
+        s_route = start_s + s_local;
+        t_route = t_local;
+      } else {
+        s_route = start_s + (seg.length - s_local);
+        t_route = -t_local;
+      }
+      return std::make_pair(s_route, t_route);
+    }
+    start_s += seg.length;
+  }
+  return std::nullopt;
+}
+
 }  // namespace strada::routing
