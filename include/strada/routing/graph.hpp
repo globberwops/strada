@@ -16,12 +16,27 @@ concept CostFunction = requires(F&& f, std::string_view road_id) {
   { f(road_id) } -> std::convertible_to<double>;
 };
 
+/// Represents a single segment along a Route.
+struct RouteSegment {
+  std::string road_id;
+  bool forward{true};
+  double length{0.0};
+};
+
+/// Represents a planned route consisting of multiple segments.
+struct Route {
+  std::vector<RouteSegment> segments;
+};
+
 /// Represents the road-level topological graph of the OpenDRIVE map.
 class Graph {
  public:
   /// Constructs the routing graph from the parsed Abstract Syntax Tree.
   /// Does not store any reference to the AST inside.
   explicit Graph(const ast::AbstractSyntaxTree& ast);
+
+  /// Finds the shortest route between start_road_id and end_road_id resolving segment directions.
+  auto FindRoute(std::string_view start_road_id, std::string_view end_road_id) const -> std::optional<Route>;
 
   /// Finds the shortest path between start_road_id and end_road_id using the road lengths as weights.
   auto FindPath(std::string_view start_road_id, std::string_view end_road_id) const

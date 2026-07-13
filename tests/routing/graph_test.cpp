@@ -57,6 +57,310 @@ TEST(RoutingGraphTest, StraightTopologyPathfinding) {
   EXPECT_EQ((*path)[1], "2");
 }
 
+TEST(RoutingGraphTest, FindRouteStraightTopology) {
+  // Arrange
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
+  <road id="1" length="10.0" junction="-1">
+    <link>
+      <successor elementType="road" elementId="2" contactPoint="start"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0" b="0.0" c="0.0" d="0.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="2" length="20.0" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="1" contactPoint="end"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="10.0" y="0.0" hdg="0.0" length="20.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0" b="0.0" c="0.0" d="0.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  auto ast = strada::parser::ParseString(xml);
+  Graph graph(ast);
+
+  // Act
+  auto route = graph.FindRoute("1", "2");
+
+  // Assert
+  ASSERT_TRUE(route.has_value());
+  EXPECT_EQ(route->segments.size(), 2);
+  EXPECT_EQ(route->segments[0].road_id, "1");
+  EXPECT_TRUE(route->segments[0].forward);
+  EXPECT_DOUBLE_EQ(route->segments[0].length, 10.0);
+
+  EXPECT_EQ(route->segments[1].road_id, "2");
+  EXPECT_TRUE(route->segments[1].forward);
+  EXPECT_DOUBLE_EQ(route->segments[1].length, 20.0);
+}
+
+TEST(RoutingGraphTest, FindRouteDirectionResolution) {
+  // Arrange
+  // Road 2 (backward only, left lane) predecessor connects to Road 1 (forward only, right lane) start.
+  // This means travelling from Road 2 to Road 1 requires travelling backward on Road 2,
+  // then transitioning to Road 1 and travelling forward on Road 1.
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="2" length="20.0" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="1" contactPoint="start"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="10.0" y="0.0" hdg="3.14159" length="20.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <left>
+          <lane id="1" type="driving"><width sOffset="0.0" a="3.0"/></lane>
+        </left>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  auto ast = strada::parser::ParseString(xml);
+  Graph graph(ast);
+
+  // Act
+  auto route = graph.FindRoute("2", "1");
+
+  // Assert
+  ASSERT_TRUE(route.has_value());
+  EXPECT_EQ(route->segments.size(), 2);
+  EXPECT_EQ(route->segments[0].road_id, "2");
+  EXPECT_FALSE(route->segments[0].forward);
+  EXPECT_DOUBLE_EQ(route->segments[0].length, 20.0);
+
+  EXPECT_EQ(route->segments[1].road_id, "1");
+  EXPECT_TRUE(route->segments[1].forward);
+  EXPECT_DOUBLE_EQ(route->segments[1].length, 10.0);
+}
+
+TEST(RoutingGraphTest, FindRouteLoopTopology) {
+  // Arrange
+  // 1 -> 2 -> 3 (total length 25)
+  // 1 -> 4 -> 3 (total length 70)
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9"/>
+  <road id="1" length="10.0" junction="-1">
+    <link>
+      <successor elementType="road" elementId="2" contactPoint="start"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right><lane id="-1" type="driving"><width sOffset="0.0" a="3.0"/></lane></right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="2" length="5.0" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="1" contactPoint="end"/>
+      <successor elementType="road" elementId="3" contactPoint="start"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="10.0" y="0.0" hdg="0.0" length="5.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right><lane id="-1" type="driving"><width sOffset="0.0" a="3.0"/></lane></right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="4" length="50.0" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="1" contactPoint="end"/>
+      <successor elementType="road" elementId="3" contactPoint="start"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="10.0" y="0.0" hdg="0.0" length="50.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right><lane id="-1" type="driving"><width sOffset="0.0" a="3.0"/></lane></right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="3" length="10.0" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="2" contactPoint="end"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="15.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right><lane id="-1" type="driving"><width sOffset="0.0" a="3.0"/></lane></right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  auto ast = strada::parser::ParseString(xml);
+  Graph graph(ast);
+
+  // Act
+  auto route = graph.FindRoute("1", "3");
+
+  // Assert
+  ASSERT_TRUE(route.has_value());
+  EXPECT_EQ(route->segments.size(), 3);
+  EXPECT_EQ(route->segments[0].road_id, "1");
+  EXPECT_TRUE(route->segments[0].forward);
+  EXPECT_DOUBLE_EQ(route->segments[0].length, 10.0);
+
+  EXPECT_EQ(route->segments[1].road_id, "2");
+  EXPECT_TRUE(route->segments[1].forward);
+  EXPECT_DOUBLE_EQ(route->segments[1].length, 5.0);
+
+  EXPECT_EQ(route->segments[2].road_id, "3");
+  EXPECT_TRUE(route->segments[2].forward);
+  EXPECT_DOUBLE_EQ(route->segments[2].length, 10.0);
+}
+
+TEST(RoutingGraphTest, FindRouteDisconnectedNetwork) {
+  // Arrange
+  // Road 1 and Road 2 are completely disconnected.
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="2" length="20.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="50.0" y="0.0" hdg="0.0" length="20.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  auto ast = strada::parser::ParseString(xml);
+  Graph graph(ast);
+
+  // Act
+  auto route = graph.FindRoute("1", "2");
+
+  // Assert
+  EXPECT_FALSE(route.has_value());
+}
+
+TEST(RoutingGraphTest, FindRouteSameStartAndEndRoad) {
+  // Arrange
+  // Road 1: forward only drivable (right lane)
+  // Road 2: backward only drivable (left lane)
+  // Road 3: not drivable (no lanes)
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="2" length="20.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="50.0" y="0.0" hdg="0.0" length="20.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <left>
+          <lane id="1" type="driving"><width sOffset="0.0" a="3.0"/></lane>
+        </left>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="3" length="30.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="100.0" y="0.0" hdg="0.0" length="30.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)";
+
+  auto ast = strada::parser::ParseString(xml);
+  Graph graph(ast);
+
+  // Act & Assert 1: Road 1 (forward only)
+  auto route1 = graph.FindRoute("1", "1");
+  ASSERT_TRUE(route1.has_value());
+  EXPECT_EQ(route1->segments.size(), 1);
+  EXPECT_EQ(route1->segments[0].road_id, "1");
+  EXPECT_TRUE(route1->segments[0].forward);
+  EXPECT_DOUBLE_EQ(route1->segments[0].length, 10.0);
+
+  // Act & Assert 2: Road 2 (backward only)
+  auto route2 = graph.FindRoute("2", "2");
+  ASSERT_TRUE(route2.has_value());
+  EXPECT_EQ(route2->segments.size(), 1);
+  EXPECT_EQ(route2->segments[0].road_id, "2");
+  EXPECT_FALSE(route2->segments[0].forward);
+  EXPECT_DOUBLE_EQ(route2->segments[0].length, 20.0);
+
+  // Act & Assert 3: Road 3 (not drivable)
+  auto route3 = graph.FindRoute("3", "3");
+  EXPECT_FALSE(route3.has_value());
+}
+
 TEST(RoutingGraphTest, OneWayRoadPreventsWrongWay) {
   // Arrange
   // Road 1 (driving lane right id=-1 -> forward only)
