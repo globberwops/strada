@@ -49,7 +49,7 @@ jobs:
           imageName: ghcr.io/${{ github.repository }}/devcontainer
           imageTag: latest
           configFile: .devcontainer/devcontainer-ci.json
-          push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          push: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'always' || 'never' }}
 
   static-checks:
     name: Formatting & Static Analysis
