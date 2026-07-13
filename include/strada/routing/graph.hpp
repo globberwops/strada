@@ -36,6 +36,10 @@ class Graph {
   explicit Graph(const ast::AbstractSyntaxTree& ast);
 
   /// Finds the shortest route between start_road_id and end_road_id resolving segment directions.
+  ///
+  /// \param start_road_id The ID of the starting road.
+  /// \param end_road_id The ID of the destination road.
+  /// \return The calculated Route, or std::nullopt if no drivable path exists.
   auto FindRoute(std::string_view start_road_id, std::string_view end_road_id) const -> std::optional<Route>;
 
   /// Finds the shortest path between start_road_id and end_road_id using the road lengths as weights.

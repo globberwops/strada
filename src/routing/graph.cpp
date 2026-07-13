@@ -190,34 +190,31 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
 }
 
 auto Graph::FindRoute(std::string_view start_road_id, std::string_view end_road_id) const -> std::optional<Route> {
-  auto start_it = road_id_to_idx_.find(start_road_id);
-  auto end_it = road_id_to_idx_.find(end_road_id);
+  const auto start_it = road_id_to_idx_.find(start_road_id);
+  const auto end_it = road_id_to_idx_.find(end_road_id);
   if (start_it == road_id_to_idx_.end() || end_it == road_id_to_idx_.end()) {
     return std::nullopt;
   }
 
-  std::uint32_t start_idx = start_it->second;
-  std::uint32_t end_idx = end_it->second;
+  const auto start_idx = start_it->second;
+  const auto end_idx = end_it->second;
 
-  std::size_t num_states = nodes_.size();
-  std::vector<double> dist(num_states, std::numeric_limits<double>::infinity());
-  std::vector<std::uint32_t> parent(num_states, std::numeric_limits<std::uint32_t>::max());
+  const auto num_states = nodes_.size();
+  auto dist = std::vector<double>(num_states, std::numeric_limits<double>::infinity());
+  auto parent = std::vector<std::uint32_t>(num_states, std::numeric_limits<std::uint32_t>::max());
 
   using StatePair = std::pair<double, std::uint32_t>;
-  std::priority_queue<StatePair, std::vector<StatePair>, std::greater<StatePair>> pq;
+  auto pq = std::priority_queue<StatePair, std::vector<StatePair>, std::greater<StatePair>>{};
 
-  bool initialized = false;
-  if (nodes_[2 * start_idx].is_drivable) {
-    double cost = nodes_[2 * start_idx].length;
-    dist[2 * start_idx] = cost;
-    pq.push({cost, 2 * start_idx});
-    initialized = true;
-  }
-  if (nodes_[2 * start_idx + 1].is_drivable) {
-    double cost = nodes_[2 * start_idx + 1].length;
-    dist[2 * start_idx + 1] = cost;
-    pq.push({cost, 2 * start_idx + 1});
-    initialized = true;
+  auto initialized = false;
+  for (auto offset = 0U; offset < 2U; ++offset) {
+    const auto state_idx = 2 * start_idx + offset;
+    if (nodes_[state_idx].is_drivable) {
+      const auto cost = nodes_[state_idx].length;
+      dist[state_idx] = cost;
+      pq.push({cost, state_idx});
+      initialized = true;
+    }
   }
 
   if (!initialized) {
@@ -225,26 +222,26 @@ auto Graph::FindRoute(std::string_view start_road_id, std::string_view end_road_
   }
 
   while (!pq.empty()) {
-    auto [d, u] = pq.top();
+    const auto [distance, state_idx] = pq.top();
     pq.pop();
 
-    if (d > dist[u]) {
+    if (distance > dist[state_idx]) {
       continue;
     }
 
-    if (u / 2 == end_idx) {
-      std::vector<std::uint32_t> path_indices;
-      std::uint32_t curr = u;
+    if (state_idx / 2 == end_idx) {
+      auto path_indices = std::vector<std::uint32_t>{};
+      auto curr = state_idx;
       while (curr != std::numeric_limits<std::uint32_t>::max()) {
         path_indices.push_back(curr);
         curr = parent[curr];
       }
       std::reverse(path_indices.begin(), path_indices.end());
 
-      Route route;
+      auto route = Route{};
       route.segments.reserve(path_indices.size());
-      for (std::uint32_t idx : path_indices) {
-        RouteSegment seg;
+      for (const auto idx : path_indices) {
+        auto seg = RouteSegment{};
         seg.road_id = nodes_[idx].road_id;
         seg.forward = (idx % 2 == 0);
         seg.length = nodes_[idx].length;
@@ -253,12 +250,12 @@ auto Graph::FindRoute(std::string_view start_road_id, std::string_view end_road_
       return route;
     }
 
-    for (std::uint32_t v : nodes_[u].successors) {
-      double weight = nodes_[v].length;
-      if (dist[u] + weight < dist[v]) {
-        dist[v] = dist[u] + weight;
-        parent[v] = u;
-        pq.push({dist[v], v});
+    for (const auto successor_idx : nodes_[state_idx].successors) {
+      const auto weight = nodes_[successor_idx].length;
+      if (dist[state_idx] + weight < dist[successor_idx]) {
+        dist[successor_idx] = dist[state_idx] + weight;
+        parent[successor_idx] = state_idx;
+        pq.push({dist[successor_idx], successor_idx});
       }
     }
   }
