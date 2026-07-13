@@ -708,4 +708,115 @@ TEST(VisTest, RouteCoordinateMapping) {
   EXPECT_FALSE(opt3.has_value());
 }
 
+TEST(VisTest, RoutePlannerHUDCardAndPathingErrors) {
+  if (!qApp) {
+    static int argc = 1;
+    static char* argv[] = {const_cast<char*>("test")};
+    static QApplication app(argc, argv);
+  }
+
+  // Arrange: programmatically construct AST with two disconnected roads: Road 1 and Road 2
+  ast::AbstractSyntaxTree map;
+
+  // Road 1
+  ast::Road road1;
+  road1.id = "1";
+  road1.length = 10.0;
+  ast::GeometryRecord geom1;
+  geom1.s = 0.0;
+  geom1.length = 10.0;
+  geom1.x = 0.0;
+  geom1.y = 0.0;
+  geom1.hdg = 0.0;
+  geom1.shape = ast::Line{};
+  road1.plan_view.push_back(geom1);
+
+  ast::LaneSection sec1;
+  sec1.s = 0.0;
+  ast::Lane lane_right1;
+  lane_right1.id = -1;
+  lane_right1.type = strada::ast::LaneType::kDriving;
+  ast::LaneWidth w_right1;
+  w_right1.s_offset = 0.0;
+  w_right1.a = 3.0;
+  lane_right1.widths.push_back(w_right1);
+  sec1.right.push_back(lane_right1);
+  ast::Lane lane0_1;
+  lane0_1.id = 0;
+  lane0_1.type = strada::ast::LaneType::kBorder;
+  sec1.center.push_back(lane0_1);
+  road1.lanes.sections.push_back(sec1);
+  map.roads.push_back(road1);
+
+  // Road 2 (disconnected, offset in y direction)
+  ast::Road road2;
+  road2.id = "2";
+  road2.length = 10.0;
+  ast::GeometryRecord geom2;
+  geom2.s = 0.0;
+  geom2.length = 10.0;
+  geom2.x = 0.0;
+  geom2.y = 20.0;
+  geom2.hdg = 0.0;
+  geom2.shape = ast::Line{};
+  road2.plan_view.push_back(geom2);
+
+  ast::LaneSection sec2;
+  sec2.s = 0.0;
+  ast::Lane lane_right2;
+  lane_right2.id = -1;
+  lane_right2.type = strada::ast::LaneType::kDriving;
+  ast::LaneWidth w_right2;
+  w_right2.s_offset = 0.0;
+  w_right2.a = 3.0;
+  lane_right2.widths.push_back(w_right2);
+  sec2.right.push_back(lane_right2);
+  ast::Lane lane0_2;
+  lane0_2.id = 0;
+  lane0_2.type = strada::ast::LaneType::kBorder;
+  sec2.center.push_back(lane0_2);
+  road2.lanes.sections.push_back(sec2);
+  map.roads.push_back(road2);
+
+  cpm::CompiledPhysicsModel cpm(map);
+  tess::Tessellator tess(map, cpm, 0.5);
+  auto batched = BatchMapGeometry(tess);
+
+  TestViewportWidget widget;
+  widget.SetGeometry(batched, map, std::move(cpm));
+
+  // Enable Route Creation Mode
+  QKeyEvent press_p(QEvent::KeyPress, Qt::Key_P, Qt::NoModifier);
+  widget.keyPressEvent(&press_p);
+  ASSERT_TRUE(widget.IsRouteCreationMode());
+
+  // Click on Road 1 (5.0, -1.5)
+  const auto screen_pos1 = widget.GetCamera().WorldToScreen(5.0F, -1.5F);
+  QMouseEvent press_event1(QEvent::MouseButtonPress, screen_pos1, screen_pos1, Qt::LeftButton, Qt::LeftButton,
+                           Qt::NoModifier);
+  QMouseEvent release_event1(QEvent::MouseButtonRelease, screen_pos1, screen_pos1, Qt::LeftButton, Qt::NoButton,
+                             Qt::NoModifier);
+  widget.mousePressEvent(&press_event1);
+  widget.mouseReleaseEvent(&release_event1);
+
+  // Click on Road 2 (5.0, 18.5)
+  const auto screen_pos2 = widget.GetCamera().WorldToScreen(5.0F, 18.5F);
+  QMouseEvent press_event2(QEvent::MouseButtonPress, screen_pos2, screen_pos2, Qt::LeftButton, Qt::LeftButton,
+                           Qt::NoModifier);
+  QMouseEvent release_event2(QEvent::MouseButtonRelease, screen_pos2, screen_pos2, Qt::LeftButton, Qt::NoButton,
+                             Qt::NoModifier);
+  widget.mousePressEvent(&press_event2);
+  widget.mouseReleaseEvent(&release_event2);
+
+  // Act & Assert
+  // Verify waypoints are added
+  ASSERT_EQ(widget.Waypoints().size(), 2);
+  EXPECT_EQ(widget.Waypoints()[0], "1");
+  EXPECT_EQ(widget.Waypoints()[1], "2");
+
+  // Since roads 1 and 2 are completely disconnected, Dijkstra should fail
+  EXPECT_FALSE(widget.ActiveRoute().has_value());
+  EXPECT_EQ(widget.RouteError(), "No path found between road 1 and 2");
+}
+
 }  // namespace strada::vis

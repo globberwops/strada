@@ -33,6 +33,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   auto WaypointCoords() const -> const std::vector<QPointF>&;
   auto ActiveRoute() const -> const std::optional<routing::Route>&;
   auto GetCamera() const -> const Camera&;
+  auto RouteError() const -> std::string;
 
  protected:
   void initializeGL() override;
@@ -101,10 +102,12 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   std::vector<QPointF> waypoint_world_coords_;
   std::optional<routing::Route> active_route_;
   std::optional<routing::Graph> routing_graph_;
+  std::string route_error_;
 
   auto IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) const -> bool;
   void RecomputeRoute();
   void DrawWaypoints(QPainter& painter);
+  void DrawRoutePlannerHUD(QPainter& painter);
 
   void SetupTriangles();
   void SetupLines();
