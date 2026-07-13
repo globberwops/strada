@@ -10,6 +10,7 @@
 #include <optional>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
+#include <strada/routing/graph.hpp>
 #include <strada/vis/camera.hpp>
 #include <strada/vis/geometry_batcher.hpp>
 #include <string>
@@ -27,6 +28,11 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
                    cpm::CompiledPhysicsModel model);
   static auto FindActiveRoadType(const ast::Road& road, double s) -> ast::RoadType;
 
+  auto IsRouteCreationMode() const -> bool;
+  auto Waypoints() const -> const std::vector<std::string>&;
+  auto ActiveRoute() const -> const std::optional<routing::Route>&;
+  auto GetCamera() const -> const Camera&;
+
  protected:
   void initializeGL() override;
   void resizeGL(int w, int h) override;
@@ -34,6 +40,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
   void mousePressEvent(QMouseEvent* event) override;
   void mouseMoveEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
   auto event(QEvent* event) -> bool override;
@@ -78,6 +85,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   cpm::CompiledPhysicsModel cpm_model_;
   bool has_model_{false};
   mutable cpm::QueryContext query_ctx_;
+  QPoint mouse_press_pos_;
 
   // Hover tracking details
   std::optional<cpm::LanePose> hovered_pose_;
@@ -85,6 +93,15 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   int hovered_lane_original_id_{0};
   double hovered_x_{0.0};
   double hovered_y_{0.0};
+
+  // Route Planning State
+  bool route_creation_mode_{false};
+  std::vector<std::string> waypoint_road_ids_;
+  std::optional<routing::Route> active_route_;
+  std::optional<routing::Graph> routing_graph_;
+
+  auto IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) const -> bool;
+  void RecomputeRoute();
 
   void SetupTriangles();
   void SetupLines();

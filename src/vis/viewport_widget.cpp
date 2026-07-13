@@ -108,8 +108,20 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::Abs
     }
   }
 
+  routing_graph_.emplace(map_);
+  waypoint_road_ids_.clear();
+  active_route_ = std::nullopt;
+
   update();
 }
+
+auto ViewportWidget::IsRouteCreationMode() const -> bool { return route_creation_mode_; }
+
+auto ViewportWidget::Waypoints() const -> const std::vector<std::string>& { return waypoint_road_ids_; }
+
+auto ViewportWidget::ActiveRoute() const -> const std::optional<routing::Route>& { return active_route_; }
+
+auto ViewportWidget::GetCamera() const -> const Camera& { return camera_; }
 
 auto ViewportWidget::FindActiveRoadType(const ast::Road& road, double s) -> ast::RoadType {
   if (road.types.empty()) {
@@ -307,7 +319,55 @@ void ViewportWidget::SetupSignals() {
 
 void ViewportWidget::mousePressEvent(QMouseEvent* event) {
   last_mouse_pos_ = event->pos();
+  mouse_press_pos_ = event->pos();
   setFocus();
+}
+
+void ViewportWidget::mouseReleaseEvent(QMouseEvent* event) {
+  if (event->button() == Qt::LeftButton) {
+    const auto dx = static_cast<double>(event->pos().x() - mouse_press_pos_.x());
+    const auto dy = static_cast<double>(event->pos().y() - mouse_press_pos_.y());
+    const auto distance = std::sqrt((dx * dx) + (dy * dy));
+
+    if (distance <= 5.0) {
+      if (route_creation_mode_ && has_model_) {
+        const auto world_pos =
+            camera_.ScreenToWorld(static_cast<float>(event->position().x()), static_cast<float>(event->position().y()));
+
+        auto pose = cpm::InertialPose{};
+        pose.x = world_pos.x();
+        pose.y = world_pos.y();
+
+        auto best_z = 0.0F;
+        if (!geometry_.triangle_vertices.empty()) {
+          auto min_dist_sq = std::numeric_limits<float>::max();
+          for (const auto& v : geometry_.triangle_vertices) {
+            const auto dx_v = static_cast<float>(world_pos.x()) - v.x;
+            const auto dy_v = static_cast<float>(world_pos.y()) - v.y;
+            const auto dist_sq = (dx_v * dx_v) + (dy_v * dy_v);
+            if (dist_sq < min_dist_sq) {
+              min_dist_sq = dist_sq;
+              best_z = v.z;
+            }
+          }
+        }
+        pose.z = static_cast<double>(best_z);
+        pose.heading = 0.0;
+        pose.pitch = 0.0;
+        pose.roll = 0.0;
+
+        const auto lp_opt = cpm_model_.InertialToLane(pose, query_ctx_);
+        if (lp_opt.has_value()) {
+          if (IsDrivableLane(lp_opt->road, lp_opt->lane)) {
+            const auto road_id_str = std::string(cpm_model_.OriginalRoadId(lp_opt->road));
+            waypoint_road_ids_.push_back(road_id_str);
+            RecomputeRoute();
+            update();
+          }
+        }
+      }
+    }
+  }
 }
 
 void ViewportWidget::mouseMoveEvent(QMouseEvent* event) {
@@ -476,6 +536,44 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
       if (auto* status = main_win->statusBar()) {
         status->showMessage(show_lanes_ ? "Toggled lanes: ON" : "Toggled lanes: OFF", 2000);
+      }
+    }
+  } else if (event->key() == Qt::Key_P) {
+    route_creation_mode_ = !route_creation_mode_;
+    update();
+    if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+      if (auto* status = main_win->statusBar()) {
+        status->showMessage(route_creation_mode_ ? "Route Creation Mode: ON" : "Route Creation Mode: OFF", 2000);
+      }
+    }
+  } else if (route_creation_mode_) {
+    if (event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete) {
+      if (!waypoint_road_ids_.empty()) {
+        waypoint_road_ids_.pop_back();
+        RecomputeRoute();
+        update();
+        if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+          if (auto* status = main_win->statusBar()) {
+            status->showMessage("Undone last waypoint", 2000);
+          }
+        }
+      }
+    } else if (event->key() == Qt::Key_C) {
+      waypoint_road_ids_.clear();
+      active_route_ = std::nullopt;
+      update();
+      if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+        if (auto* status = main_win->statusBar()) {
+          status->showMessage("Cleared route and waypoints", 2000);
+        }
+      }
+    } else if (event->key() == Qt::Key_Escape) {
+      route_creation_mode_ = false;
+      update();
+      if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+        if (auto* status = main_win->statusBar()) {
+          status->showMessage("Route Creation Mode: OFF", 2000);
+        }
       }
     }
   }
@@ -974,6 +1072,40 @@ void ViewportWidget::DrawOverlays() {
   DrawCompass(painter);
   DrawScaleBar(painter);
   DrawShortcutsPanel(painter);
+}
+
+auto ViewportWidget::IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) const -> bool {
+  for (const auto& range : geometry_.mesh_ranges) {
+    if (range.road_id == road_id && range.lane_id == lane_id) {
+      return range.lane_type == ast::LaneType::kDriving || range.lane_type == ast::LaneType::kOnRamp ||
+             range.lane_type == ast::LaneType::kExit || range.lane_type == ast::LaneType::kEntry ||
+             range.lane_type == ast::LaneType::kConnectingRamp;
+    }
+  }
+  return false;
+}
+
+void ViewportWidget::RecomputeRoute() {
+  if (!routing_graph_.has_value() || waypoint_road_ids_.size() < 2) {
+    active_route_ = std::nullopt;
+    return;
+  }
+
+  auto merged_route = routing::Route{};
+  for (std::size_t i = 0; i < waypoint_road_ids_.size() - 1; ++i) {
+    const auto path_opt = routing_graph_->FindRoute(waypoint_road_ids_[i], waypoint_road_ids_[i + 1]);
+    if (!path_opt.has_value()) {
+      active_route_ = std::nullopt;
+      return;
+    }
+
+    for (const auto& seg : path_opt->segments) {
+      if (merged_route.segments.empty() || merged_route.segments.back().road_id != seg.road_id) {
+        merged_route.segments.push_back(seg);
+      }
+    }
+  }
+  active_route_ = merged_route;
 }
 
 }  // namespace strada::vis

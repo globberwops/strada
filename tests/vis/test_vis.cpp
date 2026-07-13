@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <QApplication>
+#include <QKeyEvent>
+#include <QMouseEvent>
 #include <filesystem>
 #include <strada/parser/parser.hpp>
 #include <strada/vis/geometry_batcher.hpp>
@@ -482,6 +485,181 @@ TEST(VisTest, BatchMapGeometrySignals) {
   const auto& p1_top = batched.signal_line_vertices[1];
   EXPECT_NEAR(p1_bottom.z, 0.0F, 1e-4F);
   EXPECT_NEAR(p1_top.z, 3.0F, 1e-4F);
+}
+
+struct TestViewportWidget : public ViewportWidget {
+  using ViewportWidget::keyPressEvent;
+  using ViewportWidget::mousePressEvent;
+  using ViewportWidget::mouseReleaseEvent;
+};
+
+TEST(VisTest, RouteCreationModeToggle) {
+  if (!qApp) {
+    static int argc = 1;
+    static char* argv[] = {const_cast<char*>("test")};
+    static QApplication app(argc, argv);
+  }
+
+  TestViewportWidget widget;
+  EXPECT_FALSE(widget.IsRouteCreationMode());
+
+  // Toggle ON
+  QKeyEvent press_p(QEvent::KeyPress, Qt::Key_P, Qt::NoModifier);
+  widget.keyPressEvent(&press_p);
+  EXPECT_TRUE(widget.IsRouteCreationMode());
+
+  // Toggle OFF
+  widget.keyPressEvent(&press_p);
+  EXPECT_FALSE(widget.IsRouteCreationMode());
+}
+
+TEST(VisTest, ClickVsDragClassification) {
+  if (!qApp) {
+    static int argc = 1;
+    static char* argv[] = {const_cast<char*>("test")};
+    static QApplication app(argc, argv);
+  }
+
+  TestViewportWidget widget;
+
+  // Enable route creation mode
+  QKeyEvent press_p(QEvent::KeyPress, Qt::Key_P, Qt::NoModifier);
+  widget.keyPressEvent(&press_p);
+  ASSERT_TRUE(widget.IsRouteCreationMode());
+
+  // Press at (100, 100)
+  QMouseEvent press_event(QEvent::MouseButtonPress, QPointF(100.0, 100.0), QPointF(100.0, 100.0), Qt::LeftButton,
+                          Qt::LeftButton, Qt::NoModifier);
+  widget.mousePressEvent(&press_event);
+
+  // Release at (102, 102) -> distance is sqrt(8) ~ 2.82 <= 5.0 -> Click!
+  QMouseEvent release_click(QEvent::MouseButtonRelease, QPointF(102.0, 102.0), QPointF(102.0, 102.0), Qt::LeftButton,
+                            Qt::NoButton, Qt::NoModifier);
+  widget.mouseReleaseEvent(&release_click);
+  EXPECT_TRUE(widget.Waypoints().empty());
+
+  // Press again
+  widget.mousePressEvent(&press_event);
+
+  // Release at (110, 110) -> distance is sqrt(200) ~ 14.14 > 5.0 -> Drag (ignored as click)!
+  QMouseEvent release_drag(QEvent::MouseButtonRelease, QPointF(110.0, 110.0), QPointF(110.0, 110.0), Qt::LeftButton,
+                           Qt::NoButton, Qt::NoModifier);
+  widget.mouseReleaseEvent(&release_drag);
+  EXPECT_TRUE(widget.Waypoints().empty());
+}
+
+TEST(VisTest, WaypointSnappingAndShortcuts) {
+  if (!qApp) {
+    static int argc = 1;
+    static char* argv[] = {const_cast<char*>("test")};
+    static QApplication app(argc, argv);
+  }
+
+  // Arrange: programmatically construct AST with Road 1 (drivable right, non-drivable left)
+  ast::AbstractSyntaxTree map;
+
+  ast::Road road;
+  road.id = "1";
+  road.length = 10.0;
+
+  ast::GeometryRecord geom;
+  geom.s = 0.0;
+  geom.length = 10.0;
+  geom.x = 0.0;
+  geom.y = 0.0;
+  geom.hdg = 0.0;
+  geom.shape = ast::Line{};
+  road.plan_view.push_back(geom);
+
+  ast::LaneSection section;
+  section.s = 0.0;
+
+  // Drivable right lane (id = -1, type = driving)
+  ast::Lane lane_right;
+  lane_right.id = -1;
+  lane_right.type = strada::ast::LaneType::kDriving;
+  ast::LaneWidth w_right;
+  w_right.s_offset = 0.0;
+  w_right.a = 3.0;
+  lane_right.widths.push_back(w_right);
+  section.right.push_back(lane_right);
+
+  // Non-drivable left lane (id = 1, type = sidewalk)
+  ast::Lane lane_left;
+  lane_left.id = 1;
+  lane_left.type = strada::ast::LaneType::kSidewalk;
+  ast::LaneWidth w_left;
+  w_left.s_offset = 0.0;
+  w_left.a = 3.0;
+  lane_left.widths.push_back(w_left);
+  section.left.push_back(lane_left);
+
+  ast::Lane lane0;
+  lane0.id = 0;
+  lane0.type = strada::ast::LaneType::kBorder;
+  section.center.push_back(lane0);
+
+  road.lanes.sections.push_back(section);
+  map.roads.push_back(road);
+
+  cpm::CompiledPhysicsModel cpm(map);
+  tess::Tessellator tess(map, cpm, 0.5);
+  auto batched = BatchMapGeometry(tess);
+
+  TestViewportWidget widget;
+  widget.SetGeometry(batched, map, std::move(cpm));
+
+  // Enable Route Creation Mode
+  QKeyEvent press_p(QEvent::KeyPress, Qt::Key_P, Qt::NoModifier);
+  widget.keyPressEvent(&press_p);
+  ASSERT_TRUE(widget.IsRouteCreationMode());
+
+  // Click on non-drivable left lane (sidewalk: y > 0). Let's project world (5.0, 1.5) to screen.
+  const auto screen_pos_left = widget.GetCamera().WorldToScreen(5.0F, 1.5F);
+  QMouseEvent press_event_left(QEvent::MouseButtonPress, screen_pos_left, screen_pos_left, Qt::LeftButton,
+                               Qt::LeftButton, Qt::NoModifier);
+  QMouseEvent release_event_left(QEvent::MouseButtonRelease, screen_pos_left, screen_pos_left, Qt::LeftButton,
+                                 Qt::NoButton, Qt::NoModifier);
+
+  widget.mousePressEvent(&press_event_left);
+  widget.mouseReleaseEvent(&release_event_left);
+
+  // Non-drivable lane should be ignored
+  EXPECT_TRUE(widget.Waypoints().empty());
+
+  // Click on drivable right lane (driving: y < 0). Project world (5.0, -1.5) to screen.
+  const auto screen_pos_right = widget.GetCamera().WorldToScreen(5.0F, -1.5F);
+  QMouseEvent press_event_right(QEvent::MouseButtonPress, screen_pos_right, screen_pos_right, Qt::LeftButton,
+                                Qt::LeftButton, Qt::NoModifier);
+  QMouseEvent release_event_right(QEvent::MouseButtonRelease, screen_pos_right, screen_pos_right, Qt::LeftButton,
+                                  Qt::NoButton, Qt::NoModifier);
+
+  widget.mousePressEvent(&press_event_right);
+  widget.mouseReleaseEvent(&release_event_right);
+
+  // Drivable lane should snap and add road ID "1" as a waypoint
+  ASSERT_EQ(widget.Waypoints().size(), 1);
+  EXPECT_EQ(widget.Waypoints()[0], "1");
+
+  // Click again on drivable right lane to add a second waypoint
+  widget.mousePressEvent(&press_event_right);
+  widget.mouseReleaseEvent(&release_event_right);
+  ASSERT_EQ(widget.Waypoints().size(), 2);
+
+  // Undo (Backspace) should remove the last waypoint
+  QKeyEvent press_backspace(QEvent::KeyPress, Qt::Key_Backspace, Qt::NoModifier);
+  widget.keyPressEvent(&press_backspace);
+  EXPECT_EQ(widget.Waypoints().size(), 1);
+
+  // Clear (C) should clear all waypoints
+  QKeyEvent press_c(QEvent::KeyPress, Qt::Key_C, Qt::NoModifier);
+  widget.keyPressEvent(&press_c);
+  EXPECT_TRUE(widget.Waypoints().empty());
+
+  // Escape (Escape) should exit Route Creation Mode
+  QKeyEvent press_escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+  widget.keyPressEvent(&press_escape);
+  EXPECT_FALSE(widget.IsRouteCreationMode());
 }
 
 }  // namespace strada::vis
