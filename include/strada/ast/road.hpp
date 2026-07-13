@@ -4,6 +4,7 @@
 #include <optional>
 #include <strada/ast/extensions.hpp>
 #include <strada/ast/geometry.hpp>
+#include <strada/ast/junction.hpp>
 #include <strada/ast/lanes.hpp>
 #include <strada/ast/objects.hpp>
 #include <strada/ast/profiles.hpp>
@@ -42,6 +43,25 @@ struct RoadTypeRecord {
   RoadType type{RoadType::kUnknown};  ///< Type of the road.
 };
 
+/// Scoped enum representing OpenDRIVE road link types.
+enum class RoadLinkType : std::uint8_t {
+  kRoad = 0,  ///< Link element is a road.
+  kJunction   ///< Link element is a junction.
+};
+
+/// Represents an individual predecessor or successor road link element.
+struct RoadLinkEntry {
+  RoadLinkType element_type{RoadLinkType::kRoad};  ///< Type of linked element (road or junction).
+  std::string element_id;                          ///< ID of the linked element.
+  std::optional<ContactPoint> contact_point;       ///< Optional contact point (start or end) if type is road.
+};
+
+/// Represents road-level link connectivity (predecessor and successor).
+struct RoadLink {
+  std::optional<RoadLinkEntry> predecessor;  ///< Predecessor road link.
+  std::optional<RoadLinkEntry> successor;    ///< Successor road link.
+};
+
 /// Represents an individual road inside the map network.
 struct Road {
   std::string id;                                  ///< Unique ID of the road.
@@ -49,6 +69,7 @@ struct Road {
   std::string junction{"-1"};                      ///< ID of the junction this road belongs to (-1 for none).
   TrafficRule rule{TrafficRule::kRht};             ///< Traffic rule (RHT/LHT).
   std::optional<std::string> name;                 ///< Optional human-readable name of the road.
+  RoadLink link;                                   ///< Road-level predecessor and successor links.
   std::vector<GeometryRecord> plan_view;           ///< The plan-view geometry segments of the reference line.
   ElevationProfile elevation_profile;              ///< Vertical elevation profile.
   LateralProfile lateral_profile;                  ///< Superelevation and lateral shapes.

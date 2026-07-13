@@ -29,7 +29,7 @@ rm -rf "$REPORT_DIR"
 genhtml "$FILTERED_INFO_FILE" --output-directory "$REPORT_DIR" --ignore-errors inconsistent,unused
 
 echo "=== [4/4] Displaying terminal coverage summary using gcovr ==="
-gcovr -r . --object-directory "$COV_DIR" --exclude '.*tests.*' --exclude '.*examples.*' --exclude '.*build.*'
+gcovr -r . --object-directory "$COV_DIR" --exclude '.*tests.*' --exclude '.*examples.*' --exclude '.*build.*' --gcov-ignore-errors=no_working_dir_found
 
 echo ""
 echo "=== Coverage report successfully generated! ==="

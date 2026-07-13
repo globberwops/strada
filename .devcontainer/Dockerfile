@@ -16,12 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     cppcheck \
     curl \
-    git \
     doxygen \
     fd-find \
     g++ \
     gcovr \
     gdb \
+    git \
     graphviz \
     iwyu \
     lcov \
@@ -39,10 +39,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     qt6-base-dev \
     qt6-wayland \
     ripgrep \
-    uncrustify \
-    valgrind \
     shellcheck \
     shfmt \
+    uncrustify \
+    valgrind \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install python-based linting/formatting tools
@@ -80,5 +80,3 @@ RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
 
 # Run the native Pi installation directly into the user space
 RUN curl -fsSL https://pi.dev/install.sh | sh
-
-# Trigger devcontainer rebuild for shfmt and shellcheck

@@ -2386,3 +2386,102 @@ TEST(ParserTest, SignalReferenceNegativeSThrows) {
   // Act & Assert
   EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
 }
+
+TEST(ParserTest, ParseRoadLink) {
+  // Arrange
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
+  <road id="1" length="100.0" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="2" contactPoint="end"/>
+      <successor elementType="junction" elementId="10"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+  </road>
+</OpenDRIVE>)";
+
+  // Act
+  auto ast_tree = strada::parser::ParseString(xml);
+
+  // Assert
+  ASSERT_EQ(ast_tree.roads.size(), 1);
+  const auto& road = ast_tree.roads[0];
+  ASSERT_TRUE(road.link.predecessor.has_value());
+  EXPECT_EQ(road.link.predecessor->element_type, strada::ast::RoadLinkType::kRoad);
+  EXPECT_EQ(road.link.predecessor->element_id, "2");
+  ASSERT_TRUE(road.link.predecessor->contact_point.has_value());
+  EXPECT_EQ(*road.link.predecessor->contact_point, strada::ast::ContactPoint::kEnd);
+
+  ASSERT_TRUE(road.link.successor.has_value());
+  EXPECT_EQ(road.link.successor->element_type, strada::ast::RoadLinkType::kJunction);
+  EXPECT_EQ(road.link.successor->element_id, "10");
+  EXPECT_FALSE(road.link.successor->contact_point.has_value());
+}
+
+TEST(ParserTest, ParseRoadLinkMissingIdThrows) {
+  // Arrange
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
+  <road id="1" length="100.0" junction="-1">
+    <link>
+      <predecessor elementType="road" contactPoint="end"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
+}
+
+TEST(ParserTest, ParseRoadLinkInvalidTypeThrows) {
+  // Arrange
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
+  <road id="1" length="100.0" junction="-1">
+    <link>
+      <predecessor elementType="invalid" elementId="2" contactPoint="end"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::InvalidAttributeError);
+}
+
+TEST(ParserTest, ParseRoadLinkRoadMissingContactPointThrows) {
+  // Arrange
+  const std::string xml = R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
+  <road id="1" length="100.0" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="2"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <line/>
+      </geometry>
+    </planView>
+  </road>
+</OpenDRIVE>)";
+
+  // Act & Assert
+  EXPECT_THROW(strada::parser::ParseString(xml), strada::parser::MissingElementError);
+}

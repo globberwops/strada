@@ -1140,6 +1140,68 @@ auto ParseObjectReference(pugi::xml_node node) -> ast::ObjectReference {
   return obj_ref;
 }
 
+auto ParseRoadLinkEntry(pugi::xml_node node, const std::string& road_id, std::string_view relation)
+    -> ast::RoadLinkEntry {
+  ast::RoadLinkEntry entry;
+
+  const pugi::xml_attribute type_attr = node.attribute("elementType");
+  if (!type_attr) {
+    throw MissingElementError("<road id=\"" + road_id + "\"> has <link> <" + std::string(relation) +
+                              "> missing mandatory 'elementType' attribute");
+  }
+  const std::string_view type_str = type_attr.value();
+  if (const auto type_opt = FromString<ast::RoadLinkType>(type_str)) {
+    entry.element_type = *type_opt;
+  } else {
+    throw InvalidAttributeError("<road id=\"" + road_id + "\"> has <link> <" + std::string(relation) +
+                                "> with invalid elementType=\"" + std::string(type_str) + "\"");
+  }
+
+  const pugi::xml_attribute id_attr = node.attribute("elementId");
+  if (!id_attr) {
+    throw MissingElementError("<road id=\"" + road_id + "\"> has <link> <" + std::string(relation) +
+                              "> missing mandatory 'elementId' attribute");
+  }
+  entry.element_id = id_attr.as_string();
+  if (entry.element_id.empty()) {
+    throw MissingElementError("<road id=\"" + road_id + "\"> has <link> <" + std::string(relation) +
+                              "> with empty 'elementId' attribute");
+  }
+
+  if (entry.element_type == ast::RoadLinkType::kRoad) {
+    const pugi::xml_attribute cp_attr = node.attribute("contactPoint");
+    if (!cp_attr) {
+      throw MissingElementError("<road id=\"" + road_id + "\"> has <link> <" + std::string(relation) +
+                                "> of type 'road' missing mandatory 'contactPoint' attribute");
+    }
+    const std::string_view cp_str = cp_attr.value();
+    if (const auto cp_opt = FromString<ast::ContactPoint>(cp_str)) {
+      entry.contact_point = cp_opt;
+    } else {
+      throw InvalidAttributeError("<road id=\"" + road_id + "\"> has <link> <" + std::string(relation) +
+                                  "> of type 'road' with invalid contactPoint=\"" + std::string(cp_str) + "\"");
+    }
+  }
+
+  return entry;
+}
+
+auto ParseRoadLink(pugi::xml_node link_node, const std::string& road_id) -> ast::RoadLink {
+  ast::RoadLink link;
+  if (link_node.empty()) {
+    return link;
+  }
+
+  if (const pugi::xml_node pred_node = link_node.child("predecessor")) {
+    link.predecessor = ParseRoadLinkEntry(pred_node, road_id, "predecessor");
+  }
+  if (const pugi::xml_node succ_node = link_node.child("successor")) {
+    link.successor = ParseRoadLinkEntry(succ_node, road_id, "successor");
+  }
+
+  return link;
+}
+
 auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
   const pugi::xml_node root = doc.child("OpenDRIVE");
   if (!root) {
@@ -1286,6 +1348,9 @@ auto ParseDocument(const pugi::xml_document& doc) -> ast::AbstractSyntaxTree {
           road.signal_references,
           [](const ast::SignalReference& lhs, const ast::SignalReference& rhs) -> bool { return lhs.s < rhs.s; });
     }
+
+    // Link
+    road.link = ParseRoadLink(road_node.child("link"), road.id);
 
     // Extensions
     static const std::unordered_set<std::string> kNownRoadAttrs = {"id", "length", "junction", "rule", "name"};

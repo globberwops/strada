@@ -383,6 +383,18 @@ constexpr auto FromString<ast::RoadType>(std::string_view str) -> std::optional<
   return std::nullopt;
 }
 
+// Specialization for ast::RoadLinkType
+template <>
+constexpr auto FromString<ast::RoadLinkType>(std::string_view str) -> std::optional<ast::RoadLinkType> {
+  if (str == "road") {
+    return ast::RoadLinkType::kRoad;
+  }
+  if (str == "junction") {
+    return ast::RoadLinkType::kJunction;
+  }
+  return std::nullopt;
+}
+
 /// Converts ast::TrafficRule to its string representation.
 constexpr auto ToString(ast::TrafficRule val) noexcept -> std::string_view {
   switch (val) {
@@ -662,6 +674,17 @@ constexpr auto ToString(ast::RoadType val) noexcept -> std::string_view {
       return "townPrivate";
     case ast::RoadType::kTown:
       return "town";
+  }
+  return "";
+}
+
+/// Converts ast::RoadLinkType to its string representation.
+constexpr auto ToString(ast::RoadLinkType val) noexcept -> std::string_view {
+  switch (val) {
+    case ast::RoadLinkType::kRoad:
+      return "road";
+    case ast::RoadLinkType::kJunction:
+      return "junction";
   }
   return "";
 }
