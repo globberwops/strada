@@ -30,6 +30,12 @@ target_link_libraries(test_tess PRIVATE Strada::strada GTest::gtest_main)
 strada_add_warnings(test_tess)
 gtest_discover_tests(test_tess)
 
+add_executable(test_routing routing/graph_test.cpp)
+target_compile_definitions(test_routing PRIVATE STRADA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+target_link_libraries(test_routing PRIVATE Strada::strada GTest::gtest_main)
+strada_add_warnings(test_routing)
+gtest_discover_tests(test_routing)
+
 if(STRADA_BUILD_VIS)
   add_subdirectory(vis)
 endif()
