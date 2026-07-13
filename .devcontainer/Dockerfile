@@ -79,3 +79,5 @@ RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
 
 # Run the native Pi installation directly into the user space
 RUN curl -fsSL https://pi.dev/install.sh | sh
+
+# Trigger devcontainer rebuild for shfmt and shellcheck
