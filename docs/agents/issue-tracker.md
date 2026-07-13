@@ -1,17 +1,8 @@
 # Issue tracker: GitHub
 
-Issues and PRDs for this repo live as GitHub issues. Use either the GitHub MCP server (preferred) or the `gh` CLI for all operations.
+Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI tool exclusively for all operations.
 
 ## Conventions
-
-### Using GitHub MCP Server (via call_mcp_tool)
-
-- **Create an issue**: Call `github/issue_write` with `method="create"`, `owner`, `repo`, `title`, and `body`.
-- **Read an issue**: Call `github/issue_read` with `method="get"`, `owner`, `repo`, and `issue_number`. Call with `method="get_comments"` to read comments.
-- **List issues**: Call `github/list_issues` with `owner`, `repo`, and optional filters like `state="open"`.
-- **Comment on an issue**: Call `github/add_issue_comment` with `owner`, `repo`, `issue_number`, and `body`.
-- **Apply / remove labels**: Call `github/issue_write` with `method="update"`, `owner`, `repo`, `issue_number`, and the desired `labels` array.
-- **Close**: Call `github/issue_write` with `method="update"`, `owner`, `repo`, `issue_number`, `state="closed"`, and `state_reason="completed"` (or `not_planned`).
 
 ### Using `gh` CLI
 
