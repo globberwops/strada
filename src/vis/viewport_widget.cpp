@@ -110,6 +110,7 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::Abs
 
   routing_graph_.emplace(map_);
   waypoint_road_ids_.clear();
+  waypoint_world_coords_.clear();
   active_route_ = std::nullopt;
 
   update();
@@ -118,6 +119,8 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::Abs
 auto ViewportWidget::IsRouteCreationMode() const -> bool { return route_creation_mode_; }
 
 auto ViewportWidget::Waypoints() const -> const std::vector<std::string>& { return waypoint_road_ids_; }
+
+auto ViewportWidget::WaypointCoords() const -> const std::vector<QPointF>& { return waypoint_world_coords_; }
 
 auto ViewportWidget::ActiveRoute() const -> const std::optional<routing::Route>& { return active_route_; }
 
@@ -361,6 +364,13 @@ void ViewportWidget::mouseReleaseEvent(QMouseEvent* event) {
           if (IsDrivableLane(lp_opt->road, lp_opt->lane)) {
             const auto road_id_str = std::string(cpm_model_.OriginalRoadId(lp_opt->road));
             waypoint_road_ids_.push_back(road_id_str);
+
+            auto snapped_pose = *lp_opt;
+            snapped_pose.t = 0.0;
+            cpm::QueryContext temp_ctx;
+            const auto snapped_ip = cpm_model_.LaneToInertial(snapped_pose, temp_ctx);
+            waypoint_world_coords_.push_back(QPointF{snapped_ip.x, snapped_ip.y});
+
             RecomputeRoute();
             update();
           }
@@ -550,6 +560,9 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete) {
       if (!waypoint_road_ids_.empty()) {
         waypoint_road_ids_.pop_back();
+        if (!waypoint_world_coords_.empty()) {
+          waypoint_world_coords_.pop_back();
+        }
         RecomputeRoute();
         update();
         if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
@@ -560,6 +573,7 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
       }
     } else if (event->key() == Qt::Key_C) {
       waypoint_road_ids_.clear();
+      waypoint_world_coords_.clear();
       active_route_ = std::nullopt;
       update();
       if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
@@ -803,6 +817,42 @@ void ViewportWidget::DrawScene() {
         break;
       }
     }
+  }
+
+  // 4. Draw Route Highlight Overlay
+  if (show_lanes_ && has_model_ && active_route_.has_value() && !active_route_->segments.empty()) {
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    shader_program_.setUniformValue("useOverrideColor", 1);
+    shader_program_.setUniformValue("overrideColor", QVector4D{0.0F, 229.0F / 255.0F, 1.0F, 0.4F});
+
+    triangles_vao_.bind();
+    for (const auto& range : geometry_.mesh_ranges) {
+      bool in_route = false;
+      const auto original_id = cpm_model_.OriginalRoadId(range.road_id);
+      for (const auto& seg : active_route_->segments) {
+        if (seg.road_id == original_id) {
+          in_route = true;
+          break;
+        }
+      }
+
+      if (in_route && (range.lane_type == ast::LaneType::kDriving || range.lane_type == ast::LaneType::kOnRamp ||
+                       range.lane_type == ast::LaneType::kExit || range.lane_type == ast::LaneType::kEntry ||
+                       range.lane_type == ast::LaneType::kConnectingRamp)) {
+        if (range.index_count > 0) {
+          const auto* offset =
+              reinterpret_cast<const void*>(static_cast<std::uintptr_t>(range.index_start) * sizeof(std::uint32_t));
+          glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(range.index_count), GL_UNSIGNED_INT, offset);
+        }
+      }
+    }
+    triangles_vao_.release();
+    shader_program_.setUniformValue("useOverrideColor", 0);
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
   }
 
   shader_program_.release();
@@ -1097,6 +1147,35 @@ void ViewportWidget::DrawOverlays() {
   DrawCompass(painter);
   DrawScaleBar(painter);
   DrawShortcutsPanel(painter);
+  DrawWaypoints(painter);
+}
+
+void ViewportWidget::DrawWaypoints(QPainter& painter) {
+  if (!route_creation_mode_ || waypoint_world_coords_.empty()) {
+    return;
+  }
+
+  painter.save();
+  auto font = QFont{"Segoe UI", 9, QFont::Bold};
+  painter.setFont(font);
+
+  int index = 1;
+  for (const auto& world_pos : waypoint_world_coords_) {
+    const auto screen_pos = camera_.WorldToScreen(static_cast<float>(world_pos.x()), static_cast<float>(world_pos.y()));
+
+    const double radius = 10.0;
+    const auto rect = QRectF{screen_pos.x() - radius, screen_pos.y() - radius, radius * 2.0, radius * 2.0};
+
+    painter.setPen(QPen(QColor(245, 197, 61), 2));      // Gold border
+    painter.setBrush(QBrush(QColor(15, 23, 42, 220)));  // Slate background
+    painter.drawEllipse(rect);
+
+    painter.setPen(Qt::white);
+    painter.drawText(rect, Qt::AlignCenter, QString::number(index));
+
+    index++;
+  }
+  painter.restore();
 }
 
 auto ViewportWidget::IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) const -> bool {

@@ -640,21 +640,27 @@ TEST(VisTest, WaypointSnappingAndShortcuts) {
   // Drivable lane should snap and add road ID "1" as a waypoint
   ASSERT_EQ(widget.Waypoints().size(), 1);
   EXPECT_EQ(widget.Waypoints()[0], "1");
+  ASSERT_EQ(widget.WaypointCoords().size(), 1);
+  EXPECT_NEAR(widget.WaypointCoords()[0].x(), 5.0, 1e-4);
+  EXPECT_NEAR(widget.WaypointCoords()[0].y(), -1.5, 1e-4);
 
   // Click again on drivable right lane to add a second waypoint
   widget.mousePressEvent(&press_event_right);
   widget.mouseReleaseEvent(&release_event_right);
   ASSERT_EQ(widget.Waypoints().size(), 2);
+  ASSERT_EQ(widget.WaypointCoords().size(), 2);
 
   // Undo (Backspace) should remove the last waypoint
   QKeyEvent press_backspace(QEvent::KeyPress, Qt::Key_Backspace, Qt::NoModifier);
   widget.keyPressEvent(&press_backspace);
   EXPECT_EQ(widget.Waypoints().size(), 1);
+  EXPECT_EQ(widget.WaypointCoords().size(), 1);
 
   // Clear (C) should clear all waypoints
   QKeyEvent press_c(QEvent::KeyPress, Qt::Key_C, Qt::NoModifier);
   widget.keyPressEvent(&press_c);
   EXPECT_TRUE(widget.Waypoints().empty());
+  EXPECT_TRUE(widget.WaypointCoords().empty());
 
   // Escape (Escape) should exit Route Creation Mode
   QKeyEvent press_escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);

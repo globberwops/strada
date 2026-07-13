@@ -30,6 +30,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
   auto IsRouteCreationMode() const -> bool;
   auto Waypoints() const -> const std::vector<std::string>&;
+  auto WaypointCoords() const -> const std::vector<QPointF>&;
   auto ActiveRoute() const -> const std::optional<routing::Route>&;
   auto GetCamera() const -> const Camera&;
 
@@ -97,11 +98,13 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   // Route Planning State
   bool route_creation_mode_{false};
   std::vector<std::string> waypoint_road_ids_;
+  std::vector<QPointF> waypoint_world_coords_;
   std::optional<routing::Route> active_route_;
   std::optional<routing::Graph> routing_graph_;
 
   auto IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) const -> bool;
   void RecomputeRoute();
+  void DrawWaypoints(QPainter& painter);
 
   void SetupTriangles();
   void SetupLines();
