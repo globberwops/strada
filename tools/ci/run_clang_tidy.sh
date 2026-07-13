@@ -13,7 +13,7 @@ fi
 if [ "$#" -gt 0 ]; then
   run-clang-tidy -p build/dev -extra-arg=-Wno-unknown-warning-option "$@"
 elif [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
-  run-clang-tidy -p build/dev -extra-arg=-Wno-unknown-warning-option "src/.*|include/.*|tests/.*|examples/.*"
+  run-clang-tidy -p build/dev -extra-arg=-Wno-unknown-warning-option "^(src|include|tests|examples)/.*"
 else
   CLANG_TIDY_DIFF=$(which clang-tidy-diff-21.py || which clang-tidy-diff.py || find /usr/bin -name "clang-tidy-diff-*.py" | head -n 1)
   if [ -z "$CLANG_TIDY_DIFF" ]; then
