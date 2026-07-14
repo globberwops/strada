@@ -19,6 +19,8 @@ auto RouteBuilder::AppendWaypoint(std::string_view road_id) -> bool {
   if (waypoint_road_ids_.size() < 2) {
     active_route_ = std::nullopt;
     route_error_.clear();
+    route_history_.push_back(active_route_);
+    error_history_.push_back(route_error_);
     return true;
   }
 
@@ -30,6 +32,8 @@ auto RouteBuilder::AppendWaypoint(std::string_view road_id) -> bool {
     route_error_ = "No path found between road " + from + " and " + to;
     active_route_ = std::nullopt;
     sub_routes_.push_back(Route{});
+    route_history_.push_back(active_route_);
+    error_history_.push_back(route_error_);
     return false;
   }
 
@@ -40,6 +44,8 @@ auto RouteBuilder::AppendWaypoint(std::string_view road_id) -> bool {
   for (const auto& sub_route : sub_routes_) {
     if (sub_route.segments.empty()) {
       active_route_ = std::nullopt;
+      route_history_.push_back(active_route_);
+      error_history_.push_back(route_error_);
       return false;
     }
     for (const auto& seg : sub_route.segments) {
@@ -50,6 +56,8 @@ auto RouteBuilder::AppendWaypoint(std::string_view road_id) -> bool {
   }
 
   active_route_ = merged;
+  route_history_.push_back(active_route_);
+  error_history_.push_back(route_error_);
   return true;
 }
 
@@ -63,33 +71,27 @@ void RouteBuilder::Undo() {
     sub_routes_.pop_back();
   }
 
-  route_error_.clear();
-  if (waypoint_road_ids_.size() < 2) {
+  if (!route_history_.empty()) {
+    route_history_.pop_back();
+  }
+  if (!error_history_.empty()) {
+    error_history_.pop_back();
+  }
+
+  if (route_history_.empty()) {
     active_route_ = std::nullopt;
-    return;
+    route_error_.clear();
+  } else {
+    active_route_ = route_history_.back();
+    route_error_ = error_history_.back();
   }
-
-  auto merged = Route{};
-  for (std::size_t i = 0; i < sub_routes_.size(); ++i) {
-    const auto& sub_route = sub_routes_[i];
-    if (sub_route.segments.empty()) {
-      active_route_ = std::nullopt;
-      route_error_ = "No path found between road " + waypoint_road_ids_[i] + " and " + waypoint_road_ids_[i + 1];
-      return;
-    }
-    for (const auto& seg : sub_route.segments) {
-      if (merged.segments.empty() || merged.segments.back().road_id != seg.road_id) {
-        merged.segments.push_back(seg);
-      }
-    }
-  }
-
-  active_route_ = merged;
 }
 
 void RouteBuilder::Clear() {
   waypoint_road_ids_.clear();
   sub_routes_.clear();
+  route_history_.clear();
+  error_history_.clear();
   active_route_ = std::nullopt;
   route_error_.clear();
 }

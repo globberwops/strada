@@ -67,6 +67,8 @@ class RouteBuilder {
   std::vector<Route> sub_routes_;
   std::optional<Route> active_route_;
   std::string route_error_;
+  std::vector<std::optional<Route>> route_history_;
+  std::vector<std::string> error_history_;
 };
 
 }  // namespace strada::routing

@@ -387,8 +387,19 @@ void ViewportWidget::mouseReleaseEvent(QMouseEvent* event) {
             auto temp_ctx = cpm::QueryContext{};
             const auto snapped_ip = cpm_model_.LaneToInertial(snapped_pose, temp_ctx);
 
-            route_builder_->AppendWaypoint(road_id_str);
+            const auto success = route_builder_->AppendWaypoint(road_id_str);
             waypoint_world_coords_.push_back(QPointF{snapped_ip.x, snapped_ip.y});
+
+            if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
+              if (auto* status = main_win->statusBar()) {
+                if (success) {
+                  status->showMessage(QString{"Added waypoint: Road %1"}.arg(QString::fromStdString(road_id_str)),
+                                      2000);
+                } else {
+                  status->showMessage(QString::fromStdString(std::string(route_builder_->RouteError())), 3000);
+                }
+              }
+            }
 
             update();
           }
