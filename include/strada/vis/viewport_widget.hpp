@@ -28,11 +28,34 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
                    cpm::CompiledPhysicsModel model);
   static auto FindActiveRoadType(const ast::Road& road, double s) -> ast::RoadType;
 
+  /// Returns whether Route Creation Mode is active.
+  ///
+  /// \return True if Route Creation Mode is active, false otherwise.
   auto IsRouteCreationMode() const -> bool;
+
+  /// Returns the sequence of waypoint road IDs.
+  ///
+  /// \return A reference to the list of waypoint road IDs.
   auto Waypoints() const -> const std::vector<std::string>&;
+
+  /// Returns the snapped waypoint coordinate positions in inertial/world space.
+  ///
+  /// \return A reference to the list of waypoint world coordinate points.
   auto WaypointCoords() const -> const std::vector<QPointF>&;
+
+  /// Returns the active routing path if one was successfully computed.
+  ///
+  /// \return An optional containing the Route if computed, or std::nullopt.
   auto ActiveRoute() const -> const std::optional<routing::Route>&;
+
+  /// Returns a reference to the visualization camera.
+  ///
+  /// \return The visualizer's camera reference.
   auto GetCamera() const -> const Camera&;
+
+  /// Returns the last route planning/pathfinding error message.
+  ///
+  /// \return A string describing the pathfinding error, or empty if no error.
   auto RouteError() const -> std::string;
 
  protected:

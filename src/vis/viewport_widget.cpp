@@ -370,7 +370,7 @@ void ViewportWidget::mouseReleaseEvent(QMouseEvent* event) {
 
             auto snapped_pose = *lp_opt;
             snapped_pose.t = 0.0;
-            cpm::QueryContext temp_ctx;
+            auto temp_ctx = cpm::QueryContext{};
             const auto snapped_ip = cpm_model_.LaneToInertial(snapped_pose, temp_ctx);
             waypoint_world_coords_.push_back(QPointF{snapped_ip.x, snapped_ip.y});
 
@@ -835,7 +835,7 @@ void ViewportWidget::DrawScene() {
 
     triangles_vao_.bind();
     for (const auto& range : geometry_.mesh_ranges) {
-      bool in_route = false;
+      auto in_route = false;
       const auto original_id = cpm_model_.OriginalRoadId(range.road_id);
       for (const auto& seg : active_route_->segments) {
         if (seg.road_id == original_id) {
@@ -953,7 +953,7 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
 
   if (hovered_pose_) {
     // Obtain road-level and inertial-level coordinates from LanePose
-    cpm::QueryContext temp_ctx;
+    auto temp_ctx = cpm::QueryContext{};
     const auto rp = cpm_model_.LaneToRoad(*hovered_pose_, temp_ctx);
     const auto ip = cpm_model_.LaneToInertial(*hovered_pose_, temp_ctx);
 
@@ -1165,11 +1165,11 @@ void ViewportWidget::DrawWaypoints(QPainter& painter) {
   auto font = QFont{"Segoe UI", 9, QFont::Bold};
   painter.setFont(font);
 
-  int index = 1;
+  auto index = 1;
   for (const auto& world_pos : waypoint_world_coords_) {
     const auto screen_pos = camera_.WorldToScreen(static_cast<float>(world_pos.x()), static_cast<float>(world_pos.y()));
 
-    const double radius = 10.0;
+    constexpr auto radius = 10.0;
     const auto rect = QRectF{screen_pos.x() - radius, screen_pos.y() - radius, radius * 2.0, radius * 2.0};
 
     painter.setPen(QPen(QColor(245, 197, 61), 2));      // Gold border

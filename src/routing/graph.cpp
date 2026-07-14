@@ -387,11 +387,11 @@ auto Graph::FindPathImpl(std::string_view start_road_id, std::string_view end_ro
 
 auto Route::ToRouteCoordinates(std::string_view road_id, double s_local, double t_local) const noexcept
     -> std::optional<std::pair<double, double>> {
-  double start_s = 0.0;
+  auto start_s = 0.0;
   for (const auto& seg : segments) {
     if (seg.road_id == road_id) {
-      double s_route = 0.0;
-      double t_route = 0.0;
+      auto s_route = 0.0;
+      auto t_route = 0.0;
       if (seg.forward) {
         s_route = start_s + s_local;
         t_route = t_local;
