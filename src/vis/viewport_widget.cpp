@@ -109,25 +109,40 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::Abs
   }
 
   routing_graph_.emplace(map_);
-  waypoint_road_ids_.clear();
+  route_builder_.emplace(*routing_graph_);
   waypoint_world_coords_.clear();
-  active_route_ = std::nullopt;
-  route_error_.clear();
 
   update();
 }
 
 auto ViewportWidget::IsRouteCreationMode() const -> bool { return route_creation_mode_; }
 
-auto ViewportWidget::Waypoints() const -> const std::vector<std::string>& { return waypoint_road_ids_; }
+auto ViewportWidget::Waypoints() const -> const std::vector<std::string>& {
+  if (route_builder_.has_value()) {
+    return route_builder_->Waypoints();
+  }
+  static const auto empty = std::vector<std::string>{};
+  return empty;
+}
 
 auto ViewportWidget::WaypointCoords() const -> const std::vector<QPointF>& { return waypoint_world_coords_; }
 
-auto ViewportWidget::ActiveRoute() const -> const std::optional<routing::Route>& { return active_route_; }
+auto ViewportWidget::ActiveRoute() const -> const std::optional<routing::Route>& {
+  if (route_builder_.has_value()) {
+    return route_builder_->ActiveRoute();
+  }
+  static const auto empty = std::optional<routing::Route>{};
+  return empty;
+}
 
 auto ViewportWidget::GetCamera() const -> const Camera& { return camera_; }
 
-auto ViewportWidget::RouteError() const -> std::string { return route_error_; }
+auto ViewportWidget::RouteError() const -> std::string {
+  if (route_builder_.has_value()) {
+    return std::string(route_builder_->RouteError());
+  }
+  return "";
+}
 
 auto ViewportWidget::FindActiveRoadType(const ast::Road& road, double s) -> ast::RoadType {
   if (road.types.empty()) {
@@ -363,18 +378,18 @@ void ViewportWidget::mouseReleaseEvent(QMouseEvent* event) {
         pose.roll = 0.0;
 
         const auto lp_opt = cpm_model_.InertialToLane(pose, query_ctx_);
-        if (lp_opt.has_value()) {
+        if (lp_opt.has_value() && route_builder_.has_value()) {
           if (IsDrivableLane(lp_opt->road, lp_opt->lane)) {
             const auto road_id_str = std::string(cpm_model_.OriginalRoadId(lp_opt->road));
-            waypoint_road_ids_.push_back(road_id_str);
 
             auto snapped_pose = *lp_opt;
             snapped_pose.t = 0.0;
             auto temp_ctx = cpm::QueryContext{};
             const auto snapped_ip = cpm_model_.LaneToInertial(snapped_pose, temp_ctx);
+
+            route_builder_->AppendWaypoint(road_id_str);
             waypoint_world_coords_.push_back(QPointF{snapped_ip.x, snapped_ip.y});
 
-            RecomputeRoute();
             update();
           }
         }
@@ -561,12 +576,11 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
     }
   } else if (route_creation_mode_) {
     if (event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete) {
-      if (!waypoint_road_ids_.empty()) {
-        waypoint_road_ids_.pop_back();
+      if (route_builder_.has_value() && !route_builder_->Waypoints().empty()) {
+        route_builder_->Undo();
         if (!waypoint_world_coords_.empty()) {
           waypoint_world_coords_.pop_back();
         }
-        RecomputeRoute();
         update();
         if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
           if (auto* status = main_win->statusBar()) {
@@ -575,10 +589,10 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
         }
       }
     } else if (event->key() == Qt::Key_C) {
-      waypoint_road_ids_.clear();
+      if (route_builder_.has_value()) {
+        route_builder_->Clear();
+      }
       waypoint_world_coords_.clear();
-      active_route_ = std::nullopt;
-      route_error_.clear();
       update();
       if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
         if (auto* status = main_win->statusBar()) {
@@ -587,7 +601,10 @@ void ViewportWidget::keyPressEvent(QKeyEvent* event) {
       }
     } else if (event->key() == Qt::Key_Escape) {
       route_creation_mode_ = false;
-      route_error_.clear();
+      if (route_builder_.has_value()) {
+        route_builder_->Clear();
+      }
+      waypoint_world_coords_.clear();
       update();
       if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
         if (auto* status = main_win->statusBar()) {
@@ -825,7 +842,8 @@ void ViewportWidget::DrawScene() {
   }
 
   // 4. Draw Route Highlight Overlay
-  if (show_lanes_ && has_model_ && active_route_.has_value() && !active_route_->segments.empty()) {
+  if (show_lanes_ && has_model_ && route_builder_.has_value() && route_builder_->ActiveRoute().has_value() &&
+      !route_builder_->ActiveRoute()->segments.empty()) {
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -837,7 +855,7 @@ void ViewportWidget::DrawScene() {
     for (const auto& range : geometry_.mesh_ranges) {
       auto in_route = false;
       const auto original_id = cpm_model_.OriginalRoadId(range.road_id);
-      for (const auto& seg : active_route_->segments) {
+      for (const auto& seg : route_builder_->ActiveRoute()->segments) {
         if (seg.road_id == original_id) {
           in_route = true;
           break;
@@ -977,8 +995,8 @@ void ViewportWidget::DrawLaneInspector(QPainter& painter) {
     painter.setPen(ToQColor(kTextLabel));
     painter.drawText(x_offset, y_offset, "Route (s, t):");
     painter.setPen(ToQColor(kTextValue));
-    if (active_route_.has_value()) {
-      const auto route_coords_opt = active_route_->ToRouteCoordinates(hovered_road_name_, rp.s, rp.t);
+    if (route_builder_.has_value() && route_builder_->ActiveRoute().has_value()) {
+      const auto route_coords_opt = route_builder_->ActiveRoute()->ToRouteCoordinates(hovered_road_name_, rp.s, rp.t);
       if (route_coords_opt.has_value()) {
         const auto route_coords_str =
             QString{"%1 m, %2 m"}.arg(route_coords_opt->first, 0, 'f', 3).arg(route_coords_opt->second, 0, 'f', 3);
@@ -1195,41 +1213,19 @@ auto ViewportWidget::IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) co
   return false;
 }
 
-void ViewportWidget::RecomputeRoute() {
-  route_error_.clear();
-  if (!routing_graph_.has_value() || waypoint_road_ids_.size() < 2) {
-    active_route_ = std::nullopt;
-    return;
-  }
-
-  auto merged_route = routing::Route{};
-  for (std::size_t i = 0; i < waypoint_road_ids_.size() - 1; ++i) {
-    const auto path_opt = routing_graph_->FindRoute(waypoint_road_ids_[i], waypoint_road_ids_[i + 1]);
-    if (!path_opt.has_value()) {
-      active_route_ = std::nullopt;
-      route_error_ = "No path found between road " + waypoint_road_ids_[i] + " and " + waypoint_road_ids_[i + 1];
-      return;
-    }
-
-    for (const auto& seg : path_opt->segments) {
-      if (merged_route.segments.empty() || merged_route.segments.back().road_id != seg.road_id) {
-        merged_route.segments.push_back(seg);
-      }
-    }
-  }
-  active_route_ = merged_route;
-}
-
 void ViewportWidget::DrawRoutePlannerHUD(QPainter& painter) {
-  if (!route_creation_mode_) {
+  if (!route_creation_mode_ || !route_builder_.has_value()) {
     return;
   }
+
+  const auto& waypoints = route_builder_->Waypoints();
+  const auto route_error = std::string(route_builder_->RouteError());
 
   // Determine card height dynamically based on number of waypoints and errors
-  const auto num_waypoints = static_cast<int>(waypoint_road_ids_.size());
+  const auto num_waypoints = static_cast<int>(waypoints.size());
   constexpr auto base_height = 110;
   const auto waypoint_height = num_waypoints * 20;
-  const auto error_height = route_error_.empty() ? 0 : 35;
+  const auto error_height = route_error.empty() ? 0 : 35;
   const auto card_height = base_height + waypoint_height + error_height;
 
   constexpr auto card_width = 280;
@@ -1265,8 +1261,8 @@ void ViewportWidget::DrawRoutePlannerHUD(QPainter& painter) {
   painter.drawText(x_offset, y_offset, "Total Length:");
   painter.setPen(ToQColor(kTextValue));
   auto total_length = 0.0;
-  if (active_route_.has_value()) {
-    for (const auto& seg : active_route_->segments) {
+  if (route_builder_->ActiveRoute().has_value()) {
+    for (const auto& seg : route_builder_->ActiveRoute()->segments) {
       total_length += seg.length;
     }
   }
@@ -1280,13 +1276,13 @@ void ViewportWidget::DrawRoutePlannerHUD(QPainter& painter) {
 
   // List waypoints
   painter.setPen(Qt::white);
-  if (waypoint_road_ids_.empty()) {
+  if (waypoints.empty()) {
     painter.setPen(ToQColor(kTextDescription));
     painter.drawText(x_offset + 10, y_offset, "(None)");
     y_offset += line_height;
   } else {
     auto idx = 1;
-    for (const auto& road_id : waypoint_road_ids_) {
+    for (const auto& road_id : waypoints) {
       painter.drawText(x_offset + 10, y_offset,
                        QString{"Waypoint %1: Road %2"}.arg(idx).arg(QString::fromStdString(road_id)));
       y_offset += line_height;
@@ -1295,7 +1291,7 @@ void ViewportWidget::DrawRoutePlannerHUD(QPainter& painter) {
   }
 
   // Render pathing errors
-  if (!route_error_.empty()) {
+  if (!route_error.empty()) {
     painter.setPen(QPen(QColor(239, 68, 68), 1));       // Red border
     painter.setBrush(QBrush(QColor(239, 68, 68, 30)));  // Red semi-transparent fill
     const auto err_rect = QRect{x_offset, y_offset, card_width - 30, 28};
@@ -1304,7 +1300,7 @@ void ViewportWidget::DrawRoutePlannerHUD(QPainter& painter) {
     painter.setPen(QColor(248, 113, 113));  // Light red text
     auto error_font = QFont{"Segoe UI", 9};
     painter.setFont(error_font);
-    painter.drawText(err_rect, Qt::AlignCenter, QString::fromStdString(route_error_));
+    painter.drawText(err_rect, Qt::AlignCenter, QString::fromStdString(route_error));
 
     y_offset += 35;
     painter.setFont(font);  // Restore font

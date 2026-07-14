@@ -11,6 +11,7 @@
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/routing/graph.hpp>
+#include <strada/routing/route_builder.hpp>
 #include <strada/vis/camera.hpp>
 #include <strada/vis/geometry_batcher.hpp>
 #include <string>
@@ -121,14 +122,11 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
   // Route Planning State
   bool route_creation_mode_{false};
-  std::vector<std::string> waypoint_road_ids_;
   std::vector<QPointF> waypoint_world_coords_;
-  std::optional<routing::Route> active_route_;
   std::optional<routing::Graph> routing_graph_;
-  std::string route_error_;
+  std::optional<routing::RouteBuilder> route_builder_;
 
   auto IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) const -> bool;
-  void RecomputeRoute();
   void DrawWaypoints(QPainter& painter);
   void DrawRoutePlannerHUD(QPainter& painter);
 
