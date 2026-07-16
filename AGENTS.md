@@ -16,6 +16,18 @@ Triage roles are mapped to default labels (needs-triage, needs-info, ready-for-a
 
 Single-context layout with one CONTEXT.md and docs/adr/ at the repository root. See `docs/agents/domain.md`.
 
+### Subagent Spawning via Herdr
+
+When spawning subagents (e.g. for parallel research, task execution, or code reviews), agents must always prefer using the `herdr` terminal workspace manager to launch new `agy` instances in split panes, rather than relying on built-in subagent tool calls.
+
+To check if you are currently running inside a `herdr` workspace, verify if the following environment variable is defined and set:
+- `HERDR_ENV=1` (or if `HERDR_SOCKET_PATH` is present).
+
+To launch a new subagent in a split pane to the right, run the following bash command:
+```bash
+herdr agent start "<agent-name>" --split right -- agy -i "/<command>"
+```
+
 
 ## Development Guidelines
 
