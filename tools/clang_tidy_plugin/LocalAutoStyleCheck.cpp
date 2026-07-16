@@ -1,6 +1,7 @@
 #include "LocalAutoStyleCheck.h"
 
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/StmtCXX.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 
 using namespace clang::ast_matchers;
@@ -24,11 +25,13 @@ static bool isLoopCounter(const VarDecl* Var, ASTContext& Context) {
   if (DSParents.empty()) {
     return false;
   }
-  const auto* FS = DSParents[0].get<ForStmt>();
-  if (!FS) {
-    return false;
+  if (const auto* FS = DSParents[0].get<ForStmt>()) {
+    return FS->getInit() == DS;
   }
-  return FS->getInit() == DS;
+  if (const auto* CRS = DSParents[0].get<CXXForRangeStmt>()) {
+    return true;
+  }
+  return false;
 }
 
 void LocalAutoStyleCheck::check(const MatchFinder::MatchResult& Result) {
@@ -75,13 +78,26 @@ void LocalAutoStyleCheck::check(const MatchFinder::MatchResult& Result) {
     }
   }
 
-  // Check if type is explicit (does not contain auto).
+  // Exempt compiler-generated implicit declarations.
+  if (MatchedDecl->isImplicit()) {
+    return;
+  }
+
+  // Check type deduction/style
   QualType Type = MatchedDecl->getType();
   if (Type.isNull()) {
     return;
   }
 
-  if (Type->getContainedAutoType()) {
+  if (const auto* AT = Type->getContainedAutoType()) {
+    // Exempt concept-constrained auto types
+    if (AT->isConstrained()) {
+      return;
+    }
+    // Enforce '=' assignment initialization style for auto variables.
+    if (MatchedDecl->getInitStyle() != VarDecl::CInit) {
+      diag(MatchedDecl->getLocation(), "use '=' assignment syntax for local variables using auto type deduction");
+    }
     return;
   }
 
