@@ -32,6 +32,8 @@ To launch a new subagent in a split pane to the right, run:
 herdr agent start "<agent-name>" --split right -- agy -i "/<command>"
 ```
 
+**Herd Concurrency Control**: Before launching a new group ("herd") of subagents, you must verify if any previously spawned subagents from the prior task are still active. If the previous herd has not finished running, you must refuse to spawn a new one until they complete.
+
 
 ## Development Guidelines
 
