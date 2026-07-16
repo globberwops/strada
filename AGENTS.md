@@ -23,7 +23,11 @@ When spawning subagents (e.g. for parallel research, task execution, or code rev
 To check if you are currently running inside a `herdr` workspace, verify if the following environment variable is defined and set:
 - `HERDR_ENV=1` (or if `HERDR_SOCKET_PATH` is present).
 
-To launch a new subagent in a split pane to the right, run the following bash command:
+To keep the agent relationship tree visually clear from left to right:
+- **Sequential agents** (subsequent tasks in a workflow) must split the current panel vertically (`--split right`), allowing progress to flow left-to-right.
+- **Parallel agents** (simultaneous sub-tasks) must split the panel vertically (`--split right`) for the first instance, and then split subsequent sibling tasks horizontally (`--split down`) to stack them vertically under that step.
+
+To launch a new subagent in a split pane to the right, run:
 ```bash
 herdr agent start "<agent-name>" --split right -- agy -i "/<command>"
 ```
