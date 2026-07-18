@@ -15,7 +15,8 @@ namespace {
 
 auto IsDrivableType(ast::LaneType type) -> bool {
   return type == ast::LaneType::kDriving || type == ast::LaneType::kOnRamp || type == ast::LaneType::kExit ||
-         type == ast::LaneType::kConnectingRamp || type == ast::LaneType::kEntry;
+         type == ast::LaneType::kConnectingRamp || type == ast::LaneType::kEntry || type == ast::LaneType::kOffRamp ||
+         type == ast::LaneType::kMwyEntry || type == ast::LaneType::kMwyExit || type == ast::LaneType::kSlipLane;
 }
 
 auto HasDrivableLane(const ast::Road& road, bool forward) -> bool {

@@ -650,4 +650,20 @@ TEST(RoutingGraphTest, CostFunctorJunctionPenalty) {
   EXPECT_EQ((*path_with_penalty)[2], "3");
 }
 
+TEST(RoutingGraphTest, MotorwayExitEntryConnection9to16) {
+  const auto path =
+      std::filesystem::path("/workspaces/strada/.scratch/use_cases/UC_Motorway-Exit-Entry/UC_Motorway-Exit-Entry.xodr");
+  auto ast = strada::parser::ParseFile(path);
+  Graph graph(ast);
+
+  auto path_9_32 = graph.FindPath("9", "32");
+  EXPECT_TRUE(path_9_32.has_value());
+
+  auto path_32_16 = graph.FindPath("32", "16");
+  EXPECT_TRUE(path_32_16.has_value());
+
+  auto route = graph.FindRoute("9", "16");
+  EXPECT_TRUE(route.has_value());
+}
+
 }  // namespace strada::routing::test

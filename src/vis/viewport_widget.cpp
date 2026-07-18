@@ -1217,7 +1217,9 @@ auto ViewportWidget::IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) co
     if (range.road_id == road_id && range.lane_id == lane_id) {
       return range.lane_type == ast::LaneType::kDriving || range.lane_type == ast::LaneType::kOnRamp ||
              range.lane_type == ast::LaneType::kExit || range.lane_type == ast::LaneType::kEntry ||
-             range.lane_type == ast::LaneType::kConnectingRamp;
+             range.lane_type == ast::LaneType::kConnectingRamp || range.lane_type == ast::LaneType::kOffRamp ||
+             range.lane_type == ast::LaneType::kMwyEntry || range.lane_type == ast::LaneType::kMwyExit ||
+             range.lane_type == ast::LaneType::kSlipLane;
     }
   }
   return false;
