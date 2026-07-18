@@ -235,4 +235,68 @@ TEST(RouteBuilderTest, UndoAndClear) {
   EXPECT_TRUE(builder.RouteError().empty());
 }
 
+TEST(RouteBuilderTest, PreservePathfindingError) {
+  const auto xml = std::string(R"(<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Test Map" version="1.0" date="2026-06-14T09:00:00"/>
+  <road id="1" length="10.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0" b="0.0" c="0.0" d="0.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="2" length="20.0" junction="-1">
+    <planView>
+      <geometry s="0.0" x="10.0" y="20.0" hdg="0.0" length="20.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0" b="0.0" c="0.0" d="0.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road id="3" length="30.0" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="2" contactPoint="end"/>
+    </link>
+    <planView>
+      <geometry s="0.0" x="10.0" y="40.0" hdg="0.0" length="30.0"><line/></geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <right>
+          <lane id="-1" type="driving"><width sOffset="0.0" a="3.0" b="0.0" c="0.0" d="0.0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>)");
+
+  const auto ast = strada::parser::ParseString(xml);
+  const auto graph = Graph{ast};
+  auto builder = RouteBuilder{&graph};
+
+  // Act & Assert
+  // Leg 1: "1" -> "2" is disconnected. Pathfinding fails.
+  EXPECT_TRUE(builder.AppendWaypoint("1"));
+  EXPECT_FALSE(builder.AppendWaypoint("2"));
+  EXPECT_EQ(builder.RouteError(), "No path found between road 1 and 2");
+
+  // Leg 2: "2" -> "3" is connected. Pathfinding succeeds, but route is still broken.
+  EXPECT_FALSE(builder.AppendWaypoint("3"));
+  EXPECT_EQ(builder.RouteError(), "No path found between road 1 and 2");
+
+  // Undo "3". Error should still be "1" -> "2" failure.
+  builder.Undo();
+  EXPECT_EQ(builder.RouteError(), "No path found between road 1 and 2");
+}
+
 }  // namespace strada::routing::test
