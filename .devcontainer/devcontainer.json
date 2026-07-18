@@ -46,7 +46,7 @@
   "updateRemoteUserUID": true,
   "containerEnv": {
     "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
-    "XDG_RUNTIME_DIR": "/tmp",
+    "XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
     "QT_QPA_PLATFORM": "wayland",
     "SHELL": "/usr/bin/zsh"
   },
@@ -54,7 +54,7 @@
     "source=${localEnv:HOME}/.agents,target=/home/ubuntu/.agents,type=bind",
     "source=${localEnv:HOME}/.gemini,target=/home/ubuntu/.gemini,type=bind",
     "source=${localEnv:HOME}/.pi,target=/home/ubuntu/.pi,type=bind",
-    "source=${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY},target=/tmp/${localEnv:WAYLAND_DISPLAY},type=bind"
+    "source=${localEnv:XDG_RUNTIME_DIR},target=${localEnv:XDG_RUNTIME_DIR},type=bind,readonly"
   ],
   "runArgs": [
     "--cap-add=SYS_PTRACE",
