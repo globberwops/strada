@@ -25,15 +25,6 @@ class CompiledPhysicsModel {
   /// Default-constructs a CompiledPhysicsModel.
   CompiledPhysicsModel() = default;
 
-  /// Destructs a CompiledPhysicsModel.
-  ~CompiledPhysicsModel() = default;
-
-  // Move-constructible only, per ADR 0004
-  CompiledPhysicsModel(const CompiledPhysicsModel&) = delete;
-  auto operator=(const CompiledPhysicsModel&) -> CompiledPhysicsModel& = delete;
-  CompiledPhysicsModel(CompiledPhysicsModel&&) noexcept = default;
-  auto operator=(CompiledPhysicsModel&&) noexcept -> CompiledPhysicsModel& = default;
-
   /// Compiles the abstract syntax tree (AST) into a highly optimised CompiledPhysicsModel.
   ///
   /// \param map The parsed AST of the road network map.

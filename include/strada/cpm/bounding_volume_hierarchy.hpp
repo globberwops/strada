@@ -40,15 +40,6 @@ class BoundingVolumeHierarchy {
   /// Default-constructs an empty BoundingVolumeHierarchy.
   BoundingVolumeHierarchy() = default;
 
-  /// Destructor.
-  ~BoundingVolumeHierarchy() = default;
-
-  // Move-only semantics
-  BoundingVolumeHierarchy(const BoundingVolumeHierarchy&) = delete;
-  auto operator=(const BoundingVolumeHierarchy&) -> BoundingVolumeHierarchy& = delete;
-  BoundingVolumeHierarchy(BoundingVolumeHierarchy&&) noexcept = default;
-  auto operator=(BoundingVolumeHierarchy&&) noexcept -> BoundingVolumeHierarchy& = default;
-
   /// Constructs a BoundingVolumeHierarchy from a set of primitives and their AABBs.
   ///
   /// \param prim_indices A list of primitive indices that will be partition-sorted during build.

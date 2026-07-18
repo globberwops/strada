@@ -12,12 +12,6 @@ namespace strada::cpm {
 class Polynomials {
  public:
   Polynomials() = default;
-  ~Polynomials() = default;
-
-  Polynomials(const Polynomials&) = delete;
-  auto operator=(const Polynomials&) -> Polynomials& = delete;
-  Polynomials(Polynomials&&) noexcept = default;
-  auto operator=(Polynomials&&) noexcept -> Polynomials& = default;
 
   /// Compiles a sequence of coefficients and stores them.
   /// \return Pair of (first_idx, count).

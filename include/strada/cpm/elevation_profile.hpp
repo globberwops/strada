@@ -44,15 +44,6 @@ class ElevationProfile {
   /// Default constructor.
   ElevationProfile() = default;
 
-  /// Destructor.
-  ~ElevationProfile() = default;
-
-  // Move-only semantics
-  ElevationProfile(const ElevationProfile&) = delete;
-  auto operator=(const ElevationProfile&) -> ElevationProfile& = delete;
-  ElevationProfile(ElevationProfile&&) noexcept = default;
-  auto operator=(ElevationProfile&&) noexcept -> ElevationProfile& = default;
-
   /// Builds the ElevationProfile database from the map abstract syntax tree.
   ///
   /// \param map The map AST.
