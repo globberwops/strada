@@ -91,8 +91,8 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
 * **Route Segment**: A component of a Route representing travel along a single road in a specific direction (Forward or Backward), mapping a range of the continuous route coordinate $s_{route}$ to the road's local $s$ coordinate.
 * **Tessellator**: A geometry generator that samples mathematical curves to construct 3D polylines and meshes (vertex/index buffers) for visualization.
 * **Layer**: A downstream representation of the OpenDRIVE map (CPM, Routing Graph, Tessellator, …) built from the AST through a `Build*` factory. Each layer is independent and self-sufficient; it does **not** hold pointers or references into the AST.
-* **Build Factory**: A uniform `Build*` free function that constructs a layer from its upstream input. Each factory takes the upstream artifact by `const` reference and returns the new layer by value, fully owning its data. The `Build*` factories are individually composable. A future Map Facade is planned to orchestrate them in a single call, but does not change the per-layer contract.
-* **Map Facade** (planned, not yet designed): A single entry point that chains the `Build*` factories from a `.xodr` file and presents the resulting layers together. The individual `Build*` factories remain the source of truth; the facade is convenience, not a wrapper that adds policy.
+* **Build Factory**: A uniform `Build*` free function that constructs a layer from its upstream input. Each factory takes the upstream artifact by `const` reference and returns the new layer by value, fully owning its data. You can compose the `Build*` factories individually.
+* **Strada Facade**: You use the unified `strada::Strada` class as a single entry point to orchestrate parser, Compiled Physics Model (CPM), Routing Graph, and Tessellator construction. The underlying factories remain the source of truth; the facade acts as a convenience wrapper without custom policy.
 
 ---
 
