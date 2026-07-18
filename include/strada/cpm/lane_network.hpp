@@ -89,15 +89,6 @@ class LaneNetwork {
   /// Default constructor.
   LaneNetwork() = default;
 
-  /// Destructor.
-  ~LaneNetwork() = default;
-
-  // Move-only semantics
-  LaneNetwork(const LaneNetwork&) = delete;
-  auto operator=(const LaneNetwork&) -> LaneNetwork& = delete;
-  LaneNetwork(LaneNetwork&&) noexcept = default;
-  auto operator=(LaneNetwork&&) noexcept -> LaneNetwork& = default;
-
   /// Builds the LaneNetwork database from the map abstract syntax tree.
   ///
   /// \param map The map AST.

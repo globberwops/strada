@@ -19,55 +19,59 @@ struct ColorA {
   float a{1.0F};
 };
 
-// Premium dark-mode palette colors
-constexpr Color kLaneDrivingLeft{.r = 239.0F / 255.0F, .g = 215.0F / 255.0F, .b = 171.0F / 255.0F};
-constexpr Color kLaneDrivingRight{.r = 205.0F / 255.0F, .g = 216.0F / 255.0F, .b = 232.0F / 255.0F};
-constexpr Color kLaneBiking{.r = 207.0F / 255.0F, .g = 16.0F / 255.0F, .b = 45.0F / 255.0F};
-constexpr Color kLaneBorder{.r = 165.0F / 255.0F, .g = 94.0F / 255.0F, .b = 55.0F / 255.0F};
-constexpr Color kLaneConnectingRamp{.r = 168.0F / 255.0F, .g = 211.0F / 255.0F, .b = 0.0F / 255.0F};
-constexpr Color kLaneCurb{.r = 151.0F / 255.0F, .g = 120.0F / 255.0F, .b = 211.0F / 255.0F};
-constexpr Color kLaneEntry{.r = 234.0F / 255.0F, .g = 217.0F / 255.0F, .b = 96.0F / 255.0F};
-constexpr Color kLaneExit{.r = 103.0F / 255.0F, .g = 153.0F / 255.0F, .b = 204.0F / 255.0F};
-constexpr Color kLaneMedian{.r = 124.0F / 255.0F, .g = 84.0F / 255.0F, .b = 71.0F / 255.0F};
-constexpr Color kLaneNone{.r = 147.0F / 255.0F, .g = 149.0F / 255.0F, .b = 152.0F / 255.0F};
-constexpr Color kLaneOffRamp{.r = 35.0F / 255.0F, .g = 121.0F / 255.0F, .b = 185.0F / 255.0F};
-constexpr Color kLaneOnRamp{.r = 255.0F / 255.0F, .g = 212.0F / 255.0F, .b = 2.0F / 255.0F};
-constexpr Color kLaneParking{.r = 98.0F / 255.0F, .g = 38.0F / 255.0F, .b = 158.0F / 255.0F};
-constexpr Color kLaneRail{.r = 56.0F / 255.0F, .g = 43.0F / 255.0F, .b = 178.0F / 255.0F};
-constexpr Color kLaneRestricted{.r = 255.0F / 255.0F, .g = 103.0F / 255.0F, .b = 27.0F / 255.0F};
-constexpr Color kLaneShoulder{.r = 0.0F / 255.0F, .g = 98.0F / 255.0F, .b = 65.0F / 255.0F};
-constexpr Color kLaneSidewalk{.r = 121.0F / 255.0F, .g = 36.0F / 255.0F, .b = 47.0F / 255.0F};
-constexpr Color kLaneSlipLane{.r = 0.0F / 255.0F, .g = 148.0F / 255.0F, .b = 94.0F / 255.0F};
-constexpr Color kLaneStop{.r = 146.0F / 255.0F, .g = 213.0F / 255.0F, .b = 172.0F / 255.0F};
-constexpr Color kLaneTram{.r = 109.0F / 255.0F, .g = 109.0F / 255.0F, .b = 226.0F / 255.0F};
+// Rosé Pine (Dark) palette colors
+constexpr Color kLaneDrivingLeft{.r = 235.0F / 255.0F, .g = 188.0F / 255.0F, .b = 186.0F / 255.0F};
+constexpr Color kLaneDrivingRight{.r = 156.0F / 255.0F, .g = 207.0F / 255.0F, .b = 216.0F / 255.0F};
+constexpr Color kLaneBiking{.r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F};
+constexpr Color kLaneBorder{.r = 110.0F / 255.0F, .g = 106.0F / 255.0F, .b = 134.0F / 255.0F};
+constexpr Color kLaneConnectingRamp{.r = 196.0F / 255.0F, .g = 167.0F / 255.0F, .b = 231.0F / 255.0F};
+constexpr Color kLaneCurb{.r = 38.0F / 255.0F, .g = 35.0F / 255.0F, .b = 58.0F / 255.0F};
+constexpr Color kLaneEntry{.r = 49.0F / 255.0F, .g = 116.0F / 255.0F, .b = 143.0F / 255.0F};
+constexpr Color kLaneExit{.r = 156.0F / 255.0F, .g = 207.0F / 255.0F, .b = 216.0F / 255.0F};
+constexpr Color kLaneMedian{.r = 64.0F / 255.0F, .g = 61.0F / 255.0F, .b = 82.0F / 255.0F};
+constexpr Color kLaneNone{.r = 25.0F / 255.0F, .g = 23.0F / 255.0F, .b = 36.0F / 255.0F};
+constexpr Color kLaneOffRamp{.r = 49.0F / 255.0F, .g = 116.0F / 255.0F, .b = 143.0F / 255.0F};
+constexpr Color kLaneOnRamp{.r = 196.0F / 255.0F, .g = 167.0F / 255.0F, .b = 231.0F / 255.0F};
+constexpr Color kLaneParking{.r = 42.0F / 255.0F, .g = 40.0F / 255.0F, .b = 55.0F / 255.0F};
+constexpr Color kLaneRail{.r = 196.0F / 255.0F, .g = 167.0F / 255.0F, .b = 231.0F / 255.0F};
+constexpr Color kLaneRestricted{.r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F};
+constexpr Color kLaneShoulder{.r = 144.0F / 255.0F, .g = 140.0F / 255.0F, .b = 170.0F / 255.0F};
+constexpr Color kLaneSidewalk{.r = 110.0F / 255.0F, .g = 106.0F / 255.0F, .b = 134.0F / 255.0F};
+constexpr Color kLaneSlipLane{.r = 156.0F / 255.0F, .g = 207.0F / 255.0F, .b = 216.0F / 255.0F};
+constexpr Color kLaneStop{.r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F};
+constexpr Color kLaneTram{.r = 196.0F / 255.0F, .g = 167.0F / 255.0F, .b = 231.0F / 255.0F};
 
 // Feature specific colors
-constexpr Color kReferenceLineColor{.r = 1.0F, .g = 0.0F, .b = 0.0F};
-constexpr Color kJunctionBoundaryColor{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F};
-constexpr Color kObjectColor{.r = 1.0F, .g = 145.0F / 255.0F, .b = 0.0F};
-constexpr Color kSignalColor{.r = 0.0F, .g = 229.0F / 255.0F, .b = 1.0F};
+constexpr Color kReferenceLineColor{.r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F};
+constexpr Color kJunctionBoundaryColor{.r = 246.0F / 255.0F, .g = 193.0F / 255.0F, .b = 119.0F / 255.0F};
+constexpr Color kObjectColor{.r = 235.0F / 255.0F, .g = 188.0F / 255.0F, .b = 186.0F / 255.0F};
+constexpr Color kSignalColor{.r = 156.0F / 255.0F, .g = 207.0F / 255.0F, .b = 216.0F / 255.0F};
 
 // UI Glassmorphic panel styling colors
-constexpr ColorA kUIBorder{.r = 45.0F / 255.0F, .g = 51.0F / 255.0F, .b = 64.0F / 255.0F, .a = 1.0F};
-constexpr ColorA kUIBackground{.r = 26.0F / 255.0F, .g = 29.0F / 255.0F, .b = 36.0F / 255.0F, .a = 220.0F / 255.0F};
-constexpr Color kUIBackgroundOpaque{.r = 26.0F / 255.0F, .g = 29.0F / 255.0F, .b = 36.0F / 255.0F};
+constexpr ColorA kUIBorder{.r = 110.0F / 255.0F, .g = 106.0F / 255.0F, .b = 134.0F / 255.0F, .a = 1.0F};
+constexpr ColorA kUIBackground{.r = 33.0F / 255.0F, .g = 32.0F / 255.0F, .b = 48.0F / 255.0F, .a = 220.0F / 255.0F};
+constexpr Color kUIBackgroundOpaque{.r = 33.0F / 255.0F, .g = 32.0F / 255.0F, .b = 48.0F / 255.0F};
 
 // UI Text and Label colors
-constexpr Color kTextGold{.r = 255.0F / 255.0F, .g = 204.0F / 255.0F, .b = 0.0F};
-constexpr Color kTextAmber{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F};
-constexpr Color kTextLabel{.r = 160.0F / 255.0F, .g = 170.0F / 255.0F, .b = 184.0F / 255.0F};
-constexpr Color kTextValue{.r = 100.0F / 255.0F, .g = 181.0F / 255.0F, .b = 246.0F / 255.0F};
-constexpr Color kTextDescription{.r = 180.0F / 255.0F, .g = 188.0F / 255.0F, .b = 204.0F / 255.0F};
-constexpr Color kTextLight{.r = 240.0F / 255.0F, .g = 240.0F / 255.0F, .b = 240.0F / 255.0F};
+constexpr Color kTextGold{.r = 246.0F / 255.0F, .g = 193.0F / 255.0F, .b = 119.0F / 255.0F};
+constexpr Color kTextAmber{.r = 235.0F / 255.0F, .g = 188.0F / 255.0F, .b = 186.0F / 255.0F};
+constexpr Color kTextLabel{.r = 144.0F / 255.0F, .g = 140.0F / 255.0F, .b = 170.0F / 255.0F};
+constexpr Color kTextValue{.r = 156.0F / 255.0F, .g = 207.0F / 255.0F, .b = 216.0F / 255.0F};
+constexpr Color kTextDescription{.r = 110.0F / 255.0F, .g = 106.0F / 255.0F, .b = 134.0F / 255.0F};
+constexpr Color kTextLight{.r = 224.0F / 255.0F, .g = 222.0F / 255.0F, .b = 244.0F / 255.0F};
 
 // Compass and scale bar specific colors
-constexpr ColorA kCompassEast{.r = 100.0F / 255.0F, .g = 181.0F / 255.0F, .b = 246.0F / 255.0F, .a = 1.0F};
-constexpr ColorA kCompassNorth{.r = 255.0F / 255.0F, .g = 110.0F / 255.0F, .b = 110.0F / 255.0F, .a = 1.0F};
+constexpr ColorA kCompassEast{.r = 156.0F / 255.0F, .g = 207.0F / 255.0F, .b = 216.0F / 255.0F, .a = 1.0F};
+constexpr ColorA kCompassNorth{.r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F, .a = 1.0F};
 
 // 3D Scene overlays
-constexpr ColorA kHoverHighlight{.r = 1.0F, .g = 0.0F, .b = 0.0F, .a = 0.4F};
-constexpr ColorA kJunctionHighlight{.r = 245.0F / 255.0F, .g = 197.0F / 255.0F, .b = 61.0F / 255.0F, .a = 0.12F};
-
+constexpr ColorA kHoverHighlight{.r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F, .a = 0.4F};
+constexpr ColorA kJunctionHighlight{.r = 246.0F / 255.0F, .g = 193.0F / 255.0F, .b = 119.0F / 255.0F, .a = 0.12F};
+constexpr ColorA kRouteHighlight{.r = 156.0F / 255.0F, .g = 207.0F / 255.0F, .b = 216.0F / 255.0F, .a = 0.4F};
+constexpr Color kRouteErrorText{.r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F};
+constexpr ColorA kRouteErrorBorder{.r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F, .a = 1.0F};
+constexpr ColorA kRouteErrorBackground{
+    .r = 235.0F / 255.0F, .g = 111.0F / 255.0F, .b = 146.0F / 255.0F, .a = 30.0F / 255.0F};
 /// Color lookup helper based on lane type and original lane ID.
 constexpr auto GetLaneColor(ast::LaneType lane_type, int original_lane_id) noexcept -> Color {
   switch (lane_type) {

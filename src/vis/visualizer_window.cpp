@@ -1,8 +1,6 @@
 #include <QFileInfo>
 #include <QStatusBar>
-#include <strada/cpm/compiled_physics_model.hpp>
-#include <strada/parser/parser.hpp>
-#include <strada/tess/tessellator.hpp>
+#include <strada/strada.hpp>
 #include <strada/vis/viewport_widget.hpp>
 #include <strada/vis/visualizer_window.hpp>
 
@@ -39,28 +37,23 @@ void VisualizerWindow::LoadMap(const std::string& file_path) {
   try {
     statusBar()->showMessage(QString("Loading map: %1...").arg(QString::fromStdString(file_path)));
 
-    // 1. Parse XODR file
-    auto map = parser::ParseFile(file_path);
+    // Load and compile all layers through the Strada facade
+    auto strada = Strada{std::filesystem::path{file_path}, {.chord_error = 0.1}};
 
-    // 2. Compile Physics Model once
-    cpm::CompiledPhysicsModel cpm(map);
+    // Batch geometry from the Tessellator
+    const auto tess_opt = strada.Tessellator();
+    auto batched = BatchMapGeometry(tess_opt->get());
 
-    // 3. Build Tessellator
-    const tess::Tessellator tess(map, cpm, 0.1);  // Use 0.1m chord error for rendering quality
-
-    // 4. Batch Geometry
-    auto batched = BatchMapGeometry(tess);
-
-    // 5. Update Viewport
-    viewport_->SetGeometry(batched, map, std::move(cpm));
+    // Update Viewport with layers from the facade
+    viewport_->SetGeometry(batched, strada.AbstractSyntaxTree(), strada.CompiledPhysicsModel());
 
     // Update title and status bar
-    const QFileInfo file_info(QString::fromStdString(file_path));
+    const auto file_info = QFileInfo{QString::fromStdString(file_path)};
     setWindowTitle(QString("Strada 2D Map Visualizer - %1").arg(file_info.fileName()));
     statusBar()->showMessage(QString("Loaded %1 (%2 road meshes, %3 polylines)")
                                  .arg(file_info.fileName())
-                                 .arg(tess.Meshes().size())
-                                 .arg(tess.Polylines().size()));
+                                 .arg(tess_opt->get().Meshes().size())
+                                 .arg(tess_opt->get().Polylines().size()));
   } catch (const std::exception& ex) {
     statusBar()->showMessage(QString("Error loading map: %1").arg(ex.what()));
   }

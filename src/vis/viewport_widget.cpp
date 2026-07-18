@@ -159,7 +159,7 @@ void ViewportWidget::initializeGL() {
   initializeOpenGLFunctions();
 
   // Clear color matching Sleek Premium Dark Mode aesthetics
-  glClearColor(0.1F, 0.12F, 0.15F, 1.0F);
+  glClearColor(25.0F / 255.0F, 23.0F / 255.0F, 36.0F / 255.0F, 1.0F);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
 
@@ -667,18 +667,18 @@ void ViewportWidget::RenderGrid() {
   std::vector<Vertex> grid_vertices;
 
   // Grid line color: subtle dark grey-blue
-  constexpr auto base_r = 0.16F;
-  constexpr auto base_g = 0.18F;
-  constexpr auto base_b = 0.22F;
+  constexpr auto base_r = 42.0F / 255.0F;
+  constexpr auto base_g = 40.0F / 255.0F;
+  constexpr auto base_b = 55.0F / 255.0F;
 
   // Vertical lines (constant x)
   const float start_x = std::floor(min_x / grid_spacing) * grid_spacing;
   const float end_x = std::ceil(max_x / grid_spacing) * grid_spacing;
   for (float x = start_x; x <= end_x; x += grid_spacing) {
     const bool is_axis = std::abs(x) < 1e-4F;
-    const auto r = is_axis ? 0.35F : base_r;
-    const auto g = is_axis ? 0.40F : base_g;
-    const auto b = is_axis ? 0.50F : base_b;
+    const auto r = is_axis ? 110.0F / 255.0F : base_r;
+    const auto g = is_axis ? 106.0F / 255.0F : base_g;
+    const auto b = is_axis ? 134.0F / 255.0F : base_b;
     grid_vertices.push_back(Vertex{.x = x, .y = min_y, .z = 0.0F, .r = r, .g = g, .b = b});
     grid_vertices.push_back(Vertex{.x = x, .y = max_y, .z = 0.0F, .r = r, .g = g, .b = b});
   }
@@ -688,18 +688,18 @@ void ViewportWidget::RenderGrid() {
   const float end_y = std::ceil(max_y / grid_spacing) * grid_spacing;
   for (float y = start_y; y <= end_y; y += grid_spacing) {
     const bool is_axis = std::abs(y) < 1e-4F;
-    const auto r = is_axis ? 0.35F : base_r;
-    const auto g = is_axis ? 0.40F : base_g;
-    const auto b = is_axis ? 0.50F : base_b;
+    const auto r = is_axis ? 110.0F / 255.0F : base_r;
+    const auto g = is_axis ? 106.0F / 255.0F : base_g;
+    const auto b = is_axis ? 134.0F / 255.0F : base_b;
     grid_vertices.push_back(Vertex{.x = min_x, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
     grid_vertices.push_back(Vertex{.x = max_x, .y = y, .z = 0.0F, .r = r, .g = g, .b = b});
   }
 
   // Mark the origin (0, 0) with a prominent crosshair
   if (min_x <= 0.0F && 0.0F <= max_x && min_y <= 0.0F && 0.0F <= max_y) {
-    const float origin_r = 1.0F;
-    const float origin_g = 0.6F;
-    const float origin_b = 0.0F;
+    constexpr auto origin_r = 246.0F / 255.0F;
+    constexpr auto origin_g = 193.0F / 255.0F;
+    constexpr auto origin_b = 119.0F / 255.0F;
     const float cross_half = 0.15F * grid_spacing;
 
     // Vertical segment
@@ -859,7 +859,8 @@ void ViewportWidget::DrawScene() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     shader_program_.setUniformValue("useOverrideColor", 1);
-    shader_program_.setUniformValue("overrideColor", QVector4D{0.0F, 229.0F / 255.0F, 1.0F, 0.4F});
+    shader_program_.setUniformValue(
+        "overrideColor", QVector4D{kRouteHighlight.r, kRouteHighlight.g, kRouteHighlight.b, kRouteHighlight.a});
 
     triangles_vao_.bind();
     for (const auto& range : geometry_.mesh_ranges) {
@@ -1200,11 +1201,11 @@ void ViewportWidget::DrawWaypoints(QPainter& painter) {
     constexpr auto radius = 10.0;
     const auto rect = QRectF{screen_pos.x() - radius, screen_pos.y() - radius, radius * 2.0, radius * 2.0};
 
-    painter.setPen(QPen(QColor(245, 197, 61), 2));      // Gold border
-    painter.setBrush(QBrush(QColor(15, 23, 42, 220)));  // Slate background
+    painter.setPen(QPen(ToQColor(kTextGold), 2));
+    painter.setBrush(QBrush(ToQColor(kUIBackground)));
     painter.drawEllipse(rect);
 
-    painter.setPen(Qt::white);
+    painter.setPen(ToQColor(kTextLight));
     painter.drawText(rect, Qt::AlignCenter, QString::number(index));
 
     index++;
@@ -1236,7 +1237,8 @@ void ViewportWidget::DrawRoutePlannerHUD(QPainter& painter) {
   // Determine card height dynamically based on number of waypoints and errors
   const auto num_waypoints = static_cast<int>(waypoints.size());
   constexpr auto base_height = 110;
-  const auto waypoint_height = num_waypoints * 20;
+  const auto display_waypoints = num_waypoints == 0 ? 1 : num_waypoints;
+  const auto waypoint_height = display_waypoints * 20;
   const auto error_height = route_error.empty() ? 0 : 35;
   const auto card_height = base_height + waypoint_height + error_height;
 
@@ -1304,12 +1306,12 @@ void ViewportWidget::DrawRoutePlannerHUD(QPainter& painter) {
 
   // Render pathing errors
   if (!route_error.empty()) {
-    painter.setPen(QPen(QColor(239, 68, 68), 1));       // Red border
-    painter.setBrush(QBrush(QColor(239, 68, 68, 30)));  // Red semi-transparent fill
+    painter.setPen(QPen(ToQColor(kRouteErrorBorder), 1));
+    painter.setBrush(QBrush(ToQColor(kRouteErrorBackground)));
     const auto err_rect = QRect{x_offset, y_offset, card_width - 30, 28};
     painter.drawRoundedRect(err_rect, 4.0, 4.0);
 
-    painter.setPen(QColor(248, 113, 113));  // Light red text
+    painter.setPen(ToQColor(kRouteErrorText));
     auto error_font = QFont{"Segoe UI", 9};
     painter.setFont(error_font);
     painter.drawText(err_rect, Qt::AlignCenter, QString::fromStdString(route_error));

@@ -52,19 +52,10 @@ class ReferenceLine {
   /// Default constructor.
   ReferenceLine() = default;
 
-  /// Destructor.
-  ~ReferenceLine() = default;
-
   /// Constructs ReferenceLine from the AST.
   ///
   /// \param map The parsed AST of the road network map.
   explicit ReferenceLine(const ast::AbstractSyntaxTree& map);
-
-  // Move-only semantics
-  ReferenceLine(const ReferenceLine&) = delete;
-  auto operator=(const ReferenceLine&) -> ReferenceLine& = delete;
-  ReferenceLine(ReferenceLine&&) noexcept = default;
-  auto operator=(ReferenceLine&&) noexcept -> ReferenceLine& = default;
 
   /// Evaluates reference line coordinates (x, y, heading) at a road-local s-coordinate.
   ///

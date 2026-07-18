@@ -41,6 +41,13 @@ auto HasDrivableLane(const ast::Road& road, bool forward) -> bool {
 }  // namespace
 
 Graph::Graph(const ast::AbstractSyntaxTree& ast) {
+  InitializeNodes(ast);
+  LinkDirectRoads(ast);
+  LinkJunctions(ast);
+  DeduplicateSuccessors();
+}
+
+void Graph::InitializeNodes(const ast::AbstractSyntaxTree& ast) {
   const auto num_roads = ast.roads.size();
   nodes_.resize(2 * num_roads);
   idx_to_road_id_.resize(num_roads);
@@ -66,37 +73,51 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
     nodes_[backward_idx].is_junction = is_junc;
     nodes_[backward_idx].is_drivable = HasDrivableLane(road, false);
   }
+}
 
-  // 1. Direct Road Links
+void Graph::AddDirectedLink(std::size_t a_idx, std::size_t b_idx, ast::ContactPoint contact_point, bool is_successor) {
+  const auto a_forward = DirectedRoad{a_idx, DirectedRoad::Direction::kForward}.ToNodeIndex();
+  const auto a_backward = DirectedRoad{a_idx, DirectedRoad::Direction::kBackward}.ToNodeIndex();
+  const auto b_forward = DirectedRoad{b_idx, DirectedRoad::Direction::kForward}.ToNodeIndex();
+  const auto b_backward = DirectedRoad{b_idx, DirectedRoad::Direction::kBackward}.ToNodeIndex();
+
+  auto add_link = [this](std::size_t from_node, std::size_t to_node) -> void {
+    if (nodes_[from_node].is_drivable && nodes_[to_node].is_drivable) {
+      nodes_[from_node].successors.push_back(to_node);
+    }
+  };
+
+  if (is_successor) {
+    if (contact_point == ast::ContactPoint::kStart) {
+      add_link(a_forward, b_forward);
+      add_link(b_backward, a_backward);
+    } else {  // ContactPoint::kEnd
+      add_link(a_forward, b_backward);
+      add_link(b_forward, a_backward);
+    }
+  } else {  // predecessor flow (is_successor == false)
+    if (contact_point == ast::ContactPoint::kStart) {
+      add_link(a_backward, b_forward);
+      add_link(b_backward, a_forward);
+    } else {  // ContactPoint::kEnd
+      add_link(a_backward, b_backward);
+      add_link(b_forward, a_forward);
+    }
+  }
+}
+
+void Graph::LinkDirectRoads(const ast::AbstractSyntaxTree& ast) {
+  const auto num_roads = ast.roads.size();
   for (std::size_t i = 0; i < num_roads; ++i) {
     const auto& road = ast.roads[i];
-    const auto i_forward = DirectedRoad{i, DirectedRoad::Direction::kForward}.ToNodeIndex();
-    const auto i_backward = DirectedRoad{i, DirectedRoad::Direction::kBackward}.ToNodeIndex();
 
     // Successor Link
     if (road.link.successor && road.link.successor->element_type == ast::RoadLinkType::kRoad) {
       auto target_it = road_id_to_idx_.find(road.link.successor->element_id);
       if (target_it != road_id_to_idx_.end()) {
         const auto j = target_it->second;
-        const auto j_forward = DirectedRoad{j, DirectedRoad::Direction::kForward}.ToNodeIndex();
-        const auto j_backward = DirectedRoad{j, DirectedRoad::Direction::kBackward}.ToNodeIndex();
         const auto contact_point = road.link.successor->contact_point.value_or(ast::ContactPoint::kStart);
-
-        if (contact_point == ast::ContactPoint::kStart) {
-          if (nodes_[i_forward].is_drivable && nodes_[j_forward].is_drivable) {
-            nodes_[i_forward].successors.push_back(j_forward);
-          }
-          if (nodes_[i_backward].is_drivable && nodes_[j_backward].is_drivable) {
-            nodes_[j_backward].successors.push_back(i_backward);
-          }
-        } else {  // cp == ContactPoint::kEnd
-          if (nodes_[i_forward].is_drivable && nodes_[j_backward].is_drivable) {
-            nodes_[i_forward].successors.push_back(j_backward);
-          }
-          if (nodes_[i_backward].is_drivable && nodes_[j_forward].is_drivable) {
-            nodes_[j_forward].successors.push_back(i_backward);
-          }
-        }
+        AddDirectedLink(i, j, contact_point, true);
       }
     }
 
@@ -105,30 +126,14 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
       auto target_it = road_id_to_idx_.find(road.link.predecessor->element_id);
       if (target_it != road_id_to_idx_.end()) {
         const auto j = target_it->second;
-        const auto j_forward = DirectedRoad{j, DirectedRoad::Direction::kForward}.ToNodeIndex();
-        const auto j_backward = DirectedRoad{j, DirectedRoad::Direction::kBackward}.ToNodeIndex();
         const auto contact_point = road.link.predecessor->contact_point.value_or(ast::ContactPoint::kStart);
-
-        if (contact_point == ast::ContactPoint::kStart) {
-          if (nodes_[i_backward].is_drivable && nodes_[j_forward].is_drivable) {
-            nodes_[i_backward].successors.push_back(j_forward);
-          }
-          if (nodes_[i_forward].is_drivable && nodes_[j_backward].is_drivable) {
-            nodes_[j_backward].successors.push_back(i_forward);
-          }
-        } else {  // cp == ContactPoint::kEnd
-          if (nodes_[i_backward].is_drivable && nodes_[j_backward].is_drivable) {
-            nodes_[i_backward].successors.push_back(j_backward);
-          }
-          if (nodes_[i_forward].is_drivable && nodes_[j_forward].is_drivable) {
-            nodes_[j_forward].successors.push_back(i_forward);
-          }
-        }
+        AddDirectedLink(i, j, contact_point, false);
       }
     }
   }
+}
 
-  // 2. Junction Connections
+void Graph::LinkJunctions(const ast::AbstractSyntaxTree& ast) {
   for (const auto& junction : ast.junctions) {
     for (const auto& conn : junction.connections) {
       auto a_it = road_id_to_idx_.find(conn.incoming_road);
@@ -139,65 +144,20 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
       }
       const auto a = a_it->second;
       const auto c = c_it->second;
-      const auto a_forward = DirectedRoad{a, DirectedRoad::Direction::kForward}.ToNodeIndex();
-      const auto a_backward = DirectedRoad{a, DirectedRoad::Direction::kBackward}.ToNodeIndex();
-      const auto c_forward = DirectedRoad{c, DirectedRoad::Direction::kForward}.ToNodeIndex();
-      const auto c_backward = DirectedRoad{c, DirectedRoad::Direction::kBackward}.ToNodeIndex();
 
       auto incoming_is_successor = true;
-      const ast::Road* road_a = nullptr;
-      for (const auto& r : ast.roads) {
-        if (r.id == conn.incoming_road) {
-          road_a = &r;
-          break;
-        }
-      }
-      if (road_a != nullptr) {
-        if (road_a->link.predecessor && road_a->link.predecessor->element_type == ast::RoadLinkType::kJunction &&
-            road_a->link.predecessor->element_id == junction.id) {
-          incoming_is_successor = false;
-        }
+      const auto& road_a = ast.roads[a];
+      if (road_a.link.predecessor && road_a.link.predecessor->element_type == ast::RoadLinkType::kJunction &&
+          road_a.link.predecessor->element_id == junction.id) {
+        incoming_is_successor = false;
       }
 
-      {
-        const auto contact_point = conn.contact_point;
-
-        if (incoming_is_successor) {
-          if (nodes_[a_forward].is_drivable) {
-            if (contact_point == ast::ContactPoint::kStart && nodes_[c_forward].is_drivable) {
-              nodes_[a_forward].successors.push_back(c_forward);
-            } else if (contact_point == ast::ContactPoint::kEnd && nodes_[c_backward].is_drivable) {
-              nodes_[a_forward].successors.push_back(c_backward);
-            }
-          }
-          if (nodes_[a_backward].is_drivable) {
-            if (contact_point == ast::ContactPoint::kStart && nodes_[c_backward].is_drivable) {
-              nodes_[c_backward].successors.push_back(a_backward);
-            } else if (contact_point == ast::ContactPoint::kEnd && nodes_[c_forward].is_drivable) {
-              nodes_[c_forward].successors.push_back(a_backward);
-            }
-          }
-        } else {
-          if (nodes_[a_backward].is_drivable) {
-            if (contact_point == ast::ContactPoint::kStart && nodes_[c_forward].is_drivable) {
-              nodes_[a_backward].successors.push_back(c_forward);
-            } else if (contact_point == ast::ContactPoint::kEnd && nodes_[c_backward].is_drivable) {
-              nodes_[a_backward].successors.push_back(c_backward);
-            }
-          }
-          if (nodes_[a_forward].is_drivable) {
-            if (contact_point == ast::ContactPoint::kStart && nodes_[c_backward].is_drivable) {
-              nodes_[c_backward].successors.push_back(a_forward);
-            } else if (contact_point == ast::ContactPoint::kEnd && nodes_[c_forward].is_drivable) {
-              nodes_[c_forward].successors.push_back(a_forward);
-            }
-          }
-        }
-      }
+      AddDirectedLink(a, c, conn.contact_point, incoming_is_successor);
     }
   }
+}
 
-  // Deduplicate successors
+void Graph::DeduplicateSuccessors() {
   for (auto& node : nodes_) {
     std::ranges::sort(node.successors);
     auto ret = std::ranges::unique(node.successors);

@@ -78,11 +78,5 @@ ENV PATH="${HOME}/.local/bin:${PATH}"
 # Install Herdr
 RUN curl -fsSL https://herdr.dev/install.sh | sh
 
-# Install Google Antigravity
-RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
-
-# Install Pi Agent
-RUN curl -fsSL https://pi.dev/install.sh | sh
-
-# Install Codegraph
-RUN curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh
+# Install omp Agent
+RUN curl -fsSL https://omp.sh/install | sh

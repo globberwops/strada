@@ -1106,3 +1106,93 @@ TEST(CompiledPhysicsModelTest, BivariateShapeProfile) {
     EXPECT_NEAR(rp_snap.roll, rp.roll, 1e-9);
   }
 }
+
+TEST(CompiledPhysicsModelTest, CopySemantics) {
+  // Arrange
+  const auto data_dir = std::filesystem::path{STRADA_TEST_DATA_DIR};
+  const auto file_path = data_dir / "roads.xodr";
+  const auto ast = strada::parser::ParseFile(file_path);
+
+  const auto cpm_orig = strada::cpm::CompiledPhysicsModel{ast};
+  const auto cpm_copy = strada::cpm::CompiledPhysicsModel{cpm_orig};  // Copy constructor
+  auto cpm_assign = strada::cpm::CompiledPhysicsModel{};
+  cpm_assign = cpm_orig;  // Copy assignment operator
+
+  const auto road_id_opt = cpm_orig.RoadIdFromString("1");
+  ASSERT_TRUE(road_id_opt.has_value());
+  const auto road_id = *road_id_opt;
+
+  auto pose = strada::cpm::RoadPose{};
+  pose.s = 15.0;
+  pose.t = -1.5;
+  pose.h = 0.0;
+  pose.heading = 0.1;
+  pose.pitch = 0.0;
+  pose.roll = 0.0;
+  pose.road = road_id;
+
+  auto ctx_orig = strada::cpm::QueryContext{};
+  auto ctx_copy = strada::cpm::QueryContext{};
+  auto ctx_assign = strada::cpm::QueryContext{};
+
+  // Act
+  const auto ip_orig = cpm_orig.RoadToInertial(pose, ctx_orig);
+  const auto ip_copy = cpm_copy.RoadToInertial(pose, ctx_copy);
+  const auto ip_assign = cpm_assign.RoadToInertial(pose, ctx_assign);
+
+  const auto road_pose_orig_opt = cpm_orig.InertialToRoad(ip_orig, ctx_orig);
+  const auto road_pose_copy_opt = cpm_copy.InertialToRoad(ip_copy, ctx_copy);
+  const auto road_pose_assign_opt = cpm_assign.InertialToRoad(ip_assign, ctx_assign);
+
+  // Assert
+  EXPECT_EQ(cpm_orig.RoadCount(), cpm_copy.RoadCount());
+  EXPECT_EQ(cpm_orig.RoadCount(), cpm_assign.RoadCount());
+  EXPECT_EQ(cpm_orig.LaneCount(), cpm_copy.LaneCount());
+  EXPECT_EQ(cpm_orig.LaneCount(), cpm_assign.LaneCount());
+
+  const auto assert_pose_equal = [](const strada::cpm::InertialPose& a, const strada::cpm::InertialPose& b) -> void {
+    EXPECT_DOUBLE_EQ(a.x, b.x);
+    EXPECT_DOUBLE_EQ(a.y, b.y);
+    EXPECT_DOUBLE_EQ(a.z, b.z);
+    EXPECT_DOUBLE_EQ(a.heading, b.heading);
+    EXPECT_DOUBLE_EQ(a.pitch, b.pitch);
+    EXPECT_DOUBLE_EQ(a.roll, b.roll);
+  };
+
+  assert_pose_equal(ip_orig, ip_copy);
+  assert_pose_equal(ip_orig, ip_assign);
+
+  ASSERT_TRUE(road_pose_orig_opt.has_value());
+  ASSERT_TRUE(road_pose_copy_opt.has_value());
+  ASSERT_TRUE(road_pose_assign_opt.has_value());
+
+  EXPECT_EQ(road_pose_orig_opt->road, road_pose_copy_opt->road);
+  EXPECT_DOUBLE_EQ(road_pose_orig_opt->s, road_pose_copy_opt->s);
+  EXPECT_DOUBLE_EQ(road_pose_orig_opt->t, road_pose_copy_opt->t);
+  EXPECT_DOUBLE_EQ(road_pose_orig_opt->h, road_pose_copy_opt->h);
+
+  EXPECT_EQ(road_pose_orig_opt->road, road_pose_assign_opt->road);
+  EXPECT_DOUBLE_EQ(road_pose_orig_opt->s, road_pose_assign_opt->s);
+  EXPECT_DOUBLE_EQ(road_pose_orig_opt->t, road_pose_assign_opt->t);
+  EXPECT_DOUBLE_EQ(road_pose_orig_opt->h, road_pose_assign_opt->h);
+}
+
+TEST(CompiledPhysicsModelTest, CopyIndependence) {
+  // Arrange
+  const auto data_dir = std::filesystem::path{STRADA_TEST_DATA_DIR};
+  const auto file_path = data_dir / "roads.xodr";
+  const auto ast = strada::parser::ParseFile(file_path);
+
+  auto cpm_orig = strada::cpm::CompiledPhysicsModel{ast};
+  const auto cpm_copy = strada::cpm::CompiledPhysicsModel{cpm_orig};
+  auto cpm_assign = strada::cpm::CompiledPhysicsModel{};
+  cpm_assign = cpm_orig;
+
+  // Act
+  cpm_orig.ClearBoundingVolumeHierarchyNodes();
+
+  // Assert
+  EXPECT_TRUE(cpm_orig.GetBoundingVolumeHierarchyNodes().empty());
+  EXPECT_FALSE(cpm_copy.GetBoundingVolumeHierarchyNodes().empty());
+  EXPECT_FALSE(cpm_assign.GetBoundingVolumeHierarchyNodes().empty());
+}
