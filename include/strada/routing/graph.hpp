@@ -83,6 +83,32 @@ class Graph {
                     const std::function<double(std::string_view)>& cost_fn) const
       -> std::optional<std::vector<std::string>>;
 
+  /// Initializes the graph's nodes mapping roads to forward/backward state indices.
+  ///
+  /// \param ast The parsed Abstract Syntax Tree representing the map.
+  void InitializeNodes(const ast::AbstractSyntaxTree& ast);
+
+  /// Builds topological connections between adjacent roads.
+  ///
+  /// \param ast The parsed Abstract Syntax Tree representing the map.
+  void LinkDirectRoads(const ast::AbstractSyntaxTree& ast);
+
+  /// Builds topological connections through junctions.
+  ///
+  /// \param ast The parsed Abstract Syntax Tree representing the map.
+  void LinkJunctions(const ast::AbstractSyntaxTree& ast);
+
+  /// Sorts and deduplicates successor node indices for each graph node.
+  void DeduplicateSuccessors();
+
+  /// Adds a directed link between two road indices based on the contact point.
+  ///
+  /// \param a_idx The index of the source road.
+  /// \param b_idx The index of the target road.
+  /// \param contact_point The contact point of the connection.
+  /// \param is_successor True if travel flows from A to B, false otherwise.
+  void AddDirectedLink(std::size_t a_idx, std::size_t b_idx, ast::ContactPoint contact_point, bool is_successor);
+
   /// Helper struct to represent a road's travel direction and resolve state indexing.
   struct DirectedRoad {
     /// travel direction choices.
