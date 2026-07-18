@@ -24,6 +24,7 @@ include(Warnings)
 
 option(STRADA_BUILD_VIS "Build the Strada 2D Vis library and application" ${PROJECT_IS_TOP_LEVEL})
 option(STRADA_BUILD_TESTS "Build tests for the Strada project" ${PROJECT_IS_TOP_LEVEL})
+option(STRADA_BUILD_BENCHMARKS "Build performance benchmarks" OFF)
 option(STRADA_ENABLE_LTO "Enable Link-Time Optimization (LTO/IPO) for Release builds" ON)
 option(STRADA_BUILD_DOCS "Build documentation using Doxygen" ${PROJECT_IS_TOP_LEVEL})
 
@@ -41,6 +42,10 @@ add_subdirectory(examples)
 if(STRADA_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+if(STRADA_BUILD_BENCHMARKS)
+  add_subdirectory(benchmark)
 endif()
 
 # Generate and install package config files

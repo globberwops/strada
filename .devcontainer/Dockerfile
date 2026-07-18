@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     graphviz \
     iwyu \
     lcov \
+    libbenchmark-dev \
     libclang-21-dev \
     libgmock-dev \
     libgtest-dev \
