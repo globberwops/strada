@@ -502,15 +502,18 @@ TEST(VisTest, RouteCreationModeToggle) {
 
   TestViewportWidget widget;
   EXPECT_FALSE(widget.IsRouteCreationMode());
+  EXPECT_FALSE(widget.Waypoints().has_value());
 
   // Toggle ON
   QKeyEvent press_p(QEvent::KeyPress, Qt::Key_P, Qt::NoModifier);
   widget.keyPressEvent(&press_p);
   EXPECT_TRUE(widget.IsRouteCreationMode());
+  EXPECT_FALSE(widget.Waypoints().has_value());
 
   // Toggle OFF
   widget.keyPressEvent(&press_p);
   EXPECT_FALSE(widget.IsRouteCreationMode());
+  EXPECT_FALSE(widget.Waypoints().has_value());
 }
 
 TEST(VisTest, ClickVsDragClassification) {
@@ -536,7 +539,7 @@ TEST(VisTest, ClickVsDragClassification) {
   QMouseEvent release_click(QEvent::MouseButtonRelease, QPointF(102.0, 102.0), QPointF(102.0, 102.0), Qt::LeftButton,
                             Qt::NoButton, Qt::NoModifier);
   widget.mouseReleaseEvent(&release_click);
-  EXPECT_TRUE(widget.Waypoints().empty());
+  EXPECT_FALSE(widget.Waypoints().has_value());
 
   // Press again
   widget.mousePressEvent(&press_event);
@@ -545,7 +548,7 @@ TEST(VisTest, ClickVsDragClassification) {
   QMouseEvent release_drag(QEvent::MouseButtonRelease, QPointF(110.0, 110.0), QPointF(110.0, 110.0), Qt::LeftButton,
                            Qt::NoButton, Qt::NoModifier);
   widget.mouseReleaseEvent(&release_drag);
-  EXPECT_TRUE(widget.Waypoints().empty());
+  EXPECT_FALSE(widget.Waypoints().has_value());
 }
 
 TEST(VisTest, WaypointSnappingAndShortcuts) {
@@ -625,7 +628,8 @@ TEST(VisTest, WaypointSnappingAndShortcuts) {
   widget.mouseReleaseEvent(&release_event_left);
 
   // Non-drivable lane should be ignored
-  EXPECT_TRUE(widget.Waypoints().empty());
+  ASSERT_TRUE(widget.Waypoints().has_value());
+  EXPECT_TRUE(widget.Waypoints()->get().empty());
 
   // Click on drivable right lane (driving: y < 0). Project world (5.0, -1.5) to screen.
   const auto screen_pos_right = widget.GetCamera().WorldToScreen(5.0F, -1.5F);
@@ -638,8 +642,9 @@ TEST(VisTest, WaypointSnappingAndShortcuts) {
   widget.mouseReleaseEvent(&release_event_right);
 
   // Drivable lane should snap and add road ID "1" as a waypoint
-  ASSERT_EQ(widget.Waypoints().size(), 1);
-  EXPECT_EQ(widget.Waypoints()[0], "1");
+  ASSERT_TRUE(widget.Waypoints().has_value());
+  ASSERT_EQ(widget.Waypoints()->get().size(), 1);
+  EXPECT_EQ(widget.Waypoints()->get()[0], "1");
   ASSERT_EQ(widget.WaypointCoords().size(), 1);
   EXPECT_NEAR(widget.WaypointCoords()[0].x(), 5.0, 1e-4);
   EXPECT_NEAR(widget.WaypointCoords()[0].y(), -1.5, 1e-4);
@@ -647,19 +652,22 @@ TEST(VisTest, WaypointSnappingAndShortcuts) {
   // Click again on drivable right lane to add a second waypoint
   widget.mousePressEvent(&press_event_right);
   widget.mouseReleaseEvent(&release_event_right);
-  ASSERT_EQ(widget.Waypoints().size(), 2);
+  ASSERT_TRUE(widget.Waypoints().has_value());
+  ASSERT_EQ(widget.Waypoints()->get().size(), 2);
   ASSERT_EQ(widget.WaypointCoords().size(), 2);
 
   // Undo (Backspace) should remove the last waypoint
   QKeyEvent press_backspace(QEvent::KeyPress, Qt::Key_Backspace, Qt::NoModifier);
   widget.keyPressEvent(&press_backspace);
-  EXPECT_EQ(widget.Waypoints().size(), 1);
+  ASSERT_TRUE(widget.Waypoints().has_value());
+  EXPECT_EQ(widget.Waypoints()->get().size(), 1);
   EXPECT_EQ(widget.WaypointCoords().size(), 1);
 
   // Clear (C) should clear all waypoints
   QKeyEvent press_c(QEvent::KeyPress, Qt::Key_C, Qt::NoModifier);
   widget.keyPressEvent(&press_c);
-  EXPECT_TRUE(widget.Waypoints().empty());
+  ASSERT_TRUE(widget.Waypoints().has_value());
+  EXPECT_TRUE(widget.Waypoints()->get().empty());
   EXPECT_TRUE(widget.WaypointCoords().empty());
 
   // Escape (Escape) should exit Route Creation Mode
@@ -706,6 +714,32 @@ TEST(VisTest, RouteCoordinateMapping) {
   // 3. Test road not in route
   auto opt3 = route.ToRouteCoordinates("3", 5.0, 0.0);
   EXPECT_FALSE(opt3.has_value());
+
+  // 4. Test translation on looping route (Road 1 visited twice: first as forward, then as backward)
+  routing::RouteSegment seg3;
+  seg3.road_id = "1";
+  seg3.forward = false;
+  seg3.length = 10.0;
+  route.segments.push_back(seg3);
+
+  // Without hint, should default to the first visit (s_route = 3.0)
+  auto opt_no_hint = route.ToRouteCoordinates("1", 3.0, 1.5);
+  ASSERT_TRUE(opt_no_hint.has_value());
+  EXPECT_DOUBLE_EQ(opt_no_hint->first, 3.0);
+  EXPECT_DOUBLE_EQ(opt_no_hint->second, 1.5);
+
+  // With hint near first visit (s_route_hint = 5.0), should return first visit (s_route = 3.0)
+  auto opt_hint_first = route.ToRouteCoordinates("1", 3.0, 1.5, 5.0);
+  ASSERT_TRUE(opt_hint_first.has_value());
+  EXPECT_DOUBLE_EQ(opt_hint_first->first, 3.0);
+  EXPECT_DOUBLE_EQ(opt_hint_first->second, 1.5);
+
+  // With hint near second visit (s_route_hint = 30.0), should return second visit
+  // start_s = 25.0, s_local = 3.0, L = 10.0 -> s_route = 25.0 + (10.0 - 3.0) = 32.0
+  auto opt_hint_second = route.ToRouteCoordinates("1", 3.0, 1.5, 30.0);
+  ASSERT_TRUE(opt_hint_second.has_value());
+  EXPECT_DOUBLE_EQ(opt_hint_second->first, 32.0);
+  EXPECT_DOUBLE_EQ(opt_hint_second->second, -1.5);
 }
 
 TEST(VisTest, RoutePlannerHUDCardAndPathingErrors) {
@@ -810,9 +844,10 @@ TEST(VisTest, RoutePlannerHUDCardAndPathingErrors) {
 
   // Act & Assert
   // Verify waypoints are added
-  ASSERT_EQ(widget.Waypoints().size(), 2);
-  EXPECT_EQ(widget.Waypoints()[0], "1");
-  EXPECT_EQ(widget.Waypoints()[1], "2");
+  ASSERT_TRUE(widget.Waypoints().has_value());
+  ASSERT_EQ(widget.Waypoints()->get().size(), 2);
+  EXPECT_EQ(widget.Waypoints()->get()[0], "1");
+  EXPECT_EQ(widget.Waypoints()->get()[1], "2");
 
   // Since roads 1 and 2 are completely disconnected, Dijkstra should fail
   EXPECT_FALSE(widget.ActiveRoute().has_value());

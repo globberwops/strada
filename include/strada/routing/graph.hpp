@@ -32,8 +32,11 @@ struct Route {
   /// \param road_id The original string ID of the road.
   /// \param s_local The longitudinal coordinate along the road.
   /// \param t_local The lateral offset from the road reference line.
+  /// \param s_route_hint An optional longitudinal coordinate along the route used to resolve segment ambiguity on
+  /// looping routes.
   /// \return A pair of (s_route, t_route) if the road is part of the route, or std::nullopt otherwise.
-  [[nodiscard]] auto ToRouteCoordinates(std::string_view road_id, double s_local, double t_local) const noexcept
+  [[nodiscard]] auto ToRouteCoordinates(std::string_view road_id, double s_local, double t_local,
+                                        std::optional<double> s_route_hint = std::nullopt) const noexcept
       -> std::optional<std::pair<double, double>>;
 };
 
@@ -80,12 +83,36 @@ class Graph {
                     const std::function<double(std::string_view)>& cost_fn) const
       -> std::optional<std::vector<std::string>>;
 
+  /// Helper struct to represent a road's travel direction and resolve state indexing.
+  struct DirectedRoad {
+    /// travel direction choices.
+    enum class Direction : std::uint8_t { kForward = 0, kBackward };
+
+    std::size_t road_idx{};  ///< Index of the road in the map network.
+    Direction direction{};   ///< Travel direction along the road.
+
+    /// Translates this directed road state to its flat index inside nodes_.
+    ///
+    /// \return The calculated flat index.
+    [[nodiscard]] constexpr auto ToNodeIndex() const noexcept -> std::size_t {
+      return (2 * road_idx) + (direction == Direction::kForward ? 0 : 1);
+    }
+
+    /// Reconstructs a DirectedRoad state from a flat nodes_ index.
+    ///
+    /// \param idx The flat index inside nodes_.
+    /// \return The reconstructed DirectedRoad struct.
+    static constexpr auto FromNodeIndex(std::size_t idx) noexcept -> DirectedRoad {
+      return {.road_idx = idx / 2, .direction = (idx % 2 == 0) ? Direction::kForward : Direction::kBackward};
+    }
+  };
+
   struct Node {
     std::string road_id;
     double length{0.0};
     bool is_junction{false};
     bool is_drivable{false};
-    std::vector<std::uint32_t> successors;  // Indices in nodes_ array (directed states)
+    std::vector<std::size_t> successors;  // Indices in nodes_ array (directed states)
   };
 
   struct StringHash {
@@ -95,7 +122,7 @@ class Graph {
   };
 
   std::vector<Node> nodes_;  // Size: 2 * num_roads. Even: forward, Odd: backward.
-  std::unordered_map<std::string, std::uint32_t, StringHash, std::equal_to<>>
+  std::unordered_map<std::string, std::size_t, StringHash, std::equal_to<>>
       road_id_to_idx_;                       // Maps road_id to road index (0 to num_roads - 1)
   std::vector<std::string> idx_to_road_id_;  // Maps road index to road_id
 };

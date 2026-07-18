@@ -119,12 +119,11 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::Abs
 
 auto ViewportWidget::IsRouteCreationMode() const -> bool { return route_creation_mode_; }
 
-auto ViewportWidget::Waypoints() const -> const std::vector<std::string>& {
+auto ViewportWidget::Waypoints() const -> std::optional<std::reference_wrapper<const std::vector<std::string>>> {
   if (route_builder_.has_value()) {
     return route_builder_->Waypoints();
   }
-  static const auto empty = std::vector<std::string>{};
-  return empty;
+  return std::nullopt;
 }
 
 auto ViewportWidget::WaypointCoords() const -> const std::vector<QPointF>& { return waypoint_world_coords_; }
@@ -149,8 +148,7 @@ auto ViewportWidget::FindActiveRoadType(const ast::Road& road, double s) -> ast:
   if (road.types.empty()) {
     return ast::RoadType::kUnknown;
   }
-  auto it = std::upper_bound(road.types.begin(), road.types.end(), s,
-                             [](double val, const ast::RoadTypeRecord& record) -> bool { return val < record.s; });
+  auto it = std::ranges::upper_bound(road.types, s, std::less<>{}, &ast::RoadTypeRecord::s);
   if (it == road.types.begin()) {
     return ast::RoadType::kUnknown;
   }
@@ -389,7 +387,7 @@ void ViewportWidget::mouseReleaseEvent(QMouseEvent* event) {
             const auto snapped_ip = cpm_model_.LaneToInertial(snapped_pose, temp_ctx);
 
             const auto success = route_builder_->AppendWaypoint(road_id_str);
-            waypoint_world_coords_.push_back(QPointF{snapped_ip.x, snapped_ip.y});
+            waypoint_world_coords_.emplace_back(snapped_ip.x, snapped_ip.y);
 
             if (auto* main_win = qobject_cast<QMainWindow*>(window())) {
               if (auto* status = main_win->statusBar()) {
@@ -492,7 +490,7 @@ void ViewportWidget::wheelEvent(QWheelEvent* event) {
 
 void ViewportWidget::keyPressEvent(QKeyEvent* event) {
   if (event->key() == Qt::Key_R) {
-    if (event->modifiers() & Qt::ControlModifier) {
+    if ((event->modifiers() & Qt::ControlModifier) != 0U) {
       camera_.Reset();
       float min_x = std::numeric_limits<float>::max();
       float max_x = std::numeric_limits<float>::lowest();

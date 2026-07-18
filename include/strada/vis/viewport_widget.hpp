@@ -7,6 +7,7 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
 #include <QPoint>
+#include <functional>
 #include <optional>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
@@ -36,8 +37,8 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
   /// Returns the sequence of waypoint road IDs.
   ///
-  /// \return A reference to the list of waypoint road IDs.
-  auto Waypoints() const -> const std::vector<std::string>&;
+  /// \return An optional containing a reference to the list of waypoint road IDs.
+  auto Waypoints() const -> std::optional<std::reference_wrapper<const std::vector<std::string>>>;
 
   /// Returns the snapped waypoint coordinate positions in inertial/world space.
   ///

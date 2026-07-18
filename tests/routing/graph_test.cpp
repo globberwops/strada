@@ -635,7 +635,7 @@ TEST(RoutingGraphTest, CostFunctorJunctionPenalty) {
   // Cost of 1 -> 2 -> 3 is: 10 + (5 + 10) + 10 = 35
   // Cost of 1 -> 4 -> 3 is: 10 + 12 + 10 = 32
   // So the pathfinder should prefer 1 -> 4 -> 3!
-  auto path_with_penalty = graph.FindPath("1", "3", [&](std::string_view road_id) {
+  auto path_with_penalty = graph.FindPath("1", "3", [&](std::string_view road_id) -> double {
     double cost = graph.GetRoadLength(road_id);
     if (graph.IsJunctionRoad(road_id)) {
       cost += 10.0;

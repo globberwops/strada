@@ -24,8 +24,8 @@ CheckOptions:
   cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues: "0.0;1.0;-1.0;2.0;-2.0;0.5;-0.5;90.0;-90.0;180.0;-180.0;360.0;-360.0;1000.0;0.001"
   cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues: "0;1;-1;2;-2;90;-90;180;-180;360;-360;1000"
   cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
-  readability-identifier-length.IgnoredParameterNames: "^(s|t|h|x|y|z|u|v|i|j|k|a|b|c|d|f|id|r|w|rx|ry|wx|wy|pt|px|py|ds|dx|dy|dz)$"
-  readability-identifier-length.IgnoredVariableNames: "^(s|t|h|x|y|z|u|v|i|j|k|a|b|c|d|f|id|r|w|rx|ry|wx|wy|pt|px|py|ds|dx|dy|dz)$"
+  readability-identifier-length.IgnoredParameterNames: "^(s|t|h|x|y|z|u|v|i|j|k|a|b|c|d|f|id|it|r|w|rx|ry|wx|wy|pt|px|py|ds|dx|dy|dz)$"
+  readability-identifier-length.IgnoredVariableNames: "^(s|t|h|x|y|z|u|v|i|j|k|a|b|c|d|f|id|it|r|w|rx|ry|wx|wy|pt|px|py|ds|dx|dy|dz)$"
   readability-identifier-naming.ClassCase: CamelCase
   readability-identifier-naming.ConceptCase: CamelCase
   readability-identifier-naming.ConstantCase: CamelCase

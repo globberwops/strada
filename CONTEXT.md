@@ -85,6 +85,7 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
   * **Bivariate Shape Cache**: Optimizes road shape evaluation using contiguous shape-station lookup tables, bypassing it entirely for roads that only use standard superelevation.
 * **Geometry Math Utilities**: A collection of public mathematical primitives in `strada::cpm` (such as Fresnel integrals, clothoid offsets, and cubic-to-parametric polynomial parameterizations) exposed to support downstream modules and custom physics controllers.
 * **Routing Graph**: A directed topological graph mapping lane-to-lane connections (predecessor/successor links and junction paths) for navigation.
+* **Directed Road**: An internal representation of travel along a specific road in a specific direction (Forward or Backward), mapping to a logical node index in the routing graph.
 * **Route**: A directed sequence of roads connecting a sequence of two or more waypoints, formed by concatenating the shortest paths between consecutive waypoints. A Route defines its own continuous longitudinal ($s_{route}$) and lateral ($t_{route}$) coordinate system.
 * **Waypoint**: A designated road segment along a route that must be visited in a specific sequence. In the visualizer app, a waypoint is selected by clicking on a lane.
 * **Route Segment**: A component of a Route representing travel along a single road in a specific direction (Forward or Backward), mapping a range of the continuous route coordinate $s_{route}$ to the road's local $s$ coordinate.

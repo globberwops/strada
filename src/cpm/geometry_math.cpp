@@ -121,15 +121,15 @@ auto FresnelCS(double y) noexcept -> FresnelResult {
     const auto t_val = kPi * x2;
     const auto u = 1.0 / (t_val * t_val);
     const auto t_inv = 1.0 / t_val;
-    const auto f = 1.0 - u * EvaluatePolynomial(u, kFn) / EvaluateMonicPolynomial(u, kFd);
+    const auto f = 1.0 - (u * EvaluatePolynomial(u, kFn) / EvaluateMonicPolynomial(u, kFd));
     const auto g = t_inv * EvaluatePolynomial(u, kGn) / EvaluateMonicPolynomial(u, kGd);
 
     const auto angle = kPi2 * x2;
     const auto sin_val = std::sin(angle);
     const auto cos_val = std::cos(angle);
     const auto t_denom = kPi * x;
-    cc = 0.5 + ((f * sin_val) - (g * cos_val)) / t_denom;
-    ss = 0.5 - ((f * cos_val) + (g * sin_val)) / t_denom;
+    cc = 0.5 + (((f * sin_val) - (g * cos_val)) / t_denom);
+    ss = 0.5 - (((f * cos_val) + (g * sin_val)) / t_denom);
   }
 
   if (y < 0.0) {

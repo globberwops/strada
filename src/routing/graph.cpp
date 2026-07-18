@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <limits>
 #include <queue>
 #include <strada/ast/junction.hpp>
@@ -38,54 +40,60 @@ auto HasDrivableLane(const ast::Road& road, bool forward) -> bool {
 }  // namespace
 
 Graph::Graph(const ast::AbstractSyntaxTree& ast) {
-  std::size_t num_roads = ast.roads.size();
+  const auto num_roads = ast.roads.size();
   nodes_.resize(2 * num_roads);
   idx_to_road_id_.resize(num_roads);
 
   for (std::size_t i = 0; i < num_roads; ++i) {
     const auto& road = ast.roads[i];
-    road_id_to_idx_[road.id] = static_cast<std::uint32_t>(i);
+    road_id_to_idx_[road.id] = i;
     idx_to_road_id_[i] = road.id;
 
-    bool is_junc = (road.junction != "-1" && !road.junction.empty());
+    const auto is_junc = (road.junction != "-1" && !road.junction.empty());
 
     // Forward state
-    nodes_[2 * i].road_id = road.id;
-    nodes_[2 * i].length = road.length;
-    nodes_[2 * i].is_junction = is_junc;
-    nodes_[2 * i].is_drivable = HasDrivableLane(road, true);
+    const auto forward_idx = DirectedRoad{i, DirectedRoad::Direction::kForward}.ToNodeIndex();
+    nodes_[forward_idx].road_id = road.id;
+    nodes_[forward_idx].length = road.length;
+    nodes_[forward_idx].is_junction = is_junc;
+    nodes_[forward_idx].is_drivable = HasDrivableLane(road, true);
 
     // Backward state
-    nodes_[2 * i + 1].road_id = road.id;
-    nodes_[2 * i + 1].length = road.length;
-    nodes_[2 * i + 1].is_junction = is_junc;
-    nodes_[2 * i + 1].is_drivable = HasDrivableLane(road, false);
+    const auto backward_idx = DirectedRoad{i, DirectedRoad::Direction::kBackward}.ToNodeIndex();
+    nodes_[backward_idx].road_id = road.id;
+    nodes_[backward_idx].length = road.length;
+    nodes_[backward_idx].is_junction = is_junc;
+    nodes_[backward_idx].is_drivable = HasDrivableLane(road, false);
   }
 
   // 1. Direct Road Links
   for (std::size_t i = 0; i < num_roads; ++i) {
     const auto& road = ast.roads[i];
+    const auto i_forward = DirectedRoad{i, DirectedRoad::Direction::kForward}.ToNodeIndex();
+    const auto i_backward = DirectedRoad{i, DirectedRoad::Direction::kBackward}.ToNodeIndex();
 
     // Successor Link
     if (road.link.successor && road.link.successor->element_type == ast::RoadLinkType::kRoad) {
       auto target_it = road_id_to_idx_.find(road.link.successor->element_id);
       if (target_it != road_id_to_idx_.end()) {
-        std::uint32_t j = target_it->second;
-        ast::ContactPoint cp = road.link.successor->contact_point.value_or(ast::ContactPoint::kStart);
+        const auto j = target_it->second;
+        const auto j_forward = DirectedRoad{j, DirectedRoad::Direction::kForward}.ToNodeIndex();
+        const auto j_backward = DirectedRoad{j, DirectedRoad::Direction::kBackward}.ToNodeIndex();
+        const auto contact_point = road.link.successor->contact_point.value_or(ast::ContactPoint::kStart);
 
-        if (cp == ast::ContactPoint::kStart) {
-          if (nodes_[2 * i].is_drivable && nodes_[2 * j].is_drivable) {
-            nodes_[2 * i].successors.push_back(2 * j);
+        if (contact_point == ast::ContactPoint::kStart) {
+          if (nodes_[i_forward].is_drivable && nodes_[j_forward].is_drivable) {
+            nodes_[i_forward].successors.push_back(j_forward);
           }
-          if (nodes_[2 * i + 1].is_drivable && nodes_[2 * j + 1].is_drivable) {
-            nodes_[2 * j + 1].successors.push_back(static_cast<std::uint32_t>(2 * i + 1));
+          if (nodes_[i_backward].is_drivable && nodes_[j_backward].is_drivable) {
+            nodes_[j_backward].successors.push_back(i_backward);
           }
         } else {  // cp == ContactPoint::kEnd
-          if (nodes_[2 * i].is_drivable && nodes_[2 * j + 1].is_drivable) {
-            nodes_[2 * i].successors.push_back(2 * j + 1);
+          if (nodes_[i_forward].is_drivable && nodes_[j_backward].is_drivable) {
+            nodes_[i_forward].successors.push_back(j_backward);
           }
-          if (nodes_[2 * i + 1].is_drivable && nodes_[2 * j].is_drivable) {
-            nodes_[2 * j].successors.push_back(static_cast<std::uint32_t>(2 * i + 1));
+          if (nodes_[i_backward].is_drivable && nodes_[j_forward].is_drivable) {
+            nodes_[j_forward].successors.push_back(i_backward);
           }
         }
       }
@@ -95,22 +103,24 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
     if (road.link.predecessor && road.link.predecessor->element_type == ast::RoadLinkType::kRoad) {
       auto target_it = road_id_to_idx_.find(road.link.predecessor->element_id);
       if (target_it != road_id_to_idx_.end()) {
-        std::uint32_t j = target_it->second;
-        ast::ContactPoint cp = road.link.predecessor->contact_point.value_or(ast::ContactPoint::kStart);
+        const auto j = target_it->second;
+        const auto j_forward = DirectedRoad{j, DirectedRoad::Direction::kForward}.ToNodeIndex();
+        const auto j_backward = DirectedRoad{j, DirectedRoad::Direction::kBackward}.ToNodeIndex();
+        const auto contact_point = road.link.predecessor->contact_point.value_or(ast::ContactPoint::kStart);
 
-        if (cp == ast::ContactPoint::kStart) {
-          if (nodes_[2 * i + 1].is_drivable && nodes_[2 * j].is_drivable) {
-            nodes_[2 * i + 1].successors.push_back(2 * j);
+        if (contact_point == ast::ContactPoint::kStart) {
+          if (nodes_[i_backward].is_drivable && nodes_[j_forward].is_drivable) {
+            nodes_[i_backward].successors.push_back(j_forward);
           }
-          if (nodes_[2 * i].is_drivable && nodes_[2 * j + 1].is_drivable) {
-            nodes_[2 * j + 1].successors.push_back(static_cast<std::uint32_t>(2 * i));
+          if (nodes_[i_forward].is_drivable && nodes_[j_backward].is_drivable) {
+            nodes_[j_backward].successors.push_back(i_forward);
           }
         } else {  // cp == ContactPoint::kEnd
-          if (nodes_[2 * i + 1].is_drivable && nodes_[2 * j + 1].is_drivable) {
-            nodes_[2 * i + 1].successors.push_back(2 * j + 1);
+          if (nodes_[i_backward].is_drivable && nodes_[j_backward].is_drivable) {
+            nodes_[i_backward].successors.push_back(j_backward);
           }
-          if (nodes_[2 * i].is_drivable && nodes_[2 * j].is_drivable) {
-            nodes_[2 * j].successors.push_back(static_cast<std::uint32_t>(2 * i));
+          if (nodes_[i_forward].is_drivable && nodes_[j_forward].is_drivable) {
+            nodes_[j_forward].successors.push_back(i_forward);
           }
         }
       }
@@ -120,60 +130,64 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
   // 2. Junction Connections
   for (const auto& junction : ast.junctions) {
     for (const auto& conn : junction.connections) {
-      auto A_it = road_id_to_idx_.find(conn.incoming_road);
-      auto C_it = road_id_to_idx_.find(conn.connecting_road);
-      if (A_it == road_id_to_idx_.end() || C_it == road_id_to_idx_.end()) {
+      auto a_it = road_id_to_idx_.find(conn.incoming_road);
+      auto c_it = road_id_to_idx_.find(conn.connecting_road);
+      if (a_it == road_id_to_idx_.end() || c_it == road_id_to_idx_.end()) {
         continue;
       }
-      std::uint32_t a = A_it->second;
-      std::uint32_t c = C_it->second;
+      const auto a = a_it->second;
+      const auto c = c_it->second;
+      const auto a_forward = DirectedRoad{a, DirectedRoad::Direction::kForward}.ToNodeIndex();
+      const auto a_backward = DirectedRoad{a, DirectedRoad::Direction::kBackward}.ToNodeIndex();
+      const auto c_forward = DirectedRoad{c, DirectedRoad::Direction::kForward}.ToNodeIndex();
+      const auto c_backward = DirectedRoad{c, DirectedRoad::Direction::kBackward}.ToNodeIndex();
 
-      bool incoming_is_successor = true;
-      const ast::Road* road_A = nullptr;
+      auto incoming_is_successor = true;
+      const ast::Road* road_a = nullptr;
       for (const auto& r : ast.roads) {
         if (r.id == conn.incoming_road) {
-          road_A = &r;
+          road_a = &r;
           break;
         }
       }
-      if (road_A) {
-        if (road_A->link.predecessor && road_A->link.predecessor->element_type == ast::RoadLinkType::kJunction &&
-            road_A->link.predecessor->element_id == junction.id) {
+      if (road_a != nullptr) {
+        if (road_a->link.predecessor && road_a->link.predecessor->element_type == ast::RoadLinkType::kJunction &&
+            road_a->link.predecessor->element_id == junction.id) {
           incoming_is_successor = false;
         }
       }
 
       {
-        ast::ContactPoint cp = conn.contact_point;
+        const auto contact_point = conn.contact_point;
 
         if (incoming_is_successor) {
-          if (nodes_[2 * a].is_drivable) {
-            if (cp == ast::ContactPoint::kStart && nodes_[2 * c].is_drivable) {
-              nodes_[2 * a].successors.push_back(2 * c);
-            } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c + 1].is_drivable) {
-              nodes_[2 * a].successors.push_back(2 * c + 1);
+          if (nodes_[a_forward].is_drivable) {
+            if (contact_point == ast::ContactPoint::kStart && nodes_[c_forward].is_drivable) {
+              nodes_[a_forward].successors.push_back(c_forward);
+            } else if (contact_point == ast::ContactPoint::kEnd && nodes_[c_backward].is_drivable) {
+              nodes_[a_forward].successors.push_back(c_backward);
             }
           }
-          if (nodes_[2 * a + 1].is_drivable) {
-            if (cp == ast::ContactPoint::kStart && nodes_[2 * c + 1].is_drivable) {
-              nodes_[2 * c + 1].successors.push_back(2 * a + 1);
-            } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c].is_drivable) {
-              nodes_[2 * c].successors.push_back(2 * a + 1);
+          if (nodes_[a_backward].is_drivable) {
+            if (contact_point == ast::ContactPoint::kStart && nodes_[c_backward].is_drivable) {
+              nodes_[c_backward].successors.push_back(a_backward);
+            } else if (contact_point == ast::ContactPoint::kEnd && nodes_[c_forward].is_drivable) {
+              nodes_[c_forward].successors.push_back(a_backward);
             }
           }
         } else {
-          if (nodes_[2 * a + 1].is_drivable) {
-            if (cp == ast::ContactPoint::kStart && nodes_[2 * c].is_drivable) {
-              nodes_[2 * a + 1].successors.push_back(2 * c);
-            } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c + 1].is_drivable) {
-              nodes_[2 * a + 1].successors.push_back(2 * c + 1);
+          if (nodes_[a_backward].is_drivable) {
+            if (contact_point == ast::ContactPoint::kStart && nodes_[c_forward].is_drivable) {
+              nodes_[a_backward].successors.push_back(c_forward);
+            } else if (contact_point == ast::ContactPoint::kEnd && nodes_[c_backward].is_drivable) {
+              nodes_[a_backward].successors.push_back(c_backward);
             }
           }
-          if (nodes_[2 * a].is_drivable) {
-            if (cp == ast::ContactPoint::kStart && nodes_[2 * c + 1].is_drivable) {
-              nodes_[2 * c + 1].successors.push_back(2 * a);
-            } else if (cp == ast::ContactPoint::kEnd && nodes_[2 * c].is_drivable) {
-              nodes_[2 * c].successors.push_back(2 * a);
+          if (nodes_[a_forward].is_drivable) {
+            if (contact_point == ast::ContactPoint::kStart && nodes_[c_backward].is_drivable) {
+              nodes_[c_backward].successors.push_back(a_forward);
+            } else if (contact_point == ast::ContactPoint::kEnd && nodes_[c_forward].is_drivable) {
+              nodes_[c_forward].successors.push_back(a_forward);
             }
           }
         }
@@ -201,18 +215,18 @@ auto Graph::FindRoute(std::string_view start_road_id, std::string_view end_road_
 
   const auto num_states = nodes_.size();
   auto dist = std::vector<double>(num_states, std::numeric_limits<double>::infinity());
-  auto parent = std::vector<std::uint32_t>(num_states, std::numeric_limits<std::uint32_t>::max());
+  auto parent = std::vector<std::size_t>(num_states, std::numeric_limits<std::size_t>::max());
 
-  using StatePair = std::pair<double, std::uint32_t>;
-  auto pq = std::priority_queue<StatePair, std::vector<StatePair>, std::greater<StatePair>>{};
+  using StatePair = std::pair<double, std::size_t>;
+  auto queue = std::priority_queue<StatePair, std::vector<StatePair>, std::greater<>>{};
 
   auto initialized = false;
-  for (auto offset = 0U; offset < 2U; ++offset) {
-    const auto state_idx = 2 * start_idx + offset;
+  for (const auto dir : {DirectedRoad::Direction::kForward, DirectedRoad::Direction::kBackward}) {
+    const auto state_idx = DirectedRoad{start_idx, dir}.ToNodeIndex();
     if (nodes_[state_idx].is_drivable) {
       const auto cost = nodes_[state_idx].length;
       dist[state_idx] = cost;
-      pq.push({cost, state_idx});
+      queue.emplace(cost, state_idx);
       initialized = true;
     }
   }
@@ -221,29 +235,29 @@ auto Graph::FindRoute(std::string_view start_road_id, std::string_view end_road_
     return std::nullopt;
   }
 
-  while (!pq.empty()) {
-    const auto [distance, state_idx] = pq.top();
-    pq.pop();
+  while (!queue.empty()) {
+    const auto [distance, state_idx] = queue.top();
+    queue.pop();
 
     if (distance > dist[state_idx]) {
       continue;
     }
 
-    if (state_idx / 2 == end_idx) {
-      auto path_indices = std::vector<std::uint32_t>{};
+    if (DirectedRoad::FromNodeIndex(state_idx).road_idx == end_idx) {
+      auto path_indices = std::vector<std::size_t>{};
       auto curr = state_idx;
-      while (curr != std::numeric_limits<std::uint32_t>::max()) {
+      while (curr != std::numeric_limits<std::size_t>::max()) {
         path_indices.push_back(curr);
         curr = parent[curr];
       }
-      std::reverse(path_indices.begin(), path_indices.end());
+      std::ranges::reverse(path_indices);
 
       auto route = Route{};
       route.segments.reserve(path_indices.size());
       for (const auto idx : path_indices) {
         auto seg = RouteSegment{};
         seg.road_id = nodes_[idx].road_id;
-        seg.forward = (idx % 2 == 0);
+        seg.forward = (DirectedRoad::FromNodeIndex(idx).direction == DirectedRoad::Direction::kForward);
         seg.length = nodes_[idx].length;
         route.segments.push_back(std::move(seg));
       }
@@ -255,7 +269,7 @@ auto Graph::FindRoute(std::string_view start_road_id, std::string_view end_road_
       if (dist[state_idx] + weight < dist[successor_idx]) {
         dist[successor_idx] = dist[state_idx] + weight;
         parent[successor_idx] = state_idx;
-        pq.push({dist[successor_idx], successor_idx});
+        queue.emplace(dist[successor_idx], successor_idx);
       }
     }
   }
@@ -265,7 +279,8 @@ auto Graph::FindRoute(std::string_view start_road_id, std::string_view end_road_
 
 auto Graph::FindPath(std::string_view start_road_id, std::string_view end_road_id) const
     -> std::optional<std::vector<std::string>> {
-  return FindPath(start_road_id, end_road_id, [this](std::string_view road_id) { return GetRoadLength(road_id); });
+  return FindPath(start_road_id, end_road_id,
+                  [this](std::string_view road_id) -> double { return GetRoadLength(road_id); });
 }
 
 auto Graph::HasRoad(std::string_view road_id) const -> bool { return road_id_to_idx_.contains(road_id); }
@@ -275,13 +290,15 @@ auto Graph::GetRoadSuccessors(std::string_view road_id) const -> std::vector<std
   if (it == road_id_to_idx_.end()) {
     return {};
   }
-  std::size_t idx = it->second;
+  const auto idx = it->second;
   std::vector<std::string> successors;
 
-  for (std::uint32_t v : nodes_[2 * idx].successors) {
+  const auto forward_idx = DirectedRoad{idx, DirectedRoad::Direction::kForward}.ToNodeIndex();
+  for (const auto v : nodes_[forward_idx].successors) {
     successors.push_back(nodes_[v].road_id);
   }
-  for (std::uint32_t v : nodes_[2 * idx + 1].successors) {
+  const auto backward_idx = DirectedRoad{idx, DirectedRoad::Direction::kBackward}.ToNodeIndex();
+  for (const auto v : nodes_[backward_idx].successors) {
     successors.push_back(nodes_[v].road_id);
   }
 
@@ -297,7 +314,8 @@ auto Graph::IsJunctionRoad(std::string_view road_id) const -> bool {
   if (it == road_id_to_idx_.end()) {
     return false;
   }
-  return nodes_[2 * it->second].is_junction;
+  const auto forward_idx = DirectedRoad{it->second, DirectedRoad::Direction::kForward}.ToNodeIndex();
+  return nodes_[forward_idx].is_junction;
 }
 
 auto Graph::GetRoadLength(std::string_view road_id) const -> double {
@@ -305,7 +323,8 @@ auto Graph::GetRoadLength(std::string_view road_id) const -> double {
   if (it == road_id_to_idx_.end()) {
     return 0.0;
   }
-  return nodes_[2 * it->second].length;
+  const auto forward_idx = DirectedRoad{it->second, DirectedRoad::Direction::kForward}.ToNodeIndex();
+  return nodes_[forward_idx].length;
 }
 
 auto Graph::FindPathImpl(std::string_view start_road_id, std::string_view end_road_id,
@@ -324,60 +343,57 @@ auto Graph::FindPathImpl(std::string_view start_road_id, std::string_view end_ro
     return std::nullopt;
   }
 
-  std::uint32_t start_idx = start_it->second;
-  std::uint32_t end_idx = end_it->second;
+  const auto start_idx = start_it->second;
+  const auto end_idx = end_it->second;
 
-  std::size_t num_states = nodes_.size();
-  std::vector<double> dist(num_states, std::numeric_limits<double>::infinity());
-  std::vector<std::uint32_t> parent(num_states, std::numeric_limits<std::uint32_t>::max());
+  const auto num_states = nodes_.size();
+  auto dist = std::vector(num_states, std::numeric_limits<double>::infinity());
+  auto parent = std::vector(num_states, std::numeric_limits<std::size_t>::max());
 
-  using StatePair = std::pair<double, std::uint32_t>;
-  std::priority_queue<StatePair, std::vector<StatePair>, std::greater<StatePair>> pq;
+  using StatePair = std::pair<double, std::size_t>;
+  std::priority_queue<StatePair, std::vector<StatePair>, std::greater<>> queue;
 
   // Initialize start states
-  bool initialized = false;
-  if (nodes_[2 * start_idx].is_drivable) {
-    double cost = cost_fn(start_road_id);
-    dist[2 * start_idx] = cost;
-    pq.push({cost, 2 * start_idx});
-    initialized = true;
-  }
-  if (nodes_[2 * start_idx + 1].is_drivable) {
-    double cost = cost_fn(start_road_id);
-    dist[2 * start_idx + 1] = cost;
-    pq.push({cost, 2 * start_idx + 1});
-    initialized = true;
+  auto initialized = false;
+  for (const auto dir : {DirectedRoad::Direction::kForward, DirectedRoad::Direction::kBackward}) {
+    const auto state_idx = DirectedRoad{start_idx, dir}.ToNodeIndex();
+    if (nodes_[state_idx].is_drivable) {
+      const auto cost = cost_fn(start_road_id);
+      dist[state_idx] = cost;
+      queue.emplace(cost, state_idx);
+      initialized = true;
+    }
   }
 
   if (!initialized) {
     return std::nullopt;
   }
 
-  while (!pq.empty()) {
-    auto [d, u] = pq.top();
-    pq.pop();
+  while (!queue.empty()) {
+    auto [d, u] = queue.top();
+    queue.pop();
 
     if (d > dist[u]) {
       continue;
     }
 
-    if (u / 2 == end_idx) {
+    if (DirectedRoad::FromNodeIndex(u).road_idx == end_idx) {
       std::vector<std::string> path;
-      std::uint32_t curr = u;
-      while (curr != std::numeric_limits<std::uint32_t>::max()) {
+      std::size_t curr = u;
+      while (curr != std::numeric_limits<std::size_t>::max()) {
         path.push_back(nodes_[curr].road_id);
         curr = parent[curr];
       }
-      std::reverse(path.begin(), path.end());
+      std::ranges::reverse(path);
       return path;
     }
 
-    for (std::uint32_t v : nodes_[u].successors) {
+    for (const auto v : nodes_[u].successors) {
       double weight = cost_fn(nodes_[v].road_id);
       if (dist[u] + weight < dist[v]) {
         dist[v] = dist[u] + weight;
         parent[v] = u;
-        pq.push({dist[v], v});
+        queue.emplace(dist[v], v);
       }
     }
   }
@@ -385,9 +401,13 @@ auto Graph::FindPathImpl(std::string_view start_road_id, std::string_view end_ro
   return std::nullopt;
 }
 
-auto Route::ToRouteCoordinates(std::string_view road_id, double s_local, double t_local) const noexcept
+auto Route::ToRouteCoordinates(std::string_view road_id, double s_local, double t_local,
+                               std::optional<double> s_route_hint) const noexcept
     -> std::optional<std::pair<double, double>> {
   auto start_s = 0.0;
+  std::optional<std::pair<double, double>> best_match;
+  auto min_diff = std::numeric_limits<double>::infinity();
+
   for (const auto& seg : segments) {
     if (seg.road_id == road_id) {
       auto s_route = 0.0;
@@ -399,11 +419,21 @@ auto Route::ToRouteCoordinates(std::string_view road_id, double s_local, double 
         s_route = start_s + (seg.length - s_local);
         t_route = -t_local;
       }
-      return std::make_pair(s_route, t_route);
+      const auto candidate = std::make_pair(s_route, t_route);
+
+      if (!s_route_hint.has_value()) {
+        return candidate;
+      }
+
+      const auto diff = std::abs(s_route - *s_route_hint);
+      if (diff < min_diff) {
+        min_diff = diff;
+        best_match = candidate;
+      }
     }
     start_s += seg.length;
   }
-  return std::nullopt;
+  return best_match;
 }
 
 }  // namespace strada::routing

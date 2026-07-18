@@ -116,25 +116,27 @@ void Tessellator::TessellateReferenceLine(cpm::RoadId road_id, const std::vector
 
 void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road_id, std::span<const double> stations,
                                          const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx) {
+  static constexpr auto kEpsilon = 1e-4;
+
   const double road_len = road.length;
 
   for (std::size_t sec_idx = 0; sec_idx < road.lanes.sections.size(); ++sec_idx) {
     const auto& section = road.lanes.sections[sec_idx];
-    const double sec_s_start = section.s;
-    const double sec_s_end = (sec_idx + 1 < road.lanes.sections.size()) ? road.lanes.sections[sec_idx + 1].s : road_len;
+    const auto sec_s_start = section.s;
+    const auto sec_s_end = (sec_idx + 1 < road.lanes.sections.size()) ? road.lanes.sections[sec_idx + 1].s : road_len;
 
     // Gather stations within this section
     std::vector<double> sec_stations;
-    for (const double s : stations) {
+    for (const auto s : stations) {
       if (s >= sec_s_start && s <= sec_s_end) {
         sec_stations.push_back(s);
       }
     }
 
-    if (sec_stations.empty() || std::abs(sec_stations.front() - sec_s_start) > 1e-4) {
+    if (sec_stations.empty() || std::abs(sec_stations.front() - sec_s_start) > kEpsilon) {
       sec_stations.insert(sec_stations.begin(), sec_s_start);
     }
-    if (std::abs(sec_stations.back() - sec_s_end) > 1e-4) {
+    if (std::abs(sec_stations.back() - sec_s_end) > kEpsilon) {
       sec_stations.push_back(sec_s_end);
     }
 
@@ -170,12 +172,12 @@ void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road
       boundary.marking_type = (lane.id > 0) ? (lane.id == max_left_id ? "solid" : "broken")
                                             : (lane.id == min_right_id ? "solid" : "broken");
 
-      for (const double s : sec_stations) {
-        const double w_target = model.LaneWidth(lane_id, s);
+      for (const auto s : sec_stations) {
+        const auto w_target = model.LaneWidth(lane_id, s);
 
         // Boundaries in lane-local track coordinates
-        double t_inner = 0.0;
-        double t_outer = 0.0;
+        auto t_inner = 0.0;
+        auto t_outer = 0.0;
         if (lane.id > 0) {
           t_inner = -0.5 * w_target;
           t_outer = 0.5 * w_target;
@@ -185,34 +187,34 @@ void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road
         }
 
         // Evaluate 3D Inertial coordinates for inner and outer boundaries
-        const cpm::LanePose lp_inner = {.s = s,
-                                        .t = t_inner,
-                                        .h = 0.0,
-                                        .heading = 0.0,
-                                        .pitch = 0.0,
-                                        .roll = 0.0,
-                                        .road = road_id,
-                                        .lane = lane_id};
-        const cpm::RoadPose rp_inner = model.LaneToRoad(lp_inner, ctx);
-        const cpm::InertialPose ip_inner = model.RoadToInertial(rp_inner, ctx);
+        const auto lp_inner = cpm::LanePose{.s = s,
+                                            .t = t_inner,
+                                            .h = 0.0,
+                                            .heading = 0.0,
+                                            .pitch = 0.0,
+                                            .roll = 0.0,
+                                            .road = road_id,
+                                            .lane = lane_id};
+        const auto rp_inner = model.LaneToRoad(lp_inner, ctx);
+        const auto ip_inner = model.RoadToInertial(rp_inner, ctx);
 
-        const cpm::LanePose lp_outer = {.s = s,
-                                        .t = t_outer,
-                                        .h = 0.0,
-                                        .heading = 0.0,
-                                        .pitch = 0.0,
-                                        .roll = 0.0,
-                                        .road = road_id,
-                                        .lane = lane_id};
-        const cpm::RoadPose rp_outer = model.LaneToRoad(lp_outer, ctx);
-        const cpm::InertialPose ip_outer = model.RoadToInertial(rp_outer, ctx);
+        const auto lp_outer = cpm::LanePose{.s = s,
+                                            .t = t_outer,
+                                            .h = 0.0,
+                                            .heading = 0.0,
+                                            .pitch = 0.0,
+                                            .roll = 0.0,
+                                            .road = road_id,
+                                            .lane = lane_id};
+        const auto rp_outer = model.LaneToRoad(lp_outer, ctx);
+        const auto ip_outer = model.RoadToInertial(rp_outer, ctx);
 
-        const Vertex v_inner = {.x = static_cast<float>(ip_inner.x),
-                                .y = static_cast<float>(ip_inner.y),
-                                .z = static_cast<float>(ip_inner.z)};
-        const Vertex v_outer = {.x = static_cast<float>(ip_outer.x),
-                                .y = static_cast<float>(ip_outer.y),
-                                .z = static_cast<float>(ip_outer.z)};
+        const auto v_inner = Vertex{.x = static_cast<float>(ip_inner.x),
+                                    .y = static_cast<float>(ip_inner.y),
+                                    .z = static_cast<float>(ip_inner.z)};
+        const auto v_outer = Vertex{.x = static_cast<float>(ip_outer.x),
+                                    .y = static_cast<float>(ip_outer.y),
+                                    .z = static_cast<float>(ip_outer.z)};
 
         mesh.vertices.push_back(v_inner);
         mesh.vertices.push_back(v_outer);
@@ -256,6 +258,8 @@ void Tessellator::TessellateLaneSections(const ast::Road& road, cpm::RoadId road
 void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& map,
                                                const cpm::CompiledPhysicsModel& model, cpm::QueryContext& ctx,
                                                double chord_error) {
+  static constexpr auto kEpsilon = 1e-4F;
+
   for (const auto& junction : map.junctions) {
     if (!junction.boundary.has_value()) {
       std::vector<Vertex> fallback_vertices;
@@ -315,20 +319,20 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
         if (!segment.boundary_lane.has_value()) {
           continue;
         }
-        const int boundary_lane = *segment.boundary_lane;
-        const double start_s = segment.s_start;
-        double end_s = segment.s_end;
+        const auto boundary_lane = *segment.boundary_lane;
+        const auto start_s = segment.s_start;
+        auto end_s = segment.s_end;
         if (std::isinf(end_s)) {
           end_s = road.length;
         }
 
-        const double seg_len = std::abs(end_s - start_s);
-        const double ds = std::clamp(chord_error * 5.0, 0.5, 2.0);
+        const auto seg_len = std::abs(end_s - start_s);
+        const auto ds = std::clamp(chord_error * 5.0, 0.5, 2.0);
         auto num_steps = static_cast<std::size_t>(std::ceil(seg_len / ds));
         num_steps = std::max<std::size_t>(num_steps, 2);
 
         for (std::size_t k = 0; k <= num_steps; ++k) {
-          const double s = start_s + (static_cast<double>(k) * (end_s - start_s) / static_cast<double>(num_steps));
+          const auto s = start_s + (static_cast<double>(k) * (end_s - start_s) / static_cast<double>(num_steps));
 
           // Find active lane section at s
           std::size_t s_idx = 0;
@@ -341,18 +345,18 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
           }
 
           auto lane_id = model.FindLaneId(road_id, static_cast<std::uint32_t>(s_idx), boundary_lane).value();
-          const double w = model.LaneWidth(lane_id, s);
+          const auto w = model.LaneWidth(lane_id, s);
 
-          const cpm::LanePose lane_pose = {.s = s,
-                                           .t = (boundary_lane > 0) ? (0.5 * w) : (-0.5 * w),
-                                           .h = 0.0,
-                                           .heading = 0.0,
-                                           .pitch = 0.0,
-                                           .roll = 0.0,
-                                           .road = road_id,
-                                           .lane = lane_id};
-          const cpm::RoadPose road_pose = model.LaneToRoad(lane_pose, ctx);
-          const cpm::InertialPose inertial_pose = model.RoadToInertial(road_pose, ctx);
+          const auto lane_pose = cpm::LanePose{.s = s,
+                                               .t = (boundary_lane > 0) ? (0.5 * w) : (-0.5 * w),
+                                               .h = 0.0,
+                                               .heading = 0.0,
+                                               .pitch = 0.0,
+                                               .roll = 0.0,
+                                               .road = road_id,
+                                               .lane = lane_id};
+          const auto road_pose = model.LaneToRoad(lane_pose, ctx);
+          const auto inertial_pose = model.RoadToInertial(road_pose, ctx);
 
           loop_vertices.push_back(Vertex{.x = static_cast<float>(inertial_pose.x),
                                          .y = static_cast<float>(inertial_pose.y),
@@ -390,31 +394,31 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
           }
           auto l_id = model.FindLaneId(road_id, static_cast<std::uint32_t>(s_idx), lane_id_val).value();
           const double w = model.LaneWidth(l_id, s);
-          const cpm::LanePose lane_pose = {.s = s,
-                                           .t = (lane_id_val > 0) ? (0.5 * w) : (-0.5 * w),
-                                           .h = 0.0,
-                                           .heading = 0.0,
-                                           .pitch = 0.0,
-                                           .roll = 0.0,
-                                           .road = road_id,
-                                           .lane = l_id};
-          const cpm::RoadPose road_pose = model.LaneToRoad(lane_pose, ctx);
+          const auto lane_pose = cpm::LanePose{.s = s,
+                                               .t = (lane_id_val > 0) ? (0.5 * w) : (-0.5 * w),
+                                               .h = 0.0,
+                                               .heading = 0.0,
+                                               .pitch = 0.0,
+                                               .roll = 0.0,
+                                               .road = road_id,
+                                               .lane = l_id};
+          const auto road_pose = model.LaneToRoad(lane_pose, ctx);
           return road_pose.t;
         };
 
-        const double t_start = get_outer_t(l_start);
-        const double t_end = get_outer_t(l_end);
+        const auto t_start = get_outer_t(l_start);
+        const auto t_end = get_outer_t(l_end);
 
-        const double t_diff = std::abs(t_end - t_start);
-        const double dt = std::clamp(chord_error * 5.0, 0.5, 2.0);
+        const auto t_diff = std::abs(t_end - t_start);
+        const auto dt = std::clamp(chord_error * 5.0, 0.5, 2.0);
         auto num_steps = static_cast<std::size_t>(std::ceil(t_diff / dt));
         num_steps = std::max<std::size_t>(num_steps, 2);
 
         for (std::size_t k = 0; k <= num_steps; ++k) {
-          const double t = t_start + (static_cast<double>(k) * (t_end - t_start) / static_cast<double>(num_steps));
-          const cpm::RoadPose road_pose = {
-              .s = s, .t = t, .h = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0, .road = road_id};
-          const cpm::InertialPose inertial_pose = model.RoadToInertial(road_pose, ctx);
+          const auto t = t_start + (static_cast<double>(k) * (t_end - t_start) / static_cast<double>(num_steps));
+          const auto road_pose =
+              cpm::RoadPose{.s = s, .t = t, .h = 0.0, .heading = 0.0, .pitch = 0.0, .roll = 0.0, .road = road_id};
+          const auto inertial_pose = model.RoadToInertial(road_pose, ctx);
           loop_vertices.push_back(Vertex{.x = static_cast<float>(inertial_pose.x),
                                          .y = static_cast<float>(inertial_pose.y),
                                          .z = static_cast<float>(inertial_pose.z)});
@@ -423,10 +427,11 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
     }
 
     // Deduplicate adjacent identical vertices
+
     if (loop_vertices.size() > 1) {
       auto [uniq_first, uniq_last] =
           std::ranges::unique(loop_vertices, [](const Vertex& a, const Vertex& b) noexcept -> bool {
-            return std::abs(a.x - b.x) < 1e-4F && std::abs(a.y - b.y) < 1e-4F && std::abs(a.z - b.z) < 1e-4F;
+            return std::abs(a.x - b.x) < kEpsilon && std::abs(a.y - b.y) < kEpsilon && std::abs(a.z - b.z) < kEpsilon;
           });
       loop_vertices.erase(uniq_first, uniq_last);
 
@@ -434,8 +439,9 @@ void Tessellator::TessellateJunctionBoundaries(const ast::AbstractSyntaxTree& ma
       if (loop_vertices.size() > 2) {
         const auto& first = loop_vertices.front();
         const auto& last = loop_vertices.back();
-        if (std::abs(first.x - last.x) < 1e-4F && std::abs(first.y - last.y) < 1e-4F &&
-            std::abs(first.z - last.z) < 1e-4F) {
+
+        if (std::abs(first.x - last.x) < kEpsilon && std::abs(first.y - last.y) < kEpsilon &&
+            std::abs(first.z - last.z) < kEpsilon) {
           loop_vertices.pop_back();
         }
       }
@@ -544,11 +550,11 @@ void Tessellator::TessellateRoadObjects(const ast::AbstractSyntaxTree& map, cons
       } else {
         const auto [ip_obj, r_obj] = ComputeObjectPoseAndRotation(object, road_id, model, ctx);
 
-        constexpr double kCrosshairHalfSize{0.25};
-        const auto local1_a = r_obj.Transform(0.0, -kCrosshairHalfSize, 0.0);
-        const auto local1_b = r_obj.Transform(0.0, kCrosshairHalfSize, 0.0);
-        const auto local2_a = r_obj.Transform(-kCrosshairHalfSize, 0.0, 0.0);
-        const auto local2_b = r_obj.Transform(kCrosshairHalfSize, 0.0, 0.0);
+        constexpr auto crosshair_half_size = 0.25;
+        const auto local1_a = r_obj.Transform(0.0, -crosshair_half_size, 0.0);
+        const auto local1_b = r_obj.Transform(0.0, crosshair_half_size, 0.0);
+        const auto local2_a = r_obj.Transform(-crosshair_half_size, 0.0, 0.0);
+        const auto local2_b = r_obj.Transform(crosshair_half_size, 0.0, 0.0);
 
         const std::vector<Vertex> line1 = {Vertex{.x = static_cast<float>(ip_obj.x + local1_a[0]),
                                                   .y = static_cast<float>(ip_obj.y + local1_a[1]),
@@ -623,10 +629,10 @@ void Tessellator::TessellateRoadSignals(const ast::AbstractSyntaxTree& map, cons
         sig_tess.outlines.push_back(transform_and_close(local_corners));
       } else {
         const double radius{sig_width > 0.0 ? sig_width * 0.5 : 0.25};
-        constexpr std::size_t kSegments{12};
-        std::array<std::array<double, 3>, kSegments> local_circle{};
-        for (std::size_t i = 0; i < kSegments; ++i) {
-          const double theta{2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(kSegments)};
+        constexpr auto segments = 12UL;
+        auto local_circle = std::array<std::array<double, 3>, segments>{};
+        for (std::size_t i = 0; i < segments; ++i) {
+          const auto theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(segments);
           local_circle[i] = {0.0, radius * std::cos(theta), radius * std::sin(theta)};
         }
         sig_tess.outlines.push_back(transform_and_close(local_circle));

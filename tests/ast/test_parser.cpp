@@ -1713,7 +1713,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
   // 1. Verify object "0" (building)
   {
-    auto* obj = find_obj("0");
+    const auto* obj = find_obj("0");
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->type, strada::ast::ObjectType::kBuilding);
     EXPECT_EQ(obj->subtype, "building");
@@ -1732,7 +1732,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
   // 2. Verify object "2" (surface and CRG)
   {
-    auto* obj = find_obj("2");
+    const auto* obj = find_obj("2");
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->type, strada::ast::ObjectType::kRoadSurface);
     EXPECT_EQ(obj->subtype, "patch");
@@ -1745,7 +1745,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
   // 3. Verify object "5" (outline corners local & material & validity)
   {
-    auto* obj = find_obj("5");
+    const auto* obj = find_obj("5");
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->type, strada::ast::ObjectType::kRoadMark);
     EXPECT_EQ(obj->subtype, "arrowStraight");
@@ -1777,7 +1777,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
   // 4. Verify object "4000001" (skeleton vertex road)
   {
-    auto* obj = find_obj("4000001");
+    const auto* obj = find_obj("4000001");
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->type, strada::ast::ObjectType::kGantry);
     ASSERT_TRUE(obj->skeleton.has_value());
@@ -1799,7 +1799,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
   // 5. Verify object "8" (corners road and border)
   {
-    auto* obj = find_obj("8");
+    const auto* obj = find_obj("8");
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->type, strada::ast::ObjectType::kTrafficIsland);
     ASSERT_EQ(obj->outlines.size(), 1);
@@ -1824,7 +1824,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
   // 6. Verify object "9" (parking space and markings cornerReference)
   {
-    auto* obj = find_obj("9");
+    const auto* obj = find_obj("9");
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->type, strada::ast::ObjectType::kParkingSpace);
     ASSERT_TRUE(obj->parking_space.has_value());
@@ -1846,7 +1846,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
   // 7. Verify object "4000203" (repeats)
   {
-    auto* obj = find_obj("4000203");
+    const auto* obj = find_obj("4000203");
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->type, strada::ast::ObjectType::kBarrier);
     ASSERT_EQ(obj->repeats.size(), 12);
@@ -1866,7 +1866,7 @@ TEST(ParserTest, ParseObjectsFromFixture) {
 
   // 8. Verify object "6" (skeleton vertexLocal)
   {
-    auto* obj = find_obj("6");
+    const auto* obj = find_obj("6");
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->type, strada::ast::ObjectType::kTree);
     ASSERT_TRUE(obj->skeleton.has_value());
