@@ -189,6 +189,80 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
   }
 }
 
+auto Graph::FindRoute(std::string_view start_road_id, std::string_view end_road_id) const -> std::optional<Route> {
+  const auto start_it = road_id_to_idx_.find(start_road_id);
+  const auto end_it = road_id_to_idx_.find(end_road_id);
+  if (start_it == road_id_to_idx_.end() || end_it == road_id_to_idx_.end()) {
+    return std::nullopt;
+  }
+
+  const auto start_idx = start_it->second;
+  const auto end_idx = end_it->second;
+
+  const auto num_states = nodes_.size();
+  auto dist = std::vector<double>(num_states, std::numeric_limits<double>::infinity());
+  auto parent = std::vector<std::uint32_t>(num_states, std::numeric_limits<std::uint32_t>::max());
+
+  using StatePair = std::pair<double, std::uint32_t>;
+  auto pq = std::priority_queue<StatePair, std::vector<StatePair>, std::greater<StatePair>>{};
+
+  auto initialized = false;
+  for (auto offset = 0U; offset < 2U; ++offset) {
+    const auto state_idx = 2 * start_idx + offset;
+    if (nodes_[state_idx].is_drivable) {
+      const auto cost = nodes_[state_idx].length;
+      dist[state_idx] = cost;
+      pq.push({cost, state_idx});
+      initialized = true;
+    }
+  }
+
+  if (!initialized) {
+    return std::nullopt;
+  }
+
+  while (!pq.empty()) {
+    const auto [distance, state_idx] = pq.top();
+    pq.pop();
+
+    if (distance > dist[state_idx]) {
+      continue;
+    }
+
+    if (state_idx / 2 == end_idx) {
+      auto path_indices = std::vector<std::uint32_t>{};
+      auto curr = state_idx;
+      while (curr != std::numeric_limits<std::uint32_t>::max()) {
+        path_indices.push_back(curr);
+        curr = parent[curr];
+      }
+      std::reverse(path_indices.begin(), path_indices.end());
+
+      auto route = Route{};
+      route.segments.reserve(path_indices.size());
+      for (const auto idx : path_indices) {
+        auto seg = RouteSegment{};
+        seg.road_id = nodes_[idx].road_id;
+        seg.forward = (idx % 2 == 0);
+        seg.length = nodes_[idx].length;
+        route.segments.push_back(std::move(seg));
+      }
+      return route;
+    }
+
+    for (const auto successor_idx : nodes_[state_idx].successors) {
+      const auto weight = nodes_[successor_idx].length;
+      if (dist[state_idx] + weight < dist[successor_idx]) {
+        dist[successor_idx] = dist[state_idx] + weight;
+        parent[successor_idx] = state_idx;
+        pq.push({dist[successor_idx], successor_idx});
+      }
+    }
+  }
+
+  return std::nullopt;
+}
+
 auto Graph::FindPath(std::string_view start_road_id, std::string_view end_road_id) const
     -> std::optional<std::vector<std::string>> {
   return FindPath(start_road_id, end_road_id, [this](std::string_view road_id) { return GetRoadLength(road_id); });
@@ -308,6 +382,27 @@ auto Graph::FindPathImpl(std::string_view start_road_id, std::string_view end_ro
     }
   }
 
+  return std::nullopt;
+}
+
+auto Route::ToRouteCoordinates(std::string_view road_id, double s_local, double t_local) const noexcept
+    -> std::optional<std::pair<double, double>> {
+  auto start_s = 0.0;
+  for (const auto& seg : segments) {
+    if (seg.road_id == road_id) {
+      auto s_route = 0.0;
+      auto t_route = 0.0;
+      if (seg.forward) {
+        s_route = start_s + s_local;
+        t_route = t_local;
+      } else {
+        s_route = start_s + (seg.length - s_local);
+        t_route = -t_local;
+      }
+      return std::make_pair(s_route, t_route);
+    }
+    start_s += seg.length;
+  }
   return std::nullopt;
 }
 

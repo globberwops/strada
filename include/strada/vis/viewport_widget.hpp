@@ -10,6 +10,8 @@
 #include <optional>
 #include <strada/ast/abstract_syntax_tree.hpp>
 #include <strada/cpm/compiled_physics_model.hpp>
+#include <strada/routing/graph.hpp>
+#include <strada/routing/route_builder.hpp>
 #include <strada/vis/camera.hpp>
 #include <strada/vis/geometry_batcher.hpp>
 #include <string>
@@ -27,6 +29,36 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
                    cpm::CompiledPhysicsModel model);
   static auto FindActiveRoadType(const ast::Road& road, double s) -> ast::RoadType;
 
+  /// Returns whether Route Creation Mode is active.
+  ///
+  /// \return True if Route Creation Mode is active, false otherwise.
+  auto IsRouteCreationMode() const -> bool;
+
+  /// Returns the sequence of waypoint road IDs.
+  ///
+  /// \return A reference to the list of waypoint road IDs.
+  auto Waypoints() const -> const std::vector<std::string>&;
+
+  /// Returns the snapped waypoint coordinate positions in inertial/world space.
+  ///
+  /// \return A reference to the list of waypoint world coordinate points.
+  auto WaypointCoords() const -> const std::vector<QPointF>&;
+
+  /// Returns the active routing path if one was successfully computed.
+  ///
+  /// \return An optional containing the Route if computed, or std::nullopt.
+  auto ActiveRoute() const -> std::optional<std::reference_wrapper<const routing::Route>>;
+
+  /// Returns a reference to the visualization camera.
+  ///
+  /// \return The visualizer's camera reference.
+  auto GetCamera() const -> const Camera&;
+
+  /// Returns the last route planning/pathfinding error message.
+  ///
+  /// \return A string describing the pathfinding error, or empty if no error.
+  auto RouteError() const -> std::string;
+
  protected:
   void initializeGL() override;
   void resizeGL(int w, int h) override;
@@ -34,6 +66,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
   void mousePressEvent(QMouseEvent* event) override;
   void mouseMoveEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
   auto event(QEvent* event) -> bool override;
@@ -78,6 +111,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   cpm::CompiledPhysicsModel cpm_model_;
   bool has_model_{false};
   mutable cpm::QueryContext query_ctx_;
+  QPoint mouse_press_pos_;
 
   // Hover tracking details
   std::optional<cpm::LanePose> hovered_pose_;
@@ -85,6 +119,16 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   int hovered_lane_original_id_{0};
   double hovered_x_{0.0};
   double hovered_y_{0.0};
+
+  // Route Planning State
+  bool route_creation_mode_{false};
+  std::vector<QPointF> waypoint_world_coords_;
+  std::optional<routing::Graph> routing_graph_;
+  std::optional<routing::RouteBuilder> route_builder_;
+
+  auto IsDrivableLane(cpm::RoadId road_id, cpm::LaneId lane_id) const -> bool;
+  void DrawWaypoints(QPainter& painter);
+  void DrawRoutePlannerHUD(QPainter& painter);
 
   void SetupTriangles();
   void SetupLines();

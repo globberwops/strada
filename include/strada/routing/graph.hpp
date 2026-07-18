@@ -16,12 +16,40 @@ concept CostFunction = requires(F&& f, std::string_view road_id) {
   { f(road_id) } -> std::convertible_to<double>;
 };
 
+/// Represents a single segment along a Route.
+struct RouteSegment {
+  std::string road_id;
+  bool forward{true};
+  double length{0.0};
+};
+
+/// Represents a planned route consisting of multiple segments.
+struct Route {
+  std::vector<RouteSegment> segments;
+
+  /// Translates road-local coordinates to route-local coordinates.
+  ///
+  /// \param road_id The original string ID of the road.
+  /// \param s_local The longitudinal coordinate along the road.
+  /// \param t_local The lateral offset from the road reference line.
+  /// \return A pair of (s_route, t_route) if the road is part of the route, or std::nullopt otherwise.
+  [[nodiscard]] auto ToRouteCoordinates(std::string_view road_id, double s_local, double t_local) const noexcept
+      -> std::optional<std::pair<double, double>>;
+};
+
 /// Represents the road-level topological graph of the OpenDRIVE map.
 class Graph {
  public:
   /// Constructs the routing graph from the parsed Abstract Syntax Tree.
   /// Does not store any reference to the AST inside.
   explicit Graph(const ast::AbstractSyntaxTree& ast);
+
+  /// Finds the shortest route between start_road_id and end_road_id resolving segment directions.
+  ///
+  /// \param start_road_id The ID of the starting road.
+  /// \param end_road_id The ID of the destination road.
+  /// \return The calculated Route, or std::nullopt if no drivable path exists.
+  auto FindRoute(std::string_view start_road_id, std::string_view end_road_id) const -> std::optional<Route>;
 
   /// Finds the shortest path between start_road_id and end_road_id using the road lengths as weights.
   auto FindPath(std::string_view start_road_id, std::string_view end_road_id) const
