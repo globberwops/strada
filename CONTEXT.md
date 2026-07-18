@@ -90,9 +90,8 @@ When writing code, documentation, or issues for Strada, always adhere to the fol
 * **Waypoint**: A designated road segment along a route that must be visited in a specific sequence. In the visualizer app, a waypoint is selected by clicking on a lane.
 * **Route Segment**: A component of a Route representing travel along a single road in a specific direction (Forward or Backward), mapping a range of the continuous route coordinate $s_{route}$ to the road's local $s$ coordinate.
 * **Tessellator**: A geometry generator that samples mathematical curves to construct 3D polylines and meshes (vertex/index buffers) for visualization.
-* **Layer**: A downstream representation of the OpenDRIVE map (CPM, Routing Graph, Tessellator, …) built from the AST through a `Build*` factory. Each layer is independent and self-sufficient; it does **not** hold pointers or references into the AST.
-* **Build Factory**: A uniform `Build*` free function that constructs a layer from its upstream input. Each factory takes the upstream artifact by `const` reference and returns the new layer by value, fully owning its data. You can compose the `Build*` factories individually.
-* **Strada Facade**: You use the unified `strada::Strada` class as a single entry point to orchestrate parser, Compiled Physics Model (CPM), Routing Graph, and Tessellator construction. The underlying factories remain the source of truth; the facade acts as a convenience wrapper without custom policy.
+* **Layer**: An independent downstream representation of the OpenDRIVE map (CPM, Routing Graph, Tessellator). You construct each layer directly via its class constructor, passing dependency layers as parameters. Each layer owns its data and does not retain pointers or references into the upstream AST.
+* **Strada Facade**: You use the unified `strada::Strada` class as a single entry point to orchestrate parser, Compiled Physics Model (CPM), Routing Graph, and Tessellator construction. The underlying components remain the source of truth; the facade acts as a convenience wrapper without custom policy.
 
 ---
 
