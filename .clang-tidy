@@ -30,6 +30,8 @@ CheckOptions:
   readability-identifier-naming.ConceptCase: CamelCase
   readability-identifier-naming.ConstantCase: CamelCase
   readability-identifier-naming.ConstantPrefix: k
+  readability-identifier-naming.ConstantParameterCase: lower_case
+  readability-identifier-naming.ConstantParameterPrefix: ""
   readability-identifier-naming.EnumConstantCase: CamelCase
   readability-identifier-naming.EnumConstantPrefix: k
   readability-identifier-naming.FunctionCase: CamelCase
