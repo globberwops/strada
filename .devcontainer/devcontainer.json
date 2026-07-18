@@ -52,8 +52,7 @@
   },
   "mounts": [
     "source=${localEnv:HOME}/.agents,target=/home/ubuntu/.agents,type=bind",
-    "source=${localEnv:HOME}/.gemini,target=/home/ubuntu/.gemini,type=bind",
-    "source=${localEnv:HOME}/.pi,target=/home/ubuntu/.pi,type=bind",
+    "source=${localEnv:HOME}/.omp,target=/home/ubuntu/.omp,type=bind",
     "source=${localEnv:XDG_RUNTIME_DIR},target=${localEnv:XDG_RUNTIME_DIR},type=bind,readonly"
   ],
   "runArgs": [
