@@ -4,6 +4,7 @@ add_library(Strada::strada ALIAS strada)
 target_sources(
   strada
   PRIVATE parser/parser.cpp
+          strada.cpp
           cpm/compiled_physics_model.cpp
           cpm/road_projector.cpp
           cpm/geometry_math.cpp
@@ -21,6 +22,7 @@ target_sources(
          BASE_DIRS
          ${PROJECT_SOURCE_DIR}/include
          FILES
+         ${PROJECT_SOURCE_DIR}/include/strada/strada.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/parser/parser.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/geometry.hpp
          ${PROJECT_SOURCE_DIR}/include/strada/ast/header.hpp
