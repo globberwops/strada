@@ -446,6 +446,7 @@ auto ParseJunction(pugi::xml_node junction_node) -> ast::Junction {
     conn.id = conn_node.attribute("id").as_string("");
     conn.incoming_road = conn_node.attribute("incomingRoad").as_string("");
     conn.connecting_road = conn_node.attribute("connectingRoad").as_string("");
+    conn.linked_road = conn_node.attribute("linkedRoad").as_string("");
     const std::string_view cp_str = conn_node.attribute("contactPoint").as_string("start");
     if (const auto cp_opt = FromString<ast::ContactPoint>(cp_str)) {
       conn.contact_point = *cp_opt;

@@ -25,6 +25,7 @@ struct Connection {
   std::string id;                                    ///< Unique ID of the connection.
   std::string incoming_road;                         ///< ID of the road leading into the junction.
   std::string connecting_road;                       ///< ID of the road acting as a path inside the junction.
+  std::string linked_road;                           ///< ID of the directly linked road (for direct junctions).
   ContactPoint contact_point{ContactPoint::kStart};  ///< Contact direction of the connecting road.
   std::vector<LaneLink> lane_links;                  ///< Direct lane connectivity maps.
 };

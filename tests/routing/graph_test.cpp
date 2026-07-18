@@ -656,14 +656,29 @@ TEST(RoutingGraphTest, MotorwayExitEntryConnection9to16) {
   auto ast = strada::parser::ParseFile(path);
   Graph graph(ast);
 
-  auto path_9_32 = graph.FindPath("9", "32");
-  EXPECT_TRUE(path_9_32.has_value());
+  auto route = graph.FindRoute("9", "16");
+  ASSERT_TRUE(route.has_value());
+  for (const auto& seg : route->segments) {
+    std::cout << "[ROUTE_SEGMENT] " << seg.road_id << " (" << (seg.forward ? "forward" : "backward") << ")\n";
+  }
+}
 
-  auto path_32_16 = graph.FindPath("32", "16");
-  EXPECT_TRUE(path_32_16.has_value());
+TEST(RoutingGraphTest, MotorwayExitEntryDirectJunctionConnection9to16) {
+  const auto path = std::filesystem::path(
+      "/workspaces/strada/.scratch/use_cases/UC_Motorway-Exit-Entry/UC_Motorway-Exit-Entry-DirectJunction.xodr");
+  auto ast = strada::parser::ParseFile(path);
+  Graph graph(ast);
 
   auto route = graph.FindRoute("9", "16");
-  EXPECT_TRUE(route.has_value());
+  ASSERT_TRUE(route.has_value());
+  // Expecting path: 9 (backward) -> 32 (forward) -> 16 (forward)
+  ASSERT_EQ(route->segments.size(), 3);
+  EXPECT_EQ(route->segments[0].road_id, "9");
+  EXPECT_FALSE(route->segments[0].forward);
+  EXPECT_EQ(route->segments[1].road_id, "32");
+  EXPECT_TRUE(route->segments[1].forward);
+  EXPECT_EQ(route->segments[2].road_id, "16");
+  EXPECT_TRUE(route->segments[2].forward);
 }
 
 }  // namespace strada::routing::test

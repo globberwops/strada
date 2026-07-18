@@ -132,7 +132,8 @@ Graph::Graph(const ast::AbstractSyntaxTree& ast) {
   for (const auto& junction : ast.junctions) {
     for (const auto& conn : junction.connections) {
       auto a_it = road_id_to_idx_.find(conn.incoming_road);
-      auto c_it = road_id_to_idx_.find(conn.connecting_road);
+      const auto target_road_id = conn.connecting_road.empty() ? conn.linked_road : conn.connecting_road;
+      auto c_it = road_id_to_idx_.find(target_road_id);
       if (a_it == road_id_to_idx_.end() || c_it == road_id_to_idx_.end()) {
         continue;
       }
