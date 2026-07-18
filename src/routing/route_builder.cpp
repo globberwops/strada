@@ -6,15 +6,19 @@
 #include <strada/routing/graph.hpp>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 namespace strada::routing {
 
-RouteBuilder::RouteBuilder(const Graph& graph) : graph_(graph) {}
+RouteBuilder::RouteBuilder(const Graph* graph) : graph_(graph) {}
 
 auto RouteBuilder::AppendWaypoint(std::string_view road_id) -> bool {
-  waypoint_road_ids_.push_back(std::string(road_id));
+  if (graph_ == nullptr) {
+    route_error_ = "Graph is not initialized.";
+    return false;
+  }
+
+  waypoint_road_ids_.emplace_back(road_id);
 
   if (waypoint_road_ids_.size() < 2) {
     active_route_ = std::nullopt;
@@ -26,12 +30,12 @@ auto RouteBuilder::AppendWaypoint(std::string_view road_id) -> bool {
 
   const auto& from = waypoint_road_ids_[waypoint_road_ids_.size() - 2];
   const auto& to = waypoint_road_ids_.back();
-  const auto sub_path_opt = graph_.FindRoute(from, to);
+  const auto sub_path_opt = graph_->FindRoute(from, to);
 
   if (!sub_path_opt.has_value()) {
     route_error_ = "No path found between road " + from + " and " + to;
     active_route_ = std::nullopt;
-    sub_routes_.push_back(Route{});
+    sub_routes_.emplace_back();
     route_history_.push_back(active_route_);
     error_history_.push_back(route_error_);
     return false;

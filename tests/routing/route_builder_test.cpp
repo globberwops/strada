@@ -31,7 +31,7 @@ TEST(RouteBuilderTest, EmptyState) {
 
   const auto ast = strada::parser::ParseString(xml);
   const auto graph = Graph{ast};
-  auto builder = RouteBuilder{graph};
+  auto builder = RouteBuilder{&graph};
 
   EXPECT_TRUE(builder.Waypoints().empty());
   EXPECT_FALSE(builder.ActiveRoute().has_value());
@@ -59,7 +59,7 @@ TEST(RouteBuilderTest, AppendSingleWaypoint) {
 
   const auto ast = strada::parser::ParseString(xml);
   const auto graph = Graph{ast};
-  auto builder = RouteBuilder{graph};
+  auto builder = RouteBuilder{&graph};
 
   EXPECT_TRUE(builder.AppendWaypoint("1"));
   ASSERT_EQ(builder.Waypoints().size(), 1);
@@ -106,7 +106,7 @@ TEST(RouteBuilderTest, AppendValidRoute) {
 
   const auto ast = strada::parser::ParseString(xml);
   const auto graph = Graph{ast};
-  auto builder = RouteBuilder{graph};
+  auto builder = RouteBuilder{&graph};
 
   EXPECT_TRUE(builder.AppendWaypoint("1"));
   EXPECT_TRUE(builder.AppendWaypoint("2"));
@@ -156,7 +156,7 @@ TEST(RouteBuilderTest, AppendInvalidRoute) {
 
   const auto ast = strada::parser::ParseString(xml);
   const auto graph = Graph{ast};
-  auto builder = RouteBuilder{graph};
+  auto builder = RouteBuilder{&graph};
 
   EXPECT_TRUE(builder.AppendWaypoint("1"));
   EXPECT_FALSE(builder.AppendWaypoint("2"));
@@ -204,7 +204,7 @@ TEST(RouteBuilderTest, UndoAndClear) {
 
   const auto ast = strada::parser::ParseString(xml);
   const auto graph = Graph{ast};
-  auto builder = RouteBuilder{graph};
+  auto builder = RouteBuilder{&graph};
 
   // Add 1, 2
   builder.AppendWaypoint("1");

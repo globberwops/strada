@@ -12,7 +12,9 @@
 #include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
+#include <optional>
 #include <strada/parser/conversions.hpp>
 #include <strada/vis/colors.hpp>
 #include <strada/vis/viewport_widget.hpp>
@@ -109,7 +111,7 @@ void ViewportWidget::SetGeometry(const BatchedGeometry& geometry, const ast::Abs
   }
 
   routing_graph_.emplace(map_);
-  route_builder_.emplace(*routing_graph_);
+  route_builder_.emplace(&routing_graph_.value());
   waypoint_world_coords_.clear();
 
   update();
@@ -127,12 +129,11 @@ auto ViewportWidget::Waypoints() const -> const std::vector<std::string>& {
 
 auto ViewportWidget::WaypointCoords() const -> const std::vector<QPointF>& { return waypoint_world_coords_; }
 
-auto ViewportWidget::ActiveRoute() const -> const std::optional<routing::Route>& {
+auto ViewportWidget::ActiveRoute() const -> std::optional<std::reference_wrapper<const routing::Route>> {
   if (route_builder_.has_value()) {
     return route_builder_->ActiveRoute();
   }
-  static const auto empty = std::optional<routing::Route>{};
-  return empty;
+  return std::nullopt;
 }
 
 auto ViewportWidget::GetCamera() const -> const Camera& { return camera_; }

@@ -22,16 +22,7 @@ class RouteBuilder {
   /// Constructs a RouteBuilder associated with the given Graph.
   ///
   /// \param graph The Graph topology to query for path planning.
-  explicit RouteBuilder(const Graph& graph);
-  ~RouteBuilder() = default;
-
-  // Disable copying.
-  RouteBuilder(const RouteBuilder&) = delete;
-  RouteBuilder& operator=(const RouteBuilder&) = delete;
-
-  // Enable moving.
-  RouteBuilder(RouteBuilder&&) noexcept = default;
-  RouteBuilder& operator=(RouteBuilder&&) noexcept = default;
+  explicit RouteBuilder(const Graph* graph);
 
   /// Appends a new waypoint to the sequence and plans the path from the last waypoint.
   ///
@@ -49,20 +40,20 @@ class RouteBuilder {
   /// Returns the current list of waypoint road IDs.
   ///
   /// \return A reference to the sequence of waypoints.
-  auto Waypoints() const -> const std::vector<std::string>&;
+  [[nodiscard]] auto Waypoints() const -> const std::vector<std::string>&;
 
   /// Returns the active computed Route.
   ///
   /// \return The active Route, or std::nullopt if the route is uncompleted or failed.
-  auto ActiveRoute() const -> const std::optional<Route>&;
+  [[nodiscard]] auto ActiveRoute() const -> const std::optional<Route>&;
 
   /// Returns the details of the last pathfinding error.
   ///
   /// \return The error string, or empty if there is no active error.
-  auto RouteError() const -> std::string_view;
+  [[nodiscard]] auto RouteError() const -> std::string_view;
 
  private:
-  const Graph& graph_;
+  const Graph* graph_;
   std::vector<std::string> waypoint_road_ids_;
   std::vector<Route> sub_routes_;
   std::optional<Route> active_route_;

@@ -47,7 +47,7 @@ class ViewportWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
   /// Returns the active routing path if one was successfully computed.
   ///
   /// \return An optional containing the Route if computed, or std::nullopt.
-  auto ActiveRoute() const -> const std::optional<routing::Route>&;
+  auto ActiveRoute() const -> std::optional<std::reference_wrapper<const routing::Route>>;
 
   /// Returns a reference to the visualization camera.
   ///
