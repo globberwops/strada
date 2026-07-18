@@ -32,15 +32,15 @@ TEST(VisTest, LaneColorDistinctiveness) {
 TEST(VisTest, LaneColorMapping) {
   // Test driving + (original_lane_id < 0)
   auto driving_pos = GetLaneColor(ast::LaneType::kDriving, -1);
-  EXPECT_NEAR(driving_pos.r, 239.0F / 255.0F, 1e-4F);
-  EXPECT_NEAR(driving_pos.g, 215.0F / 255.0F, 1e-4F);
-  EXPECT_NEAR(driving_pos.b, 171.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_pos.r, 235.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_pos.g, 188.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_pos.b, 186.0F / 255.0F, 1e-4F);
 
   // Test driving - (original_lane_id > 0)
   auto driving_neg = GetLaneColor(ast::LaneType::kDriving, 1);
-  EXPECT_NEAR(driving_neg.r, 205.0F / 255.0F, 1e-4F);
-  EXPECT_NEAR(driving_neg.g, 216.0F / 255.0F, 1e-4F);
-  EXPECT_NEAR(driving_neg.b, 232.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_neg.r, 156.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_neg.g, 207.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(driving_neg.b, 216.0F / 255.0F, 1e-4F);
 
   // Test unspec-defined lane types mapping to driving
   auto hov_color = GetLaneColor(ast::LaneType::kHov, -1);
@@ -48,15 +48,15 @@ TEST(VisTest, LaneColorMapping) {
 
   // Test biking mapping
   auto biking_color = GetLaneColor(ast::LaneType::kBiking, 0);
-  EXPECT_NEAR(biking_color.r, 207.0F / 255.0F, 1e-4F);
-  EXPECT_NEAR(biking_color.g, 16.0F / 255.0F, 1e-4F);
-  EXPECT_NEAR(biking_color.b, 45.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(biking_color.r, 235.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(biking_color.g, 111.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(biking_color.b, 146.0F / 255.0F, 1e-4F);
 
   // Test none mapping
   auto none_color = GetLaneColor(ast::LaneType::kNone, 0);
-  EXPECT_NEAR(none_color.r, 147.0F / 255.0F, 1e-4F);
-  EXPECT_NEAR(none_color.g, 149.0F / 255.0F, 1e-4F);
-  EXPECT_NEAR(none_color.b, 152.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(none_color.r, 25.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(none_color.g, 23.0F / 255.0F, 1e-4F);
+  EXPECT_NEAR(none_color.b, 36.0F / 255.0F, 1e-4F);
 }
 
 TEST(VisTest, BatchMapGeometryTriangulation) {
@@ -192,10 +192,10 @@ TEST(VisTest, BatchMapGeometryLines) {
       EXPECT_NEAR(v_start.x, poly.vertices[i].x, 1e-4F);
       EXPECT_NEAR(v_end.x, poly.vertices[i + 1].x, 1e-4F);
 
-      // Red color
-      EXPECT_NEAR(v_start.r, 1.0F, 1e-4F);
-      EXPECT_NEAR(v_start.g, 0.0F, 1e-4F);
-      EXPECT_NEAR(v_start.b, 0.0F, 1e-4F);
+      // Rosé Pine Love color
+      EXPECT_NEAR(v_start.r, 235.0F / 255.0F, 1e-4F);
+      EXPECT_NEAR(v_start.g, 111.0F / 255.0F, 1e-4F);
+      EXPECT_NEAR(v_start.b, 146.0F / 255.0F, 1e-4F);
     }
   }
 }
@@ -269,11 +269,11 @@ TEST(VisTest, BatchMapGeometryJunctionBoundaries) {
   EXPECT_FALSE(batched.boundary_triangle_vertices.empty());
   EXPECT_FALSE(batched.boundary_triangle_indices.empty());
 
-  // Check color matches amber (245, 197, 61)
+  // Check color matches Rosé Pine Gold
   for (const auto& v : batched.boundary_triangle_vertices) {
-    EXPECT_NEAR(v.r, 245.0F / 255.0F, 1e-4F);
-    EXPECT_NEAR(v.g, 197.0F / 255.0F, 1e-4F);
-    EXPECT_NEAR(v.b, 61.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.r, 246.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.g, 193.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.b, 119.0F / 255.0F, 1e-4F);
   }
 }
 
@@ -372,11 +372,11 @@ TEST(VisTest, BatchMapGeometryObjects) {
   // Total expected vertices = 8 + 2 + 8 + 4 = 22 vertices.
   EXPECT_EQ(batched.object_line_vertices.size(), 22);
 
-  // Verify colors are neon amber/orange: rgb(255, 145, 0)
+  // Verify colors are Rosé Pine Rose
   for (const auto& v : batched.object_line_vertices) {
-    EXPECT_NEAR(v.r, 1.0F, 1e-4F);
-    EXPECT_NEAR(v.g, 145.0F / 255.0F, 1e-4F);
-    EXPECT_NEAR(v.b, 0.0F, 1e-4F);
+    EXPECT_NEAR(v.r, 235.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.g, 188.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.b, 186.0F / 255.0F, 1e-4F);
   }
 }
 
@@ -473,11 +473,11 @@ TEST(VisTest, BatchMapGeometrySignals) {
   // Total expected vertices = 10 (for signal) + 26 (for signal reference) = 36 vertices.
   ASSERT_EQ(batched.signal_line_vertices.size(), 36);
 
-  // Color: Electric Cyan/Teal (rgb(0, 229, 255))
+  // Color: Rosé Pine Foam
   for (const auto& v : batched.signal_line_vertices) {
-    EXPECT_NEAR(v.r, 0.0F, 1e-4F);
-    EXPECT_NEAR(v.g, 229.0F / 255.0F, 1e-4F);
-    EXPECT_NEAR(v.b, 1.0F, 1e-4F);
+    EXPECT_NEAR(v.r, 156.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.g, 207.0F / 255.0F, 1e-4F);
+    EXPECT_NEAR(v.b, 216.0F / 255.0F, 1e-4F);
   }
 
   // Verify pole bottom and top for signal 1: starts at index 0
