@@ -25,11 +25,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     graphviz \
     iwyu \
     lcov \
+    libclang-21-dev \
     libgmock-dev \
     libgtest-dev \
     libpugixml-dev \
     libxml2-utils \
     lldb \
+    llvm-21-dev \
     ninja-build \
     nodejs \
     npm \
