@@ -1,4 +1,5 @@
 .cache/
+.codegraph/
 .devcontainer/devcontainer-lock.json
 .scratch
 build/

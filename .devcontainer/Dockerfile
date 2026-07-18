@@ -75,11 +75,14 @@ RUN mkdir -p ${HOME}/.local/bin \
 # Ensure user-local binaries (including agy and our fd symlink) are explicitly on the PATH
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
-# Install the native Herdr installation directly into the user space
+# Install Herdr
 RUN curl -fsSL https://herdr.dev/install.sh | sh
 
-# Run the native Google Antigravity installation directly into the user space
+# Install Google Antigravity
 RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
 
-# Run the native Pi installation directly into the user space
+# Install Pi Agent
 RUN curl -fsSL https://pi.dev/install.sh | sh
+
+# Install Codegraph
+RUN curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh
