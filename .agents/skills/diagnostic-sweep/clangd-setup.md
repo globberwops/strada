@@ -11,4 +11,4 @@ Only reach here if `lsp diagnostics` errors in step 1.
 
 ## Verify
 
-`clangd --check-updates --background-index` in the project root should not error. Then `lsp diagnostics <file>` should return findings (possibly empty) without an error frame.
+`{"action":"status"}` via `xd://lsp` should show a running server. Then `{"action":"diagnostics","file":"<any .cpp>"}` should return findings (possibly empty) without an error frame.

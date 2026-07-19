@@ -1,6 +1,6 @@
 ---
 name: diagnostic-sweep
-description: Sweep the codebase file-by-file: clean clangd warnings/errors, fresh subagent per row, commit per file.
+description: Sweep the codebase file-by-file: clean clangd warnings/errors, commit per file.
 disable-model-invocation: true
 ---
 
@@ -8,11 +8,10 @@ disable-model-invocation: true
 
 Make every file _clean_ — zero clangd findings, build green, tests green, committed. The list IS the state: every row ends ✅ or ⚠️, no row falls through.
 
-**Channel: clangd via `xd://lsp` exclusively.** `clang-tidy` is too slow per file. There is no fallback — if `xd://lsp` errors and the reload/retry path doesn't recover, the sweep stops.
+**Channel: clangd via `xd://lsp` exclusively.** `clang-tidy` is too slow per file. If `xd://lsp` is _wedged_ — two consecutive errors on the same file after a reload — the sweep stops.
 
 - Schema, response shape, ordering rules, failure modes → [lsp-tool.md](lsp-tool.md)
 - Setup troubleshooting → [clangd-setup.md](clangd-setup.md)
-- Per-row subagent task template → [subagent-prompt.md](subagent-prompt.md)
 
 ## 1. Bootstrap
 
@@ -32,13 +31,24 @@ Once, before the loop.
 
 **Done when:** `diagnostic-sweep.md` lists every source/header marked ⬜, and `xd://lsp diagnostics` returns real results on a sample file.
 
-## 2. Loop
+## 2. Process each row in this session
 
-Sequential — one fresh subagent per row, wait, then the next.
+Work rows sequentially in this session. Finish row N entirely — diagnose, fix, re-verify, build, test, commit, mark — before starting row N+1.
 
-Spawn a fresh subagent (no shared context) using the template at [subagent-prompt.md](subagent-prompt.md), parameterized with the row's `#` and `file`. The subagent reads [lsp-tool.md](lsp-tool.md) for the LSP schema and recovery path.
+1. `{"action":"diagnostics","file":"<file>"}` via `xd://lsp`. Read each finding.
+2. For each diagnostic:
+   - Read the cited code.
+   - Fix it. The goal is a _clean_ file — style nits included.
+   - Prefer `code_actions` and `rename` over hand-editing — see ordering rules in [lsp-tool.md](lsp-tool.md).
+   - HITL only when the fix is genuinely ambiguous, breaks a public API, or needs a design call. When in doubt, FIX it.
+3. Re-run `{"action":"diagnostics","file":"<file>"}`. Repeat until zero findings.
+4. `cmake --build --preset dev-debug && ctest --preset dev-debug` (configure first if no build dir: `cmake --preset dev-debug`). All must pass.
+5. `git add` the touched files and commit: `style(diagnostic-sweep): clean <file>`.
+6. Edit `diagnostic-sweep.md`: row N → ✅. If HITL, → ⚠️ with a one-line Note. If wedged, → ⚠️ and the sweep stops.
 
-When the subagent returns, verify the row's status and the commit. Pick the next ⬜ row. If the subagent reports `xd://lsp` errors that don't recover, the sweep stops — fix the setup and restart.
+After row N is ✅ or ⚠️, pick the next ⬜ row.
+
+**Done when:** row N is ✅ (or ⚠️ with note), the commit exists, build and tests passed — or row N is ⚠️ because the tool is wedged.
 
 ## 3. Done
 

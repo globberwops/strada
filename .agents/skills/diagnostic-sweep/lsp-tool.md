@@ -1,14 +1,6 @@
-# clangd via the `lsp` MCP tool
+# clangd via `xd://lsp`
 
-clangd is driven through the `lsp` MCP tool, which wraps the Language Server Protocol. Call it by writing a JSON args object to `xd://lsp` and reading the result.
-
-`xd://lsp` is the only channel during a sweep. There is no fallback to raw `clangd` over stdio; if the MCP tool errors and the recovery path below doesn't restore it, the sweep stops.
-
-## Channel policy
-
-- Use `xd://lsp` exclusively for diagnostics during a sweep.
-- `clang-tidy` is too slow per file; never invoke it.
-- Raw `clangd` over stdio is not a fallback. If `xd://lsp` is unavailable, the sweep is blocked.
+Reference for the `xd://lsp` tool surface, response format, ordering rules, and failure recovery.
 
 ## Tool surface
 
@@ -32,7 +24,7 @@ clangd is driven through the `lsp` MCP tool, which wraps the Language Server Pro
 
 ## Calling pattern
 
-Write the JSON args to `xd://lsp` via the `write` tool and read the response. The tool returns the LSP payload verbatim, plus a one-line error frame on failure.
+The tool returns the LSP payload verbatim, plus a one-line error frame on failure.
 
 **Diagnostics on a file:**
 ```
@@ -79,7 +71,7 @@ Do these in order, every row.
 
 ## Failure modes
 
-`xd://lsp` is the only channel. Each error has a recovery action; if recovery doesn't restore the tool, the sweep is blocked — fix the setup and restart.
+Each error has a recovery action; if recovery fails, the file is _wedged_ — mark ⚠️ and stop.
 
 - `ERROR: server not running` → `{"action":"status"}`. If empty, `{"action":"reload","file":"*"}` and retry. If still broken, the sweep stops.
 - `ERROR: no compile_commands.json` → `cmake --preset dev-debug` (presets already set `CMAKE_EXPORT_COMPILE_COMMANDS=ON`) and retry. If still broken, the sweep stops.
