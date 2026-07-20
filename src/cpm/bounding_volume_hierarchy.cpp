@@ -78,9 +78,9 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   for (std::uint32_t idx = start_idx; idx < end_idx; ++idx) {
     const std::uint32_t prim_idx = prim_indices[idx];
     bounds.Grow(temp_aabbs[prim_idx]);
-    const double cx = 0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x);
-    const double cy = 0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y);
-    centroid_bounds.Grow(cx, cy);
+    const double centroid_x = 0.5 * (temp_aabbs[prim_idx].min_x + temp_aabbs[prim_idx].max_x);
+    const double centroid_y = 0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y);
+    centroid_bounds.Grow(centroid_x, centroid_y);
   }
 
   const std::uint32_t count = end_idx - start_idx;
@@ -97,7 +97,8 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   double min_coord = (axis == 0) ? centroid_bounds.min_x : centroid_bounds.min_y;
   const double max_coord = (axis == 0) ? centroid_bounds.max_x : centroid_bounds.max_y;
 
-  if (max_coord - min_coord < 1e-9) {
+  constexpr double k_min_extent = 1e-9;
+  if (max_coord - min_coord < k_min_extent) {
     return MakeLeafNode(nodes, node_idx, bounds, final_primitives, prim_indices, temp_primitives, start_idx, count);
   }
 
@@ -115,8 +116,8 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
                                         : (0.5 * (temp_aabbs[prim_idx].min_y + temp_aabbs[prim_idx].max_y));
     const auto bin_idx =
         static_cast<std::size_t>(std::clamp(static_cast<int>((centroid - min_coord) * scale), 0, num_bins - 1));
-    bins[bin_idx].count++;
-    bins[bin_idx].bounds.Grow(temp_aabbs[prim_idx]);
+    bins.at(bin_idx).count++;
+    bins.at(bin_idx).bounds.Grow(temp_aabbs[prim_idx]);
   }
 
   double min_split_cost = std::numeric_limits<double>::max();
@@ -127,10 +128,10 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   BoundingVolumeHierarchyAabb left_accum;
   std::uint32_t left_cnt = 0;
   for (auto idx = std::size_t{0}; idx < static_cast<std::size_t>(num_bins - 1); ++idx) {
-    left_accum.Grow(bins[idx].bounds);
-    left_cnt += bins[idx].count;
-    left_bounds[idx] = left_accum;
-    left_counts[idx] = left_cnt;
+    left_accum.Grow(bins.at(idx).bounds);
+    left_cnt += bins.at(idx).count;
+    left_bounds.at(idx) = left_accum;
+    left_counts.at(idx) = left_cnt;
   }
 
   std::array<BoundingVolumeHierarchyAabb, num_bins - 1> right_bounds{};
@@ -138,10 +139,10 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   BoundingVolumeHierarchyAabb right_accum;
   std::uint32_t right_cnt = 0;
   for (auto idx = static_cast<std::size_t>(num_bins - 1); idx > 0; --idx) {
-    right_accum.Grow(bins[idx].bounds);
-    right_cnt += bins[idx].count;
-    right_bounds[idx - 1] = right_accum;
-    right_counts[idx - 1] = right_cnt;
+    right_accum.Grow(bins.at(idx).bounds);
+    right_cnt += bins.at(idx).count;
+    right_bounds.at(idx - 1) = right_accum;
+    right_counts.at(idx - 1) = right_cnt;
   }
 
   const double parent_area = bounds.Area();
@@ -149,12 +150,13 @@ auto BuildBoundingVolumeHierarchyRecursive(std::vector<BoundingVolumeHierarchy::
   constexpr double c_isect = 1.0;
 
   for (auto idx = std::size_t{0}; idx < static_cast<std::size_t>(num_bins - 1); ++idx) {
-    if (left_counts[idx] == 0 || right_counts[idx] == 0) {
+    if (left_counts.at(idx) == 0 || right_counts.at(idx) == 0) {
       continue;
     }
     const double cost =
         c_trav +
-        (c_isect * (left_bounds[idx].Area() * left_counts[idx] + right_bounds[idx].Area() * right_counts[idx]) /
+        (c_isect *
+         (left_bounds.at(idx).Area() * left_counts.at(idx) + right_bounds.at(idx).Area() * right_counts.at(idx)) /
          parent_area);
     if (cost < min_split_cost) {
       min_split_cost = cost;
