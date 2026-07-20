@@ -44,13 +44,15 @@ class Rotation {
     return r;
   }
 
-  [[nodiscard]] constexpr auto Transform(double x, double y, double z) const noexcept -> std::array<double, 3> {
+  using Vector3 = std::array<double, 3>;  // NOLINT(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
+
+  [[nodiscard]] constexpr auto Transform(double x, double y, double z) const noexcept -> Vector3 {
     return {(matrix_[0][0] * x) + (matrix_[0][1] * y) + (matrix_[0][2] * z),
             (matrix_[1][0] * x) + (matrix_[1][1] * y) + (matrix_[1][2] * z),
             (matrix_[2][0] * x) + (matrix_[2][1] * y) + (matrix_[2][2] * z)};
   }
 
-  [[nodiscard]] constexpr auto InverseTransform(double x, double y, double z) const noexcept -> std::array<double, 3> {
+  [[nodiscard]] constexpr auto InverseTransform(double x, double y, double z) const noexcept -> Vector3 {
     return {(matrix_[0][0] * x) + (matrix_[1][0] * y) + (matrix_[2][0] * z),
             (matrix_[0][1] * x) + (matrix_[1][1] * y) + (matrix_[2][1] * z),
             (matrix_[0][2] * x) + (matrix_[1][2] * y) + (matrix_[2][2] * z)};

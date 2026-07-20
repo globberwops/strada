@@ -87,9 +87,9 @@ auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
   const double absa = std::abs(a);
   const double z = k1SqrtPi * std::sqrt(absa);
   const double ell = s * b * k1SqrtPi / std::sqrt(absa);
-  const double g = -0.5 * s * (b * b) / absa;
-  const double cg = std::cos(g) / z;
-  const double sg = std::sin(g) / z;
+  const double gamma = -0.5 * s * (b * b) / absa;
+  const double cos_g = std::cos(gamma) / z;
+  const double sin_g = std::sin(gamma) / z;
 
   auto [cl, sl] = FresnelCS(ell);
   auto [cz, sz] = FresnelCS(ell + z);
@@ -97,8 +97,8 @@ auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
   const double dc0 = cz - cl;
   const double ds0 = sz - sl;
 
-  const double x_val = (cg * dc0) - (s * sg * ds0);
-  const double y_val = (sg * dc0) + (s * cg * ds0);
+  const double x_val = (cos_g * dc0) - (s * sin_g * ds0);
+  const double y_val = (sin_g * dc0) + (s * cos_g * ds0);
   return ClothoidResult{.x = x_val, .y = y_val};
 }
 
@@ -106,68 +106,92 @@ auto EvalXYaLarge(double a, double b) noexcept -> ClothoidResult {
 
 auto FresnelCS(double y) noexcept -> FresnelResult {
   const auto x = std::abs(y);
-  const auto x2 = x * x;
-  auto cc = 0.0;
-  auto ss = 0.0;
+  const auto x_sq = x * x;
+  auto fresnel_c = 0.0;
+  auto fresnel_s = 0.0;
 
-  if (x2 < 2.5625) {
-    const auto t = x2 * x2;
-    ss = x * x2 * EvaluatePolynomial(t, kSn) / EvaluateMonicPolynomial(t, kSd);
-    cc = x * EvaluatePolynomial(t, kCn) / EvaluatePolynomial(t, kCd);
-  } else if (x > 36974.0) {
-    cc = 0.5;
-    ss = 0.5;
+  static constexpr double kFresnelThresholdSq = 2.5625;
+  static constexpr double kFresnelAsymptoticCutoff = 36974.0;
+
+  if (x_sq < kFresnelThresholdSq) {
+    const auto t = x_sq * x_sq;
+    fresnel_s = x * x_sq * EvaluatePolynomial(t, kSn) / EvaluateMonicPolynomial(t, kSd);
+    fresnel_c = x * EvaluatePolynomial(t, kCn) / EvaluatePolynomial(t, kCd);
+  } else if (x > kFresnelAsymptoticCutoff) {
+    fresnel_c = 0.5;
+    fresnel_s = 0.5;
   } else {
-    const auto t_val = kPi * x2;
+    const auto t_val = kPi * x_sq;
     const auto u = 1.0 / (t_val * t_val);
     const auto t_inv = 1.0 / t_val;
     const auto f = 1.0 - (u * EvaluatePolynomial(u, kFn) / EvaluateMonicPolynomial(u, kFd));
-    const auto g = t_inv * EvaluatePolynomial(u, kGn) / EvaluateMonicPolynomial(u, kGd);
+    const auto g_val = t_inv * EvaluatePolynomial(u, kGn) / EvaluateMonicPolynomial(u, kGd);
 
-    const auto angle = kPi2 * x2;
+    const auto angle = kPi2 * x_sq;
     const auto sin_val = std::sin(angle);
     const auto cos_val = std::cos(angle);
     const auto t_denom = kPi * x;
-    cc = 0.5 + (((f * sin_val) - (g * cos_val)) / t_denom);
-    ss = 0.5 - (((f * cos_val) + (g * sin_val)) / t_denom);
+    fresnel_c = 0.5 + (((f * sin_val) - (g_val * cos_val)) / t_denom);
+    fresnel_s = 0.5 - (((f * cos_val) + (g_val * sin_val)) / t_denom);
   }
 
   if (y < 0.0) {
-    cc = -cc;
-    ss = -ss;
+    fresnel_c = -fresnel_c;
+    fresnel_s = -fresnel_s;
   }
 
-  return FresnelResult{.c = cc, .s = ss};
+  return FresnelResult{.c = fresnel_c, .s = fresnel_s};
 }
 
 auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> ClothoidResult {
-  if (std::abs(param_a) < 1e-4) {
-    double x0 = 0.0;
-    double y0 = 0.0;
-    double x2 = 0.0;
-    double y2 = 0.0;
+  static constexpr double kSmallAThreshold = 1e-4;
+  static constexpr double kSmallBThreshold = 0.1;
+  static constexpr double kFact3 = 6.0;
+  static constexpr double kFact4 = 24.0;
+  static constexpr double kFact5 = 120.0;
+  static constexpr double kFact6 = 720.0;
+  static constexpr double kFact7 = 5040.0;
+  static constexpr double kFact8 = 40320.0;
+
+  static constexpr double kX2Coef1 = 3.0;
+  static constexpr double kX2Coef2 = 10.0;
+  static constexpr double kX2Coef3 = 168.0;
+  static constexpr double kX2Coef4 = 6480.0;
+
+  static constexpr double kY2Coef1 = 4.0;
+  static constexpr double kY2Coef2 = 36.0;
+  static constexpr double kY2Coef3 = 960.0;
+  static constexpr double kY2Coef4 = 50400.0;
+
+  if (std::abs(param_a) < kSmallAThreshold) {
+    double x0_val = 0.0;
+    double y0_val = 0.0;
+    double x2_val = 0.0;
+    double y2_val = 0.0;
     const double abs_b = std::abs(param_b);
-    if (abs_b < 0.1) {
-      const double b2 = param_b * param_b;
-      const double b4 = b2 * b2;
-      const double b6 = b4 * b2;
-      x0 = 1.0 - (b2 / 6.0) + (b4 / 120.0) - (b6 / 5040.0);
-      y0 = (param_b / 2.0) - ((param_b * b2) / 24.0) + ((param_b * b4) / 720.0) - ((param_b * b6) / 40320.0);
-      x2 = (1.0 / 3.0) - (b2 / 10.0) + (b4 / 168.0) - (b6 / 6480.0);
-      y2 = (param_b / 4.0) - ((param_b * b2) / 36.0) + ((param_b * b4) / 960.0) - ((param_b * b6) / 50400.0);
+    if (abs_b < kSmallBThreshold) {
+      const double b_sq = param_b * param_b;
+      const double b_quad = b_sq * b_sq;
+      const double b_hex = b_quad * b_sq;
+      x0_val = 1.0 - (b_sq / kFact3) + (b_quad / kFact5) - (b_hex / kFact7);
+      y0_val =
+          (param_b / 2.0) - ((param_b * b_sq) / kFact4) + ((param_b * b_quad) / kFact6) - ((param_b * b_hex) / kFact8);
+      x2_val = (1.0 / kX2Coef1) - (b_sq / kX2Coef2) + (b_quad / kX2Coef3) - (b_hex / kX2Coef4);
+      y2_val = (param_b / kY2Coef1) - ((param_b * b_sq) / kY2Coef2) + ((param_b * b_quad) / kY2Coef3) -
+               ((param_b * b_hex) / kY2Coef4);
     } else {
       const double sin_b = std::sin(param_b);
       const double cos_b = std::cos(param_b);
       const double inv_b = 1.0 / param_b;
       const double inv_b2 = inv_b * inv_b;
       const double inv_b3 = inv_b2 * inv_b;
-      x0 = sin_b * inv_b;
-      y0 = (1.0 - cos_b) * inv_b;
-      x2 = (sin_b * inv_b) + (2.0 * (cos_b * inv_b2)) - (2.0 * (sin_b * inv_b3));
-      y2 = (-(cos_b * inv_b)) + (2.0 * (sin_b * inv_b2)) - (2.0 * ((1.0 - cos_b) * inv_b3));
+      x0_val = sin_b * inv_b;
+      y0_val = (1.0 - cos_b) * inv_b;
+      x2_val = (sin_b * inv_b) + (2.0 * (cos_b * inv_b2)) - (2.0 * (sin_b * inv_b3));
+      y2_val = (-(cos_b * inv_b)) + (2.0 * (sin_b * inv_b2)) - (2.0 * ((1.0 - cos_b) * inv_b3));
     }
-    const double x_val = x0 - (0.5 * (param_a * y2));
-    const double y_val = y0 + (0.5 * (param_a * x2));
+    const double x_val = x0_val - (0.5 * (param_a * y2_val));
+    const double y_val = y0_val + (0.5 * (param_a * x2_val));
     return {.x = x_val, .y = y_val};
   }
   return EvalXYaLarge(param_a, param_b);
@@ -175,11 +199,12 @@ auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> Cloth
 
 auto IntegrateArcLength(double u, double b, double c, double d) noexcept -> double {
   double sum = 0.0;
-  const double half_u = 0.5 * u;
+  static constexpr double kHalfU = 0.5;
+  const double half_u = kHalfU * u;
   for (auto i = std::size_t{0}; i < static_cast<std::size_t>(kNumGaussPoints); ++i) {
-    const double sigma = half_u * (kGaussPoints[i] + 1.0);
+    const double sigma = half_u * (kGaussPoints.at(i) + 1.0);
     const double v_prime = b + (2.0 * c * sigma) + (3.0 * d * sigma * sigma);
-    sum += kGaussWeights[i] * std::sqrt(1.0 + (v_prime * v_prime));
+    sum += kGaussWeights.at(i) * std::sqrt(1.0 + (v_prime * v_prime));
   }
   return half_u * sum;
 }
@@ -189,19 +214,19 @@ auto SolveUForS(double s_target, double b_u, double b, double c, double d) noexc
     return 0.0;
   }
   double u_val = s_target * b_u;
-  constexpr auto tol = 1e-12;
-  constexpr auto max_iter = 100;
-  for (int iter = 0; iter < max_iter; ++iter) {
+  static constexpr auto kTolerance = 1e-12;
+  static constexpr auto kMaxIter = 100;
+  for (int iter = 0; iter < kMaxIter; ++iter) {
     const double s_val = IntegrateArcLength(u_val, b, c, d);
     const double v_prime = b + (2.0 * c * u_val) + (3.0 * d * u_val * u_val);
     const double f_val = s_val - s_target;
     const double f_prime = std::sqrt(1.0 + (v_prime * v_prime));
-    if (std::abs(f_prime) < 1e-12) {
+    if (std::abs(f_prime) < kTolerance) {
       break;
     }
     const double diff = f_val / f_prime;
     u_val -= diff;
-    if (std::abs(f_val) < tol) {
+    if (std::abs(f_val) < kTolerance) {
       break;
     }
   }
@@ -225,25 +250,30 @@ auto ConvertPoly3ToParamPoly3(double length, double a, double b, double c, doubl
   }
 
   const double den = std::sqrt(1.0 + (b * b));
-  const double bu = 1.0 / den;
-  const double bv = b / den;
+  const double b_u_scale = 1.0 / den;
+  const double b_v_scale = b / den;
 
-  const double u1 = SolveUForS(0.5 * length, bu, b, c, d);
-  const double u2 = SolveUForS(length, bu, b, c, d);
+  const double u_mid = SolveUForS(0.5 * length, b_u_scale, b, c, d);
+  const double u_end = SolveUForS(length, b_u_scale, b, c, d);
 
-  const double v1 = a + (u1 * (b + u1 * (c + d * u1)));
-  const double v2 = a + (u2 * (b + u2 * (c + d * u2)));
+  const double v_mid = a + (u_mid * (b + u_mid * (c + d * u_mid)));
+  const double v_end = a + (u_end * (b + u_end * (c + d * u_end)));
+
+  constexpr double k_fit_coef_3 = 3.0;
+  constexpr double k_fit_coef_6 = 6.0;
+  constexpr double k_fit_coef_7 = 7.0;
+  constexpr double k_fit_coef_8 = 8.0;
 
   param.a_u = 0.0;
-  param.b_u = bu;
-  param.c_u = (8.0 * u1 - u2 - 3.0 * bu * length) / (length * length);
-  param.d_u = (2.0 * u2 - 8.0 * u1 + 2.0 * bu * length) / (length * length * length);
+  param.b_u = b_u_scale;
+  param.c_u = (k_fit_coef_8 * u_mid - u_end - k_fit_coef_3 * b_u_scale * length) / (length * length);
+  param.d_u = (2.0 * u_end - k_fit_coef_8 * u_mid + 2.0 * b_u_scale * length) / (length * length * length);
 
   param.a_v = a;
-  param.b_v = bv;
-  param.c_v = (8.0 * v1 - v2 - 7.0 * a - 3.0 * bv * length) / (length * length);
-  param.d_v = (2.0 * v2 - 8.0 * v1 + 6.0 * a + 2.0 * bv * length) / (length * length * length);
-
+  param.b_v = b_v_scale;
+  param.c_v = (k_fit_coef_8 * v_mid - v_end - k_fit_coef_7 * a - k_fit_coef_3 * b_v_scale * length) / (length * length);
+  param.d_v =
+      (2.0 * v_end - k_fit_coef_8 * v_mid + k_fit_coef_6 * a + 2.0 * b_v_scale * length) / (length * length * length);
   return param;
 }
 

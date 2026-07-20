@@ -95,138 +95,202 @@ void EvaluateCrossSectionSurfaceOffset(const Polynomials& polynomials, const Str
   }
 }
 
+void CompileCrossSectionSurface(const ast::Road& road, RoadCrossSectionSurfaceSoA& road_css, StripsSoA& strips,
+                                Polynomials& polynomials) {
+  const auto& css_opt = road.lateral_profile.cross_section_surface;
+  if (css_opt.has_value()) {
+    const auto& css = *css_opt;
+
+    road_css.first_strip_idx.push_back(static_cast<std::uint32_t>(strips.strip_id.size()));
+    road_css.strip_count.push_back(static_cast<std::uint32_t>(css.strips.size()));
+
+    const auto [t_off_idx, t_off_cnt] = polynomials.Compile(css.t_offset);
+    road_css.t_offset_first_idx.push_back(t_off_idx);
+    road_css.t_offset_count.push_back(t_off_cnt);
+
+    auto sorted_strips = css.strips;
+    std::ranges::sort(sorted_strips, [](const auto& val_a, const auto& val_b) noexcept -> bool {
+      return std::abs(val_a.id) < std::abs(val_b.id);
+    });
+
+    for (const auto& strip : sorted_strips) {
+      strips.strip_id.push_back(strip.id);
+      strips.is_relative.push_back(static_cast<std::uint8_t>(parser::ToString(strip.mode) == "relative"));
+
+      const auto [w_first, w_count] = polynomials.Compile(strip.width);
+      strips.width_first_idx.push_back(w_first);
+      strips.width_count.push_back(w_count);
+
+      const auto [c0_first, c0_count] = polynomials.Compile(strip.constant);
+      strips.c0_first_idx.push_back(c0_first);
+      strips.c0_count.push_back(c0_count);
+
+      const auto [c1_first, c1_count] = polynomials.Compile(strip.linear);
+      strips.c1_first_idx.push_back(c1_first);
+      strips.c1_count.push_back(c1_count);
+
+      const auto [c2_first, c2_count] = polynomials.Compile(strip.quadratic);
+      strips.c2_first_idx.push_back(c2_first);
+      strips.c2_count.push_back(c2_count);
+
+      const auto [c3_first, c3_count] = polynomials.Compile(strip.cubic);
+      strips.c3_first_idx.push_back(c3_first);
+      strips.c3_count.push_back(c3_count);
+    }
+  } else {
+    road_css.first_strip_idx.push_back(0);
+    road_css.strip_count.push_back(0);
+    road_css.t_offset_first_idx.push_back(0);
+    road_css.t_offset_count.push_back(0);
+  }
+}
+
+void CompileLaneOffsets(const ast::Road& road, LaneOffsetsSoA& lane_offsets) {
+  const auto first_idx = static_cast<std::uint32_t>(lane_offsets.lane_offset_s_start.size());
+  const auto count = static_cast<std::uint32_t>(road.lanes.offsets.size());
+  for (const auto& offset : road.lanes.offsets) {
+    lane_offsets.lane_offset_s_start.push_back(offset.s);
+    lane_offsets.lane_offset_a.push_back(offset.a);
+    lane_offsets.lane_offset_b.push_back(offset.b);
+    lane_offsets.lane_offset_c.push_back(offset.c);
+    lane_offsets.lane_offset_d.push_back(offset.d);
+  }
+  lane_offsets.road_lane_offset_first_idx.push_back(first_idx);
+  lane_offsets.road_lane_offset_count.push_back(count);
+}
+
+void CompileLaneSections(const ast::Road& road, std::uint32_t road_css_strip_count_size, LaneSectionsSoA& lane_sections,
+                         LanesSoA& lanes, LaneWidthsSoA& lane_widths, LaneHeightsSoA& lane_heights) {
+  const auto road_sec_first = static_cast<std::uint32_t>(lane_sections.section_s.size());
+  const auto road_sec_count = static_cast<std::uint32_t>(road.lanes.sections.size());
+
+  for (const auto& section : road.lanes.sections) {
+    lane_sections.section_s.push_back(section.s);
+
+    std::vector<ast::Lane> sorted_section_lanes;
+    sorted_section_lanes.reserve(section.right.size() + section.center.size() + section.left.size());
+    for (const auto* lane_group : {&section.right, &section.center, &section.left}) {
+      for (const auto& lane : *lane_group) {
+        sorted_section_lanes.push_back(lane);
+      }
+    }
+
+    std::ranges::sort(sorted_section_lanes, [](const auto& lhs_lane, const auto& rhs_lane) noexcept -> bool {
+      return lhs_lane.id < rhs_lane.id;
+    });
+
+    const auto section_first_lane = static_cast<std::uint32_t>(lanes.lane_original_id.size());
+    const auto section_lane_count = static_cast<std::uint32_t>(sorted_section_lanes.size());
+
+    lane_sections.section_first_lane_idx.push_back(section_first_lane);
+    lane_sections.section_lane_count.push_back(section_lane_count);
+
+    for (const auto& lane : sorted_section_lanes) {
+      lanes.lane_original_id.push_back(lane.id);
+      lanes.lane_road_id.push_back(static_cast<RoadId>(road_css_strip_count_size - 1));
+      lanes.lane_section_idx.push_back(static_cast<std::uint32_t>(lane_sections.section_s.size() - 1));
+
+      const auto w_first = static_cast<std::uint32_t>(lane_widths.lane_width_s_start.size());
+      const auto w_count = static_cast<std::uint32_t>(lane.widths.size());
+      for (const auto& width_poly : lane.widths) {
+        lane_widths.lane_width_s_start.push_back(section.s + width_poly.s_offset);
+        lane_widths.lane_width_a.push_back(width_poly.a);
+        lane_widths.lane_width_b.push_back(width_poly.b);
+        lane_widths.lane_width_c.push_back(width_poly.c);
+        lane_widths.lane_width_d.push_back(width_poly.d);
+      }
+      lanes.lane_first_width_idx.push_back(w_first);
+      lanes.lane_width_count.push_back(w_count);
+
+      const auto h_first = static_cast<std::uint32_t>(lane_heights.lane_height_s_start.size());
+      const auto h_count = static_cast<std::uint32_t>(lane.heights.size());
+      for (const auto& height_poly : lane.heights) {
+        lane_heights.lane_height_s_start.push_back(section.s + height_poly.s_offset);
+        lane_heights.lane_height_inner.push_back(height_poly.inner);
+        lane_heights.lane_height_outer.push_back(height_poly.outer);
+      }
+      lanes.lane_first_height_idx.push_back(h_first);
+      lanes.lane_height_count.push_back(h_count);
+    }
+  }
+  lane_sections.road_section_first_idx.push_back(road_sec_first);
+  lane_sections.road_section_count.push_back(road_sec_count);
+}
+
+auto EvaluateRoadLaneOffset(const LaneOffsetsSoA& lane_offsets, std::uint32_t road_idx, double s_coord) noexcept
+    -> double {
+  const std::uint32_t lo_first = lane_offsets.road_lane_offset_first_idx[road_idx];
+  const std::uint32_t lo_count = lane_offsets.road_lane_offset_count[road_idx];
+  if (lo_count == 0) {
+    return 0.0;
+  }
+  std::uint32_t active_lo = lo_first;
+  for (std::uint32_t i = 0; i < lo_count; ++i) {
+    const std::uint32_t cur_lo = lo_first + i;
+    if (s_coord >= lane_offsets.lane_offset_s_start[cur_lo]) {
+      active_lo = cur_lo;
+    } else {
+      break;
+    }
+  }
+  const double ds_lo = s_coord - lane_offsets.lane_offset_s_start[active_lo];
+  return lane_offsets.lane_offset_a[active_lo] +
+         (ds_lo * (lane_offsets.lane_offset_b[active_lo] +
+                   ds_lo * (lane_offsets.lane_offset_c[active_lo] + ds_lo * lane_offsets.lane_offset_d[active_lo])));
+}
+
+auto EvaluateLaneHeightOffset(const LanesSoA& lanes, const LaneHeightsSoA& lane_heights, std::uint32_t lane_idx,
+                              double s_coord, double t_lane, int target_id, double w_target) noexcept -> double {
+  const std::uint32_t h_first = lanes.lane_first_height_idx[lane_idx];
+  const std::uint32_t h_count = lanes.lane_height_count[lane_idx];
+  if (h_count == 0) {
+    return 0.0;
+  }
+  std::uint32_t active_h = h_first;
+  for (std::uint32_t i = 0; i < h_count; ++i) {
+    const std::uint32_t cur_h = h_first + i;
+    if (s_coord >= lane_heights.lane_height_s_start[cur_h]) {
+      active_h = cur_h;
+    } else {
+      break;
+    }
+  }
+  const double h_inner = lane_heights.lane_height_inner[active_h];
+  const double h_outer = lane_heights.lane_height_outer[active_h];
+
+  double factor = 0.0;
+  if (w_target > 0.0) {
+    if (target_id > 0) {
+      factor = 0.5 + (t_lane / w_target);
+    } else if (target_id < 0) {
+      factor = 0.5 - (t_lane / w_target);
+    }
+  }
+  factor = std::clamp(factor, 0.0, 1.0);
+  return h_inner + (factor * (h_outer - h_inner));
+}
+auto FindActiveSectionIndex(const LaneSectionsSoA& lane_sections, std::uint32_t road_sec_first,
+                            std::uint32_t road_sec_count, double s_coord) noexcept -> std::uint32_t {
+  auto sec_idx = road_sec_first;
+  for (std::uint32_t i = 0; i < road_sec_count; ++i) {
+    const auto cur_sec = road_sec_first + i;
+    if (s_coord >= lane_sections.section_s[cur_sec]) {
+      sec_idx = cur_sec;
+    } else {
+      break;
+    }
+  }
+  return sec_idx;
+}
+
 }  // namespace
 
 LaneNetwork::LaneNetwork(const ast::AbstractSyntaxTree& map) {
   for (const auto& road : map.roads) {
-    const auto& css_opt = road.lateral_profile.cross_section_surface;
-    if (css_opt.has_value()) {
-      const auto& css = *css_opt;
-
-      road_css_.first_strip_idx.push_back(static_cast<std::uint32_t>(strips_.strip_id.size()));
-      road_css_.strip_count.push_back(static_cast<std::uint32_t>(css.strips.size()));
-
-      const auto [t_off_idx, t_off_cnt] = polynomials_.Compile(css.t_offset);
-      road_css_.t_offset_first_idx.push_back(t_off_idx);
-      road_css_.t_offset_count.push_back(t_off_cnt);
-
-      auto sorted_strips = css.strips;
-      std::ranges::sort(sorted_strips, [](const auto& val_a, const auto& val_b) noexcept -> bool {
-        return std::abs(val_a.id) < std::abs(val_b.id);
-      });
-
-      for (const auto& strip : sorted_strips) {
-        strips_.strip_id.push_back(strip.id);
-        strips_.is_relative.push_back(static_cast<std::uint8_t>(parser::ToString(strip.mode) == "relative"));
-
-        const auto [w_first, w_count] = polynomials_.Compile(strip.width);
-        strips_.width_first_idx.push_back(w_first);
-        strips_.width_count.push_back(w_count);
-
-        const auto [c0_first, c0_count] = polynomials_.Compile(strip.constant);
-        strips_.c0_first_idx.push_back(c0_first);
-        strips_.c0_count.push_back(c0_count);
-
-        const auto [c1_first, c1_count] = polynomials_.Compile(strip.linear);
-        strips_.c1_first_idx.push_back(c1_first);
-        strips_.c1_count.push_back(c1_count);
-
-        const auto [c2_first, c2_count] = polynomials_.Compile(strip.quadratic);
-        strips_.c2_first_idx.push_back(c2_first);
-        strips_.c2_count.push_back(c2_count);
-
-        const auto [c3_first, c3_count] = polynomials_.Compile(strip.cubic);
-        strips_.c3_first_idx.push_back(c3_first);
-        strips_.c3_count.push_back(c3_count);
-      }
-    } else {
-      road_css_.first_strip_idx.push_back(0);
-      road_css_.strip_count.push_back(0);
-      road_css_.t_offset_first_idx.push_back(0);
-      road_css_.t_offset_count.push_back(0);
-    }
-
-    // Lane offset profile compilation (road level)
-    {
-      const auto first_idx = static_cast<std::uint32_t>(lane_offsets_.lane_offset_s_start.size());
-      const auto count = static_cast<std::uint32_t>(road.lanes.offsets.size());
-      for (const auto& offset : road.lanes.offsets) {
-        lane_offsets_.lane_offset_s_start.push_back(offset.s);
-        lane_offsets_.lane_offset_a.push_back(offset.a);
-        lane_offsets_.lane_offset_b.push_back(offset.b);
-        lane_offsets_.lane_offset_c.push_back(offset.c);
-        lane_offsets_.lane_offset_d.push_back(offset.d);
-      }
-      lane_offsets_.road_lane_offset_first_idx.push_back(first_idx);
-      lane_offsets_.road_lane_offset_count.push_back(count);
-    }
-
-    // Lane sections compilation
-    {
-      const auto road_sec_first = static_cast<std::uint32_t>(lane_sections_.section_s.size());
-      const auto road_sec_count = static_cast<std::uint32_t>(road.lanes.sections.size());
-
-      for (const auto& section : road.lanes.sections) {
-        lane_sections_.section_s.push_back(section.s);
-
-        // Accumulate all lanes in this section
-        std::vector<ast::Lane> sorted_section_lanes;
-        sorted_section_lanes.reserve(section.right.size() + section.center.size() + section.left.size());
-        for (const auto& lane : section.right) {
-          sorted_section_lanes.push_back(lane);
-        }
-        for (const auto& lane : section.center) {
-          sorted_section_lanes.push_back(lane);
-        }
-        for (const auto& lane : section.left) {
-          sorted_section_lanes.push_back(lane);
-        }
-
-        // Sort by ID ascending
-        std::ranges::sort(sorted_section_lanes, [](const auto& lhs_lane, const auto& rhs_lane) noexcept -> bool {
-          return lhs_lane.id < rhs_lane.id;
-        });
-
-        const auto section_first_lane = static_cast<std::uint32_t>(lanes_.lane_original_id.size());
-        const auto section_lane_count = static_cast<std::uint32_t>(sorted_section_lanes.size());
-
-        lane_sections_.section_first_lane_idx.push_back(section_first_lane);
-        lane_sections_.section_lane_count.push_back(section_lane_count);
-
-        // Now compile each lane in this section
-        for (const auto& lane : sorted_section_lanes) {
-          lanes_.lane_original_id.push_back(lane.id);
-          lanes_.lane_road_id.push_back(static_cast<RoadId>(road_css_.strip_count.size() - 1));
-          lanes_.lane_section_idx.push_back(static_cast<std::uint32_t>(lane_sections_.section_s.size() - 1));
-
-          // Width polynomials for this lane
-          const auto w_first = static_cast<std::uint32_t>(lane_widths_.lane_width_s_start.size());
-          const auto w_count = static_cast<std::uint32_t>(lane.widths.size());
-          for (const auto& width_poly : lane.widths) {
-            lane_widths_.lane_width_s_start.push_back(section.s + width_poly.s_offset);
-            lane_widths_.lane_width_a.push_back(width_poly.a);
-            lane_widths_.lane_width_b.push_back(width_poly.b);
-            lane_widths_.lane_width_c.push_back(width_poly.c);
-            lane_widths_.lane_width_d.push_back(width_poly.d);
-          }
-          lanes_.lane_first_width_idx.push_back(w_first);
-          lanes_.lane_width_count.push_back(w_count);
-
-          // Height polynomials for this lane
-          const auto h_first = static_cast<std::uint32_t>(lane_heights_.lane_height_s_start.size());
-          const auto h_count = static_cast<std::uint32_t>(lane.heights.size());
-          for (const auto& height_poly : lane.heights) {
-            lane_heights_.lane_height_s_start.push_back(section.s + height_poly.s_offset);
-            lane_heights_.lane_height_inner.push_back(height_poly.inner);
-            lane_heights_.lane_height_outer.push_back(height_poly.outer);
-          }
-          lanes_.lane_first_height_idx.push_back(h_first);
-          lanes_.lane_height_count.push_back(h_count);
-        }
-      }
-      lane_sections_.road_section_first_idx.push_back(road_sec_first);
-      lane_sections_.road_section_count.push_back(road_sec_count);
-    }
+    CompileCrossSectionSurface(road, road_css_, strips_, polynomials_);
+    CompileLaneOffsets(road, lane_offsets_);
+    CompileLaneSections(road, static_cast<std::uint32_t>(road_css_.strip_count.size()), lane_sections_, lanes_,
+                        lane_widths_, lane_heights_);
   }
 }
 
@@ -242,41 +306,12 @@ auto LaneNetwork::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept ->
     return std::nullopt;
   }
 
-  // Find the active lane section at pose.s
-  auto sec_idx = road_sec_first;
-  for (std::uint32_t i = 0; i < road_sec_count; ++i) {
-    auto cur_sec = road_sec_first + i;
-    if (pose.s >= lane_sections_.section_s[cur_sec]) {
-      sec_idx = cur_sec;
-    } else {
-      break;
-    }
-  }
+  const auto sec_idx = FindActiveSectionIndex(lane_sections_, road_sec_first, road_sec_count, pose.s);
 
   const auto first_lane_in_sec = lane_sections_.section_first_lane_idx[sec_idx];
   const auto lane_cnt_in_sec = lane_sections_.section_lane_count[sec_idx];
 
-  // Calculate road-level lane offset
-  double lane_offset_val = 0.0;
-  const auto lo_first = lane_offsets_.road_lane_offset_first_idx[road_idx];
-  const auto lo_count = lane_offsets_.road_lane_offset_count[road_idx];
-  if (lo_count > 0) {
-    auto active_lo = lo_first;
-    for (std::uint32_t i = 0; i < lo_count; ++i) {
-      auto cur_lo = lo_first + i;
-      if (pose.s >= lane_offsets_.lane_offset_s_start[cur_lo]) {
-        active_lo = cur_lo;
-      } else {
-        break;
-      }
-    }
-    const double ds_lo = pose.s - lane_offsets_.lane_offset_s_start[active_lo];
-    lane_offset_val =
-        lane_offsets_.lane_offset_a[active_lo] +
-        (ds_lo * (lane_offsets_.lane_offset_b[active_lo] +
-                  ds_lo * (lane_offsets_.lane_offset_c[active_lo] + ds_lo * lane_offsets_.lane_offset_d[active_lo])));
-  }
-
+  const double lane_offset_val = EvaluateRoadLaneOffset(lane_offsets_, road_idx, pose.s);
   const double t_relative = pose.t - lane_offset_val;
 
   std::uint32_t matched_lane_idx = 0;
@@ -334,37 +369,9 @@ auto LaneNetwork::RoadToLane(RoadPose pose, QueryContext& ctx) const noexcept ->
     return std::nullopt;
   }
 
-  // Evaluate lane height offset
-  double h_inner = 0.0;
-  double h_outer = 0.0;
-  const std::uint32_t h_first = lanes_.lane_first_height_idx[matched_lane_idx];
-  const std::uint32_t h_count = lanes_.lane_height_count[matched_lane_idx];
-  if (h_count > 0) {
-    std::uint32_t active_h = h_first;
-    for (std::uint32_t i = 0; i < h_count; ++i) {
-      const std::uint32_t cur_h = h_first + i;
-      if (pose.s >= lane_heights_.lane_height_s_start[cur_h]) {
-        active_h = cur_h;
-      } else {
-        break;
-      }
-    }
-    h_inner = lane_heights_.lane_height_inner[active_h];
-    h_outer = lane_heights_.lane_height_outer[active_h];
-  }
-
   const double t_lane = t_relative - t_center;
-  double f = 0.0;
-  if (w_target > 0.0) {
-    if (target_id > 0) {
-      f = 0.5 + (t_lane / w_target);
-    } else if (target_id < 0) {
-      f = 0.5 - (t_lane / w_target);
-    }
-  }
-  f = std::clamp(f, 0.0, 1.0);
-  const double h_offset = h_inner + (f * (h_outer - h_inner));
-
+  const double h_offset =
+      EvaluateLaneHeightOffset(lanes_, lane_heights_, matched_lane_idx, pose.s, t_lane, target_id, w_target);
   LanePose lane_pose;
   lane_pose.s = pose.s;
   lane_pose.t = t_lane;
@@ -429,56 +436,10 @@ auto LaneNetwork::LaneToRoad(LanePose pose, QueryContext& /*ctx*/) const noexcep
 
   double road_t = t_center + pose.t;
 
-  // 4. Add road-level laneOffset
-  double lane_offset_val = 0.0;
-  const std::uint32_t lo_first = lane_offsets_.road_lane_offset_first_idx[road_idx];
-  const std::uint32_t lo_count = lane_offsets_.road_lane_offset_count[road_idx];
-  if (lo_count > 0) {
-    std::uint32_t active_lo = lo_first;
-    for (std::uint32_t i = 0; i < lo_count; ++i) {
-      const std::uint32_t cur_lo = lo_first + i;
-      if (s >= lane_offsets_.lane_offset_s_start[cur_lo]) {
-        active_lo = cur_lo;
-      } else {
-        break;
-      }
-    }
-    const double ds_lo = s - lane_offsets_.lane_offset_s_start[active_lo];
-    lane_offset_val = lane_offsets_.lane_offset_a[active_lo] + (lane_offsets_.lane_offset_b[active_lo] * ds_lo) +
-                      (lane_offsets_.lane_offset_c[active_lo] * ds_lo * ds_lo) +
-                      (lane_offsets_.lane_offset_d[active_lo] * ds_lo * ds_lo * ds_lo);
-  }
+  const double lane_offset_val = EvaluateRoadLaneOffset(lane_offsets_, road_idx, s);
   road_t += lane_offset_val;
 
-  // 5. Evaluate lane height offset
-  double h_inner = 0.0;
-  double h_outer = 0.0;
-  const std::uint32_t h_first = lanes_.lane_first_height_idx[lane_idx];
-  const std::uint32_t h_count = lanes_.lane_height_count[lane_idx];
-  if (h_count > 0) {
-    std::uint32_t active_h = h_first;
-    for (std::uint32_t i = 0; i < h_count; ++i) {
-      const std::uint32_t cur_h = h_first + i;
-      if (s >= lane_heights_.lane_height_s_start[cur_h]) {
-        active_h = cur_h;
-      } else {
-        break;
-      }
-    }
-    h_inner = lane_heights_.lane_height_inner[active_h];
-    h_outer = lane_heights_.lane_height_outer[active_h];
-  }
-
-  double f = 0.0;
-  if (w_target > 0.0) {
-    if (target_id > 0) {
-      f = 0.5 + (pose.t / w_target);
-    } else if (target_id < 0) {
-      f = 0.5 - (pose.t / w_target);
-    }
-  }
-  f = std::clamp(f, 0.0, 1.0);
-  const double h_offset = h_inner + (f * (h_outer - h_inner));
+  const double h_offset = EvaluateLaneHeightOffset(lanes_, lane_heights_, lane_idx, s, pose.t, target_id, w_target);
   const double road_h = pose.h + h_offset;
 
   RoadPose road_pose;

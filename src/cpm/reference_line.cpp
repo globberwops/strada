@@ -145,14 +145,14 @@ auto ReferenceLine::Evaluate(std::uint32_t seg_idx, double road_s) const noexcep
     ref_x += ds_val * (std::cos(ref_hdg) * local_x - std::sin(ref_hdg) * local_y);
     ref_y += ds_val * (std::sin(ref_hdg) * local_x + std::cos(ref_hdg) * local_y);
   } else if (type == GeometryType::kParamPoly3) {
-    const double au = pp3_a_u_[seg_idx];
-    const double bu = pp3_b_u_[seg_idx];
-    const double cu = pp3_c_u_[seg_idx];
-    const double du = pp3_d_u_[seg_idx];
-    const double av = pp3_a_v_[seg_idx];
-    const double bv = pp3_b_v_[seg_idx];
-    const double cv = pp3_c_v_[seg_idx];
-    const double dv = pp3_d_v_[seg_idx];
+    const double a_u_coef = pp3_a_u_[seg_idx];
+    const double b_u_coef = pp3_b_u_[seg_idx];
+    const double c_u_coef = pp3_c_u_[seg_idx];
+    const double d_u_coef = pp3_d_u_[seg_idx];
+    const double a_v_coef = pp3_a_v_[seg_idx];
+    const double b_v_coef = pp3_b_v_[seg_idx];
+    const double c_v_coef = pp3_c_v_[seg_idx];
+    const double d_v_coef = pp3_d_v_[seg_idx];
     const std::uint8_t p_range = pp3_p_range_[seg_idx];
 
     const double length = length_[seg_idx];
@@ -161,21 +161,58 @@ auto ReferenceLine::Evaluate(std::uint32_t seg_idx, double road_s) const noexcep
       p_val = (length > 0.0) ? (ds_val / length) : 0.0;
     }
 
-    const double up = au + (p_val * (bu + (p_val * (cu + (du * p_val)))));
-    const double vp = av + (p_val * (bv + (p_val * (cv + (dv * p_val)))));
+    const double u_pos = a_u_coef + (p_val * (b_u_coef + (p_val * (c_u_coef + (d_u_coef * p_val)))));
+    const double v_pos = a_v_coef + (p_val * (b_v_coef + (p_val * (c_v_coef + (d_v_coef * p_val)))));
 
-    const double du_dp = bu + (p_val * ((kPolyCoeff2 * cu) + (kPolyCoeff3 * du * p_val)));
-    const double dv_dp = bv + (p_val * ((kPolyCoeff2 * cv) + (kPolyCoeff3 * dv * p_val)));
+    const double du_dp = b_u_coef + (p_val * ((kPolyCoeff2 * c_u_coef) + (kPolyCoeff3 * d_u_coef * p_val)));
+    const double dv_dp = b_v_coef + (p_val * ((kPolyCoeff2 * c_v_coef) + (kPolyCoeff3 * d_v_coef * p_val)));
 
     const double cos_hdg = std::cos(ref_hdg);
     const double sin_hdg = std::sin(ref_hdg);
 
-    ref_x += (up * cos_hdg) - (vp * sin_hdg);
-    ref_y += (up * sin_hdg) + (vp * cos_hdg);
+    ref_x += (u_pos * cos_hdg) - (v_pos * sin_hdg);
+    ref_y += (u_pos * sin_hdg) + (v_pos * cos_hdg);
     tangent_hdg += std::atan2(dv_dp, du_dp);
   }
 
   return ReferenceLinePoint{.x = ref_x, .y = ref_y, .heading = tangent_hdg};
+}
+
+auto ProjectArc(double px, double py, double start_x, double start_y, double hdg, double curvature, double seg_length,
+                double s_start) noexcept -> double {
+  if (std::abs(curvature) < kCurvatureThreshold) {
+    const double dx = px - start_x;
+    const double dy = py - start_y;
+    const double ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
+    const double s_local = std::clamp(ds, 0.0, seg_length);
+    return s_start + s_local;
+  }
+  const double radius = 1.0 / curvature;
+  const double center_x = start_x - (radius * std::sin(hdg));
+  const double center_y = start_y + (radius * std::cos(hdg));
+  const double qdx = px - center_x;
+  const double qdy = py - center_y;
+  const double angle_query = std::atan2(qdy, qdx);
+  const double angle_start = std::atan2(start_y - center_y, start_x - center_x);
+  double delta_angle = angle_query - angle_start;
+  constexpr double two_pi = 2.0 * std::numbers::pi;
+  if (curvature > 0.0) {
+    while (delta_angle < 0.0) {
+      delta_angle += two_pi;
+    }
+    while (delta_angle >= two_pi) {
+      delta_angle -= two_pi;
+    }
+  } else {
+    while (delta_angle > 0.0) {
+      delta_angle -= two_pi;
+    }
+    while (delta_angle <= -two_pi) {
+      delta_angle += two_pi;
+    }
+  }
+  const double s_local = std::clamp(delta_angle / curvature, 0.0, seg_length);
+  return s_start + s_local;
 }
 
 auto ReferenceLine::Project(std::uint32_t seg_idx, double px, double py) const noexcept -> double {
@@ -193,41 +230,7 @@ auto ReferenceLine::Project(std::uint32_t seg_idx, double px, double py) const n
     return s_start + s_local;
   }
   if (type == GeometryType::kArc) {
-    const double dx = px - x_[seg_idx];
-    const double dy = py - y_[seg_idx];
-    const double hdg = hdg_[seg_idx];
-    const double curvature = arc_curvature_[type_idx];
-    if (std::abs(curvature) < kCurvatureThreshold) {
-      const double ds = (dx * std::cos(hdg)) + (dy * std::sin(hdg));
-      const double s_local = std::clamp(ds, 0.0, seg_length);
-      return s_start + s_local;
-    }
-    const double radius = 1.0 / curvature;
-    const double center_x = x_[seg_idx] - (radius * std::sin(hdg));
-    const double center_y = y_[seg_idx] + (radius * std::cos(hdg));
-    const double qdx = px - center_x;
-    const double qdy = py - center_y;
-    const double angle_query = std::atan2(qdy, qdx);
-    const double angle_start = std::atan2(y_[seg_idx] - center_y, x_[seg_idx] - center_x);
-    double delta_angle = angle_query - angle_start;
-    constexpr double two_pi = 2.0 * std::numbers::pi;
-    if (curvature > 0.0) {
-      while (delta_angle < 0.0) {
-        delta_angle += two_pi;
-      }
-      while (delta_angle >= two_pi) {
-        delta_angle -= two_pi;
-      }
-    } else {
-      while (delta_angle > 0.0) {
-        delta_angle -= two_pi;
-      }
-      while (delta_angle <= -two_pi) {
-        delta_angle += two_pi;
-      }
-    }
-    const double s_local = std::clamp(delta_angle / curvature, 0.0, seg_length);
-    return s_start + s_local;
+    return ProjectArc(px, py, x_[seg_idx], y_[seg_idx], hdg_[seg_idx], arc_curvature_[type_idx], seg_length, s_start);
   }
 
   // Fallback to numerical solver for spirals and ParamPoly3
@@ -249,17 +252,18 @@ auto ReferenceLine::Project(std::uint32_t seg_idx, double px, double py) const n
 
   double left_s = std::max(0.0, best_s - (seg_length / num_intervals));
   double right_s = std::min(seg_length, best_s + (seg_length / num_intervals));
-  for (int iter = 0; iter < 30; ++iter) {
-    const double m1 = left_s + ((right_s - left_s) / 3.0);
-    const double m2 = right_s - ((right_s - left_s) / 3.0);
-    auto pt1 = Evaluate(seg_idx, s_start + m1);
-    auto pt2 = Evaluate(seg_idx, s_start + m2);
+  static constexpr int kTernarySearchSteps = 30;
+  for (int iter = 0; iter < kTernarySearchSteps; ++iter) {
+    const double mid1 = left_s + ((right_s - left_s) / 3.0);
+    const double mid2 = right_s - ((right_s - left_s) / 3.0);
+    auto pt1 = Evaluate(seg_idx, s_start + mid1);
+    auto pt2 = Evaluate(seg_idx, s_start + mid2);
     const double dist1 = ((px - pt1.x) * (px - pt1.x)) + ((py - pt1.y) * (py - pt1.y));
     const double dist2 = ((px - pt2.x) * (px - pt2.x)) + ((py - pt2.y) * (py - pt2.y));
     if (dist1 < dist2) {
-      right_s = m2;
+      right_s = mid2;
     } else {
-      left_s = m1;
+      left_s = mid1;
     }
   }
 
@@ -324,7 +328,8 @@ auto ReferenceLine::ComputeSegmentAabb(std::uint32_t seg_idx, double inflation) 
 
   int num_samples = 1;
   if (type_[seg_idx] != GeometryType::kLine) {
-    num_samples = 32;
+    static constexpr int kCurvedAabbSamples = 32;
+    num_samples = kCurvedAabbSamples;
   }
 
   for (int idx = 0; idx <= num_samples; ++idx) {

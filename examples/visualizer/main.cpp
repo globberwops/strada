@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <iostream>
+#include <span>
 #include <strada/vis/visualizer_window.hpp>
 
 auto main(int argc, char* argv[]) -> int {
@@ -9,8 +10,9 @@ auto main(int argc, char* argv[]) -> int {
   window.show();
 
   // Load map only if explicitly specified via command line arguments
-  if (argc > 1) {
-    std::string map_path = argv[1];
+  std::span<char*> args(argv, static_cast<std::size_t>(argc));
+  if (args.size() > 1) {
+    std::string map_path = args[1];
     std::cout << "Loading map file: " << map_path << '\n';
     window.LoadMap(map_path);
   } else {
