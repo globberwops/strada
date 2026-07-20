@@ -1,13 +1,13 @@
 # clangd setup troubleshooting
 
-Only reach here if `lsp diagnostics` errors in step 1.
+Only reach here when `diagnostics` via `xd://lsp` returns errors.
 
 ## Common fixes
 
-- **compile_commands.json missing**: configure the project to export it. For CMake presets, the `default` and `dev` presets already set `CMAKE_EXPORT_COMPILE_COMMANDS=ON` — just run `cmake --preset dev-debug`. Otherwise add `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to the configure command.
-- **clangd not installed**: install it (`apt install clangd`, `brew install clangd`). Confirm with `clangd --version`.
-- **Wrong project root**: `compile_commands.json` and `.clangd` should sit at the project root. `lsp` figures this out from CWD — make sure your shell is at the repo root before invoking the skill.
-- **Server not started or stuck**: `lsp reload *` to restart servers, then re-run `lsp diagnostics`.
+- **compile_commands.json missing**: run `cmake --preset dev-debug` (presets set `CMAKE_EXPORT_COMPILE_COMMANDS=ON`). For manual CMake calls, add `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`.
+- **clangd not installed**: install via package manager (`apt install clangd`, `brew install clangd`). Verify with `clangd --version`.
+- **Wrong project root**: ensure shell CWD is at the repository root containing `compile_commands.json` and `.clangd`.
+- **Server not started or stuck**: run `{"action":"reload","file":"*"}` via `xd://lsp` to restart servers, then re-diagnose.
 
 ## Verify
 
