@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <span>
 #include <strada/cpm/compiled_physics_model.hpp>
 #include <strada/cpm/geometry_math.hpp>
