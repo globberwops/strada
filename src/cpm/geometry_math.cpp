@@ -179,6 +179,7 @@ auto EvaluateClothoidIntegrals(double param_a, double param_b) noexcept -> Cloth
       x2_val = (1.0 / kX2Coef1) - (b_sq / kX2Coef2) + (b_quad / kX2Coef3) - (b_hex / kX2Coef4);
       y2_val = (param_b / kY2Coef1) - ((param_b * b_sq) / kY2Coef2) + ((param_b * b_quad) / kY2Coef3) -
                ((param_b * b_hex) / kY2Coef4);
+    } else {
       const double sin_b = std::sin(param_b);
       const double cos_b = std::cos(param_b);
       const double inv_b = 1.0 / param_b;

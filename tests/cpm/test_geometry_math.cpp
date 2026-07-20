@@ -109,6 +109,20 @@ TEST(GeometryMathTest, EvaluateClothoidIntegralsSmallA) {
   EXPECT_NEAR(result.x, 0.99958338541356651, 1e-9);
   EXPECT_NEAR(result.y, 0.024994792100675071, 1e-9);
 }
+TEST(GeometryMathTest, EvaluateClothoidIntegralsZeroB) {
+  // Arrange
+  double param_a = -4.59e-8;
+  double param_b = 0.0;
+
+  // Act
+  auto result = EvaluateClothoidIntegrals(param_a, param_b);
+
+  // Assert
+  EXPECT_FALSE(std::isnan(result.x));
+  EXPECT_FALSE(std::isnan(result.y));
+  EXPECT_NEAR(result.x, 1.0, 1e-9);
+  EXPECT_NEAR(result.y, -7.65e-9, 1e-9);
+}
 
 TEST(GeometryMathTest, EvaluateClothoidIntegralsLargeA) {
   // Arrange
