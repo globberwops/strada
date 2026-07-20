@@ -252,8 +252,8 @@ auto ReferenceLine::Project(std::uint32_t seg_idx, double px, double py) const n
 
   double left_s = std::max(0.0, best_s - (seg_length / num_intervals));
   double right_s = std::min(seg_length, best_s + (seg_length / num_intervals));
-  constexpr int k_ternary_search_steps = 30;
-  for (int iter = 0; iter < k_ternary_search_steps; ++iter) {
+  static constexpr int kTernarySearchSteps = 30;
+  for (int iter = 0; iter < kTernarySearchSteps; ++iter) {
     const double mid1 = left_s + ((right_s - left_s) / 3.0);
     const double mid2 = right_s - ((right_s - left_s) / 3.0);
     auto pt1 = Evaluate(seg_idx, s_start + mid1);
@@ -328,8 +328,8 @@ auto ReferenceLine::ComputeSegmentAabb(std::uint32_t seg_idx, double inflation) 
 
   int num_samples = 1;
   if (type_[seg_idx] != GeometryType::kLine) {
-    constexpr int k_curved_aabb_samples = 32;
-    num_samples = k_curved_aabb_samples;
+    static constexpr int kCurvedAabbSamples = 32;
+    num_samples = kCurvedAabbSamples;
   }
 
   for (int idx = 0; idx <= num_samples; ++idx) {

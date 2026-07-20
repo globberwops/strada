@@ -169,14 +169,10 @@ void CompileLaneSections(const ast::Road& road, std::uint32_t road_css_strip_cou
 
     std::vector<ast::Lane> sorted_section_lanes;
     sorted_section_lanes.reserve(section.right.size() + section.center.size() + section.left.size());
-    for (const auto& lane : section.right) {
-      sorted_section_lanes.push_back(lane);
-    }
-    for (const auto& lane : section.center) {
-      sorted_section_lanes.push_back(lane);
-    }
-    for (const auto& lane : section.left) {
-      sorted_section_lanes.push_back(lane);
+    for (const auto* lane_group : {&section.right, &section.center, &section.left}) {
+      for (const auto& lane : *lane_group) {
+        sorted_section_lanes.push_back(lane);
+      }
     }
 
     std::ranges::sort(sorted_section_lanes, [](const auto& lhs_lane, const auto& rhs_lane) noexcept -> bool {

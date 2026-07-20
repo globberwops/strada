@@ -18,7 +18,7 @@ struct ShapeGroup {
 
 auto BuildShapeGroup(const ShapesSoA& shapes, std::uint32_t first_idx, std::uint32_t count, double target_s) noexcept
     -> ShapeGroup {
-  ShapeGroup group{.s = target_s, .first_idx = 0, .count = 0};
+  auto group = ShapeGroup{.s = target_s, .first_idx = 0, .count = 0};
   bool in_group = false;
   for (std::uint32_t i = 0; i < count; ++i) {
     const std::uint32_t idx = first_idx + i;
@@ -102,10 +102,10 @@ auto EvaluateGroupTGradient(const ShapesSoA& shapes, const ShapeGroup& group, do
       break;
     }
   }
-  constexpr double k_cubic_deriv_factor = 3.0;
+  constexpr double kCubicDerivFactor = 3.0;
   const double delta_t = t_coord - shapes.t[active_idx];
   return shapes.b[active_idx] +
-         (delta_t * (2.0 * shapes.c[active_idx] + delta_t * k_cubic_deriv_factor * shapes.d[active_idx]));
+         (delta_t * (2.0 * shapes.c[active_idx] + delta_t * kCubicDerivFactor * shapes.d[active_idx]));
 }
 
 }  // namespace
