@@ -28,7 +28,7 @@ Accepts a path argument (`<path>`):
     | 1 | src/foo.cpp | ⬜ |  |
     ```
 
-    Status markers: ⬜ pending, ✅ clean, ⚠️ HITL / wedged.
+    Status markers: ⬜ pending, ✅ clean, 🛑 no unit test coverage, ⚠️ HITL / wedged.
   - Process each row sequentially through [File Processing Loop](#2-file-processing-loop).
 
 ## 2. File Processing Loop
@@ -38,15 +38,18 @@ Finish each file entirely — diagnose, fix, re-verify, build, test, commit, and
 1. `{"action":"diagnostics","file":"<file>"}` via `xd://lsp`. Read each finding.
 2. For each diagnostic:
    - Read the cited code.
+   - **Coverage Gate:** Verify that the code or function containing the diagnostic is covered by existing unit tests.
+     - **If NOT covered by unit tests:** **Do NOT modify the code**. Leave the warning unedited. Mark row 🛑 in `diagnostic-sweep.md` with a one-line Note (`No unit test coverage for <function/file>`) in directory mode, or report 🛑 note in file mode output. Skip fixing, building, and committing for this finding.
+     - **If covered by unit tests:** Proceed with the fix.
    - Fix it to achieve a _clean_ file — style nits included.
    - Prefer clang Fix-its (`code_actions`) and `rename` over hand-editing. Query `code_actions` at the finding's line before hand-fixing ([lsp-tool.md](lsp-tool.md)).
    - Route to HITL when the fix requires design decisions or breaks a public API. When unambiguous, fix it directly.
    - **Magic-number rule:** for `cppcoreguidelines-avoid-magic-numbers` and `readability-magic-numbers`, see [Magic-number handling](#magic-number-handling) below.
    - **Cognitive-complexity rule:** for `readability-function-cognitive-complexity`, see [Cognitive-complexity handling](#cognitive-complexity-handling) below.
-3. Re-run `{"action":"diagnostics","file":"<file>"}`. Repeat until zero findings.
+3. Re-run `{"action":"diagnostics","file":"<file>"}`. Repeat until zero findings (or only uncovered/HITL warnings remain).
 4. `cmake --build --preset dev-debug && ctest --preset dev-debug` (configure first if no build dir: `cmake --preset dev-debug`). All must pass.
 5. `git add` the touched files and commit: `style(diagnostic-sweep): clean <file>`.
-6. **If directory mode:** Edit `diagnostic-sweep.md`: row N → ✅. If HITL, → ⚠️ with a one-line Note. If wedged, → ⚠️ and the sweep stops.
+6. **If directory mode:** Edit `diagnostic-sweep.md`: row N → ✅ if clean, 🛑 with a Note if skipped due to no unit test coverage, or ⚠️ with a Note if HITL/wedged. If wedged, the sweep stops.
 
 ### NOLINT suppression (HITL)
 
@@ -116,5 +119,5 @@ auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile;
 ## 3. Done
 
 **Done when:**
-- **File mode:** `<path>` is clean (or marked HITL/wedged), committed, and build/tests pass.
-- **Directory mode:** Every row in `diagnostic-sweep.md` is ✅ or ⚠️ and a summary has been printed: N clean, M HITL.
+- **File mode:** `<path>` is clean (or marked 🛑 no unit test coverage / ⚠️ HITL / wedged), committed (if modified), and build/tests pass.
+- **Directory mode:** Every row in `diagnostic-sweep.md` is ✅, 🛑, or ⚠️ and a summary has been printed: N clean, K no unit test coverage, M HITL.
