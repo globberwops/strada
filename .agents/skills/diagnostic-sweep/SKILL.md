@@ -10,16 +10,16 @@ disable-model-invocation: true
 
 **Channel: clangd via `xd://lsp` exclusively.** If `xd://lsp` is _wedged_ — two consecutive errors on the same file after a reload — the sweep stops.
 
-- Schema, response shape, ordering rules, failure modes → [lsp-tool.md](lsp-tool.md)
+- Reference, payload format, failure modes → [lsp-tool.md](lsp-tool.md)
 - Setup troubleshooting → [clangd-setup.md](clangd-setup.md)
 
-## 1. Invocation & Target Handling
+## 1. Target Handling
 
-Accepts a path argument (`<path>`):
+Accepts `<path>` (defaults to `.`):
 
-- **File mode:** Process `<path>` directly through [File Processing Loop](#2-file-processing-loop) without creating `diagnostic-sweep.md`.
-- **Directory mode (or unspecified, defaulting to `.`):**
-  - Glob source and header files recursively inside `<path>`: `*.c *.cc *.cpp *.cxx *.h *.hpp *.hxx *.inl`. Exclude build dirs, `tools/`, third-party, generated.
+- **File mode (`<path>` is a file):** Process directly through [File Loop](#2-file-processing-loop) without creating `diagnostic-sweep.md`.
+- **Directory mode (`<path>` is a directory or `.`):**
+  - Glob C/C++ source and header files recursively inside `<path>`: `*.c *.cc *.cpp *.cxx *.h *.hpp *.hxx *.inl`. Exclude build dirs, `tools/`, third-party, generated.
   - Write `diagnostic-sweep.md` at repo root:
 
     ```markdown
@@ -29,50 +29,29 @@ Accepts a path argument (`<path>`):
     ```
 
     Status markers: ⬜ pending, ✅ clean, 🛑 no unit test coverage, ⚠️ HITL / wedged.
-  - Process each row sequentially through [File Processing Loop](#2-file-processing-loop).
+  - Process each row sequentially through [File Loop](#2-file-processing-loop).
 
 ## 2. File Processing Loop
 
-Finish each file entirely — diagnose, fix, re-verify, build, test, commit, and update status — before proceeding to the next.
+Finish each file entirely — diagnose, fix, re-verify, build, test, commit, update status — before proceeding to the next.
 
-1. `{"action":"diagnostics","file":"<file>"}` via `xd://lsp`. Read each finding.
-2. For each diagnostic:
-   - Read the cited code.
-   - **Coverage Gate:** Verify that the code or function containing the diagnostic is covered by existing unit tests.
-     - **If NOT covered by unit tests:** **Do NOT modify the code**. Leave the warning unedited. Mark row 🛑 in `diagnostic-sweep.md` with a one-line Note (`No unit test coverage for <function/file>`) in directory mode, or report 🛑 note in file mode output. Skip fixing, building, and committing for this finding.
-     - **If covered by unit tests:** Proceed with the fix.
-   - Fix it to achieve a _clean_ file — style nits included.
-   - Prefer clang Fix-its (`code_actions`) and `rename` over hand-editing. Query `code_actions` at the finding's line before hand-fixing ([lsp-tool.md](lsp-tool.md)).
-   - Route to HITL when the fix requires design decisions or breaks a public API. When unambiguous, fix it directly.
-   - **Magic-number rule:** for `cppcoreguidelines-avoid-magic-numbers` and `readability-magic-numbers`, see [Magic-number handling](#magic-number-handling) below.
-   - **Cognitive-complexity rule:** for `readability-function-cognitive-complexity`, see [Cognitive-complexity handling](#cognitive-complexity-handling) below.
-3. Re-run `{"action":"diagnostics","file":"<file>"}`. Repeat until zero findings (or only uncovered/HITL warnings remain).
-4. `cmake --build --preset dev-debug && ctest --preset dev-debug` (configure first if no build dir: `cmake --preset dev-debug`). All must pass.
-5. `git add` the touched files and commit: `style(diagnostic-sweep): clean <file>`.
-6. **If directory mode:** Edit `diagnostic-sweep.md`: row N → ✅ if clean, 🛑 with a Note if skipped due to no unit test coverage, or ⚠️ with a Note if HITL/wedged. If wedged, the sweep stops.
-
-### NOLINT suppression (HITL)
-
-When routing a finding to suppression, delegate application to the human:
-
-1. In directory mode, mark row ⚠️ in `diagnostic-sweep.md` with a one-line note (formula + reference for magic numbers; algorithm + justification for cognitive complexity). In file mode, report ⚠️ note in output.
-2. Leave warning unedited in file.
-3. Skip build, test, and commit — human applies NOLINT, comment, and commit.
+1. **Diagnose:** `{"action":"diagnostics","file":"<file>"}` via `xd://lsp`.
+2. **Evaluate findings:** For each diagnostic:
+   - **Coverage Gate:** Verify unit test coverage for cited code. If uncovered, leave unedited and mark 🛑 (Note: `No unit test coverage for <symbol>`).
+   - Query `code_actions` at finding location first; prefer LSP Fix-its and `rename` over hand-editing. Use `references` before editing exported symbols.
+   - If unambiguous, fix to achieve a _clean_ file (style nits included).
+   - If fix requires design decisions, breaks a public API, or hits magic-number / cognitive-complexity HITL rules, route to ⚠️ HITL (Note: formula/ref or algorithm/justification).
+3. **Re-verify:** Re-run `diagnostics`. Repeat step 2 until zero findings remain (or only 🛑/⚠️ findings remain).
+4. **Build & Test:** `cmake --build --preset dev-debug && ctest --preset dev-debug`.
+5. **Commit:** `git add` touched files and commit: `style(diagnostic-sweep): clean <file>`.
+6. **Update Status:** In directory mode, edit `diagnostic-sweep.md` row N → ✅ clean, 🛑 no coverage, ⚠️ HITL/wedged. In file mode, report final status. If wedged, stop the sweep.
 
 ### Magic-number handling
 
-When clangd flags `cppcoreguidelines-avoid-magic-numbers` or `readability-magic-numbers`, choose one of two paths:
+For `cppcoreguidelines-avoid-magic-numbers` or `readability-magic-numbers`:
 
-**Fix (extract named constant).** The default. Apply when constant carries domain meaning independent of formula (tolerances, thresholds, limits, physical constants). Example: `1e-9` → `kMinCurvature`.
-
-**Suppress via NOLINT (HITL).** Apply when constant is *structural* (value fixed by position in formula or series expansion). Per [NOLINT suppression (HITL)](#nolint-suppression-hitl), human applies marker and comment.
-
-The comment must precede the NOLINTNEXTLINE on the same line or in the same block, using `//` (not `/* */`). It must contain:
-
-- The general form of the formula, or its name.
-- A reference (textbook, paper, or standard) where the formula lives.
-
-Example:
+- **Fix (named constant):** Default for domain constants (tolerances, thresholds, physical constants). Extract named constant (e.g. `1e-9` → `kMinCurvature`).
+- **Suppress via NOLINT (HITL):** For structural constants (position in formula or series expansion). Route to ⚠️ HITL. Note format: formula name + reference.
 
 ```cpp
 // Taylor series for sin(x): x - x^3/3! + x^5/5! - x^7/7! + ...
@@ -83,41 +62,22 @@ const double kSeriesCoef = 5040.0;
 
 ### Cognitive-complexity handling
 
-When clangd flags `readability-function-cognitive-complexity`, choose one of two paths:
+For `readability-function-cognitive-complexity`:
 
-**Refactor (extract helper functions).** The default. Apply when complexity is *incidental* (tangled logic, mixed concerns, sequential blocks). Extract until helpers have single responsibilities and findings clear.
-
-**Suppress via NOLINT (HITL).** Apply when complexity is *algorithmic-essential* (branching structure IS the algorithm: state machine, recursive descent, multi-field parser). Per [NOLINT suppression (HITL)](#nolint-suppression-hitl), human applies marker and docblock. No compensating integration tests required.
-The function-level docblock must use `//` or `/* */` (per the file's existing comment style) and must contain, at minimum:
-
-- The name of the algorithm or computational pattern (e.g., "recursive-descent parser," "Pratt precedence climbing," "Gauss-Legendre quadrature," "OpenDRIVE XML element dispatch").
-- A **justification** for keeping the function as one piece. Valid justifications are specific to this function and include:
-  - **Shared state:** internal accumulators, builders, or flags that would need threading through helpers, with no clarity gain.
-  - **Profiled performance:** named bottleneck where helper-call overhead matters; cite the profiler output.
-  - **Algorithmic cohesion:** the algorithm is a single pass, single recursive descent, or single transaction, and decomposition does not match the algorithm's structure.
-  - **Format-driven dispatch:** the branching mirrors a published external format (XODR, JSON, etc.) and splitting would obscure the schema's shape.
-- Optional: a reference (textbook, paper, library documentation, format spec) describing the algorithm.
-
-Justifications must explain why no reasonable decomposition exists for the specific function.
-
-The NOLINTNEXTLINE marker goes on the function's declaration or definition line, immediately above the function signature, on the same line as the docblock.
-
-
-Example:
+- **Refactor (extract helpers):** Default for incidental complexity (tangled logic, sequential blocks). Extract single-responsibility helpers until findings clear.
+- **Suppress via NOLINT (HITL):** For algorithmic-essential complexity (state machine, recursive descent, multi-field parser). Route to ⚠️ HITL. Note format: algorithm name + justification.
 
 ```cpp
 /// \brief Recursive-descent parser for OpenDRIVE lateral profile elements
 /// \details Algorithm-essential complexity: each <superelevation>, <shape>,
 /// and <crossSectionSurface> branch is a distinct production in the XODR grammar
-/// (ASAM OpenDRIVE 1.9 §7.5). Shared state: the active profile pointer and
-/// coefficient vector are mutated inline; threading them through helpers would
-/// triple the parameter list without clarity gain.
+/// (ASAM OpenDRIVE 1.9 §7.5). Shared state: active profile pointer mutated inline.
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto ParseLateralProfile(pugi::xml_node lat_prof_node) -> ast::LateralProfile;
 ```
 
-## 3. Done
+## 3. Completion Criteria
 
 **Done when:**
-- **File mode:** `<path>` is clean (or marked 🛑 no unit test coverage / ⚠️ HITL / wedged), committed (if modified), and build/tests pass.
-- **Directory mode:** Every row in `diagnostic-sweep.md` is ✅, 🛑, or ⚠️ and a summary has been printed: N clean, K no unit test coverage, M HITL.
+- **File mode:** `<path>` is clean (or marked 🛑 no test coverage / ⚠️ HITL / wedged), committed (if modified), build and tests pass.
+- **Directory mode:** Every row in `diagnostic-sweep.md` is ✅, 🛑, or ⚠️ and summary reported (N clean, K no test coverage, M HITL).

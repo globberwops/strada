@@ -1,6 +1,6 @@
 # clangd via `xd://lsp`
 
-Reference for the `xd://lsp` tool surface, response format, ordering rules, and failure recovery.
+Reference for the `xd://lsp` tool surface, response format, and failure recovery.
 
 ## Tool surface
 
@@ -58,23 +58,11 @@ For `action: "diagnostics"` the payload is structured as:
 - `<check-name>` (in parens) is the rule id; look up the rule's intent when the fix is non-obvious.
 - A return of `OK` (no diagnostic count line) means the file is already clean.
 
-## Ordering rules
+## Failure modes & Recovery
 
-Do these in order, every row.
-
-1. Diagnose first using `{"action":"diagnostics","file":"<file>"}`.
-2. Re-verify after every edit until `diagnostics` returns zero findings.
-3. Prefer clang Fix-its (`code_actions`) before hand-editing: query `code_actions` at the finding's line/col and apply available Fix-it.
-4. Use `rename` for any symbol rename.
-5. Use `references` before editing an exported symbol.
-6. Reload when stuck: `{"action":"reload","file":"*"}` restarts all servers.
-
-## Failure modes
-
-Each error has a recovery action; if recovery fails, the file is _wedged_ — mark ⚠️ and stop.
+Each error has a recovery action; if recovery fails after reload, the file is _wedged_ — mark ⚠️ and stop.
 
 - `ERROR: server not running` → check `{"action":"status"}`. If empty, `{"action":"reload","file":"*"}` and retry.
-- `ERROR: no compile_commands.json` → run `cmake --preset dev-debug` and retry.
-- `ERROR: file not in compilation database` → verify file is listed in target `CMakeLists.txt`, reconfigure, and retry.
-- Header omitted from CMake source list → add to `CMakeLists.txt`, reconfigure, and re-diagnose.
+- `ERROR: no compile_commands.json` → see [clangd-setup.md](clangd-setup.md).
+- `ERROR: file not in compilation database` → verify file is listed in target `CMakeLists.txt`, reconfigure (`cmake --preset dev-debug`), and retry.
 - Wedged (2 consecutive errors on same file after reload) → mark ⚠️ and stop sweep.
